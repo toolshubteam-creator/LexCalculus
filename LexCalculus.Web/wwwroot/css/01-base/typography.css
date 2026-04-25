@@ -1,5 +1,6 @@
 body {
   font-family: var(--font-body);
+  font-size: var(--fs-body);
   color: var(--ink);
   line-height: 1.6;
   background: var(--parchment);
@@ -7,8 +8,6 @@ body {
     radial-gradient(circle at 20% 10%, rgba(184, 146, 74, 0.04) 0%, transparent 40%),
     radial-gradient(circle at 80% 80%, rgba(107, 31, 46, 0.03) 0%, transparent 40%);
   min-height: 100vh;
-  /* NOT: Referans HTML body'de font-size tanımlamaz (browser default 16px).
-     Spec'teki var(--fs-body) = 18px değeri uygulanmadı — referans kazandı. */
 }
 
 h1, h2, h3, h4, h5, h6 {

@@ -1,0 +1,62 @@
+/* === HESAPLAMA SAYFASI YAPI BİLEŞENLERİ === */
+/* Her hesaplama aracının (kıdem, faiz vs.) kullandığı standart layout */
+
+.calc-header {
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: var(--sp-8);
+  margin-bottom: var(--sp-12);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--sp-8);
+  align-items: end;
+}
+
+.calc-header__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-h2);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-snug);
+}
+
+.calc-header__title em {
+  font-style: italic;
+  color: var(--burgundy);
+  font-weight: 400;
+}
+
+.calc-meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  color: var(--ink-soft);
+  text-align: right;
+  line-height: 1.8;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.calc-meta strong {
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* Form (sol) + Result (sağ) çift sütun layout */
+.calc-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--sp-12);
+}
+
+@media (max-width: 900px) {
+  .calc-header {
+    grid-template-columns: 1fr;
+    gap: var(--sp-3);
+  }
+  .calc-meta {
+    text-align: left;
+  }
+  .calc-layout {
+    grid-template-columns: 1fr;
+    gap: var(--sp-8);
+  }
+}
