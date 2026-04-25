@@ -39,7 +39,8 @@
       "Read(//tmp/**)",
       "Bash(curl -k -s https://localhost:7080/health/live)",
       "Bash(curl -k -s https://localhost:7080/health/ready)",
-      "Bash(curl -k -s https://localhost:7080/health)"
+      "Bash(curl -k -s https://localhost:7080/health)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'status={d[\\\\\"status\\\\\"]}, totalMs={d[\\\\\"totalDurationMs\\\\\"]:.0f}'\\); [print\\(f' {c[\\\\\"name\\\\\"]}: {c[\\\\\"status\\\\\"]} \\({c[\\\\\"durationMs\\\\\"]:.0f}ms\\)'\\) for c in d['checks']]\")"
     ]
   }
 }
