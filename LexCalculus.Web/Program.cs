@@ -1,7 +1,9 @@
 using LexCalculus.Core.Entities.Identity;
+using LexCalculus.Core.Interfaces;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
 using LexCalculus.Infrastructure.Data.SeedData;
+using LexCalculus.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -52,6 +54,12 @@ try
             options.EnableSensitiveDataLogging();
         }
     });
+
+    // -------------------------------------------------------------------------
+    // REPOSITORY & UNIT OF WORK
+    // -------------------------------------------------------------------------
+    builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+    builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
     // -------------------------------------------------------------------------
     // ASP.NET IDENTITY
