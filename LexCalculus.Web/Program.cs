@@ -1,6 +1,7 @@
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
+using LexCalculus.Infrastructure.Data.SeedData;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -165,12 +166,37 @@ try
     app.MapRazorPages();
 
     // -------------------------------------------------------------------------
+    // STARTUP MIGRATIONS + SEED
+    // -------------------------------------------------------------------------
+    await using (var scope = app.Services.CreateAsyncScope())
+    {
+        var sp = scope.ServiceProvider;
+        var startupLogger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+
+        try
+        {
+            var dbContext = sp.GetRequiredService<ApplicationDbContext>();
+
+            startupLogger.LogInformation("Applying pending migrations…");
+            await dbContext.Database.MigrateAsync();
+            startupLogger.LogInformation("Migrations applied.");
+
+            var roleManager = sp.GetRequiredService<RoleManager<ApplicationRole>>();
+            await IdentitySeeder.SeedRolesAsync(roleManager, startupLogger);
+
+            var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
+            await IdentitySeeder.SeedAdminUserAsync(userManager, builder.Configuration, startupLogger);
+        }
+        catch (Exception ex)
+        {
+            startupLogger.LogCritical(ex, "Database migration or seeding failed. Application will NOT start.");
+            throw;
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // RUN
     // -------------------------------------------------------------------------
-    // NOT: Database.MigrateAsync ve IdentitySeeder çağrıları Adım 1.10 sonrası eklenecek.
-    // Şimdi sadece app boot ediyor; ilk DB operasyonunda EF Core Pending Migration hatası verecek
-    // veya tablo yokluğundan dolayı login/register endpoint'leri 500 dönecek. Beklenen davranış.
-
     Log.Information("LexCalculus.Web is ready");
     app.Run();
 }
