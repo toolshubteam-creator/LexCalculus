@@ -1,0 +1,22 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Hesabım";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<section class="hero">
+    <div class="hero__eyebrow">— Profil —</div>
+    <h1 class="hero__title">Hesap <em>ayarları</em></h1>
+    <p class="hero__lead">Profil bilgilerin, gizlilik tercihleri ve mesleki detayların.</p>
+</section>
+
+<div class="info-box">
+    <strong>Hazırlanıyor:</strong> Kapsamlı hesap yönetim arayüzü Faz 4'te (Sosyal Platform) hayata geçecek. Şimdilik sadece çıkış yapma ve şifre değiştirme dışındaki seçenekler kısıtlı.
+</div>
+
+<div style="text-align: center; margin-top: var(--sp-12);">
+    <form method="post" asp-area="Identity" asp-page="/Account/Logout">
+        <button type="submit" class="btn btn--ghost">Hesabımdan çıkış yap</button>
+    </form>
+</div>

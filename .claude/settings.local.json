@@ -8,7 +8,22 @@
       "Bash(git branch *)",
       "Bash(git remote *)",
       "Bash(git push *)",
-      "Bash(sqlcmd *)"
+      "Bash(sqlcmd *)",
+      "Bash(ls C:/Users/Esat/Desktop/Project/LexCalculus/LexCalculus.Web/Areas/Identity/Pages/Account/ForgotPasswordConfirmation*)",
+      "Bash(ls C:/Users/Esat/Desktop/Project/LexCalculus/LexCalculus.Web/Areas/Identity/Pages/Account/ResetPasswordConfirmation*)",
+      "Bash(dotnet run *)",
+      "Bash(curl -k -o /dev/null -w \"Login: %{http_code}\\\\n\" https://localhost:7080/Identity/Account/Login)",
+      "Bash(curl -k -o /dev/null -w \"Register: %{http_code}\\\\n\" https://localhost:7080/Identity/Account/Register)",
+      "Bash(curl -k -o /dev/null -w \"AccessDenied: %{http_code}\\\\n\" https://localhost:7080/Identity/Account/AccessDenied)",
+      "Bash(curl -k -o /dev/null -w \"ForgotPassword: %{http_code}\\\\n\" https://localhost:7080/Identity/Account/ForgotPassword)",
+      "Bash(curl -k https://localhost:7080/Identity/Account/Register)",
+      "Bash(kill %1)",
+      "Bash(wait)",
+      "Bash(taskkill //F //IM \"LexCalculus.Web.exe\")",
+      "Bash(curl -k -o /dev/null -w \"Login: %{http_code}\\\\n\" -s https://localhost:7080/Identity/Account/Login)",
+      "Bash(curl -k -o /dev/null -w \"Register: %{http_code}\\\\n\" -s https://localhost:7080/Identity/Account/Register)",
+      "Bash(curl -k -o /dev/null -w \"AccessDenied: %{http_code}\\\\n\" -s https://localhost:7080/Identity/Account/AccessDenied)",
+      "Bash(curl -k -o /dev/null -w \"ForgotPassword: %{http_code}\\\\n\" -s https://localhost:7080/Identity/Account/ForgotPassword)"
     ]
   }
 }

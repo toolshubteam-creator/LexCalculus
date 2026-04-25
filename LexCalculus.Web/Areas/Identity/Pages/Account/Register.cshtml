@@ -1,0 +1,54 @@
+@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Kayıt Ol";
+}
+
+<section class="hero">
+    <div class="hero__eyebrow">Anno MMXXVI</div>
+    <h1 class="hero__title">Yeni <em>hesap</em> oluştur</h1>
+    <p class="hero__lead">Lex Calculus topluluğuna katıl. Hesaplama araçları, mesleki bağlantılar ve mevzuat takibi seni bekliyor.</p>
+</section>
+
+<div style="max-width: 480px; margin: 0 auto;">
+    <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-section">
+        <h2 class="form-section__title">Hesap Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="Input.Email" class="field__label field__label--required">
+                E-posta <span class="required">*</span>
+            </label>
+            <input asp-for="Input.Email" class="field__input" autocomplete="username" aria-required="true" placeholder="ornek@eposta.com" />
+            <span asp-validation-for="Input.Email" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Password" class="field__label field__label--required">
+                Şifre <span class="required">*</span>
+            </label>
+            <input asp-for="Input.Password" class="field__input" autocomplete="new-password" aria-required="true" type="password" />
+            <span asp-validation-for="Input.Password" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.ConfirmPassword" class="field__label field__label--required">
+                Şifre Tekrar <span class="required">*</span>
+            </label>
+            <input asp-for="Input.ConfirmPassword" class="field__input" autocomplete="new-password" aria-required="true" type="password" />
+            <span asp-validation-for="Input.ConfirmPassword" class="field-hint"></span>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--block">Hesabı Oluştur</button>
+
+        <div style="margin-top: var(--sp-6); text-align: center; font-family: var(--font-mono); font-size: var(--fs-meta); letter-spacing: var(--tracking-wide); text-transform: uppercase;">
+            Zaten hesabın var mı?
+            <a asp-page="./Login" asp-route-returnUrl="@Model.ReturnUrl" style="color: var(--burgundy);">Giriş yap</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

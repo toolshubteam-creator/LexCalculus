@@ -1,0 +1,15 @@
+@page
+@model LogoutModel
+@{
+    ViewData["Title"] = "Çıkış Yap";
+}
+
+<section class="hero">
+    <div class="hero__eyebrow">— Görüşmek üzere —</div>
+    <h1 class="hero__title">Başarıyla <em>çıkış yaptın</em></h1>
+    <p class="hero__lead">Hesabından güvenli bir şekilde çıkış yaptın. Tekrar görüşmek dileğiyle.</p>
+</section>
+
+<div style="text-align: center; margin-top: var(--sp-12);">
+    <a class="btn btn--primary" asp-controller="Home" asp-action="Index">Ana sayfaya dön</a>
+</div>

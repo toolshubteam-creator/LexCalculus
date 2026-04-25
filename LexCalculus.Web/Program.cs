@@ -78,6 +78,10 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
+    // No-op email sender — real implementation comes in Phase 5
+    builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        Microsoft.AspNetCore.Identity.UI.Services.NoOpEmailSender>();
+
     // -------------------------------------------------------------------------
     // COOKIE — HttpOnly, Secure, SameSite.Strict
     // -------------------------------------------------------------------------
