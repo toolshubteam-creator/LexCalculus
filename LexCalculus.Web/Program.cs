@@ -68,6 +68,7 @@ try
     // -------------------------------------------------------------------------
     builder.Services.Configure<SeoSettings>(builder.Configuration.GetSection("SeoSettings"));
     builder.Services.AddSingleton<ISeoMetaProvider, DefaultSeoMetaProvider>();
+    builder.Services.AddScoped<ISitemapBuilder, DefaultSitemapBuilder>();
 
     // -------------------------------------------------------------------------
     // ASP.NET IDENTITY
@@ -139,6 +140,7 @@ try
     // MVC + RAZOR PAGES (Identity için lazım)
     // -------------------------------------------------------------------------
     var mvcBuilder = builder.Services.AddControllersWithViews();
+    builder.Services.AddResponseCaching();
     builder.Services.AddRazorPages();
 
     if (builder.Environment.IsDevelopment())
@@ -168,6 +170,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseStaticFiles();
+    app.UseResponseCaching();
 
     app.UseRouting();
 
