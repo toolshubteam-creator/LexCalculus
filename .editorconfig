@@ -1,0 +1,28 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_style = space
+indent_size = 4
+
+[*.{cshtml,html,css,js,json,xml,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.{csproj,props,targets}]
+indent_style = space
+indent_size = 2
+
+[*.cs]
+# public member documentation: warning seviyesinde, zorunlu değil
+dotnet_diagnostic.CS1591.severity = none
+# using direktifleri namespace dışında olsun
+csharp_using_directive_placement = outside_namespace:warning
+# null check tercihleri
+csharp_style_throw_expression = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion

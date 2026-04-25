@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="LexCalculus.Core/LexCalculus.Core.csproj" />
+  <Project Path="LexCalculus.Infrastructure/LexCalculus.Infrastructure.csproj" />
+  <Project Path="LexCalculus.Jobs/LexCalculus.Jobs.csproj" />
+  <Project Path="LexCalculus.Tests/LexCalculus.Tests.csproj" />
+  <Project Path="LexCalculus.Web/LexCalculus.Web.csproj" />
+</Solution>

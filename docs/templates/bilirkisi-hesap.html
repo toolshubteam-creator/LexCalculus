@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lex Calculus — Bilirkişilik Hesaplama Merkezi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a1428;
+    --ink-soft: #15243f;
+    --parchment: #f4ede0;
+    --parchment-deep: #e8dcc4;
+    --gold: #b8924a;
+    --gold-bright: #d4a960;
+    --burgundy: #6b1f2e;
+    --rule: #2a3a5a;
+    --muted: #8a9bb8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    background: var(--parchment);
+    color: var(--ink);
+    line-height: 1.6;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(184,146,74,0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(107,31,46,0.03) 0%, transparent 40%);
+  }
+
+  /* HEADER */
+  header {
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 0;
+    border-bottom: 3px double var(--gold);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    padding: 24px 48px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .brand-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--parchment);
+  }
+
+  .brand-mark .accent {
+    color: var(--gold-bright);
+    font-style: italic;
+  }
+
+  .brand-tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    padding-bottom: 4px;
+  }
+
+  .header-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .header-meta .date { color: var(--gold-bright); }
+
+  /* TAB NAVIGATION */
+  nav.tabs {
+    background: var(--ink-soft);
+    padding: 0 48px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  nav.tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    font-weight: 500;
+    padding: 18px 24px;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+    position: relative;
+  }
+
+  .tab:hover { color: var(--parchment); }
+
+  .tab.active {
+    color: var(--gold-bright);
+    border-bottom-color: var(--gold);
+  }
+
+  .tab .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--gold);
+    margin-right: 8px;
+    opacity: 0.7;
+  }
+
+  /* MAIN */
+  main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 56px 48px 80px;
+  }
+
+  .panel { display: none; animation: fadeIn 0.4s ease; }
+  .panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* HOME PAGE */
+  .hero {
+    text-align: center;
+    margin-bottom: 64px;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 24px;
+  }
+
+  .hero-eyebrow::before,
+  .hero-eyebrow::after {
+    content: '—';
+    margin: 0 16px;
+    color: var(--ink);
+    opacity: 0.3;
+  }
+
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--burgundy);
+    font-weight: 400;
+  }
+
+  .hero p {
+    font-size: 20px;
+    max-width: 640px;
+    margin: 0 auto;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .ornament {
+    text-align: center;
+    color: var(--gold);
+    font-size: 20px;
+    margin: 48px 0 56px;
+    letter-spacing: 1em;
+  }
+
+  /* TOOL GRID */
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1px;
+    background: var(--ink);
+    border: 1px solid var(--ink);
+  }
+
+  .tool-card {
+    background: var(--parchment);
+    padding: 32px 28px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 220px;
+  }
+
+  .tool-card:hover {
+    background: var(--ink);
+    color: var(--parchment);
+  }
+
+  .tool-card:hover .tool-num,
+  .tool-card:hover .tool-meta { color: var(--gold-bright); }
+
+  .tool-card:hover .tool-title { color: var(--parchment); }
+
+  .tool-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    margin-bottom: 16px;
+  }
+
+  .tool-title {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+
+  .tool-desc {
+    font-size: 16px;
+    color: inherit;
+    opacity: 0.75;
+    flex-grow: 1;
+    margin-bottom: 16px;
+  }
+
+  .tool-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-soft);
+    opacity: 0.6;
+    border-top: 1px solid currentColor;
+    padding-top: 12px;
+  }
+
+  .tool-card.coming-soon { opacity: 0.55; cursor: not-allowed; }
+  .tool-card.coming-soon:hover { background: var(--parchment); color: var(--ink); }
+
+  /* CALCULATOR PANELS */
+  .calc-header {
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: end;
+  }
+
+  .calc-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .calc-header h2 em {
+    font-style: italic;
+    color: var(--burgundy);
+  }
+
+  .calc-header .calc-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: right;
+    line-height: 1.8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .calc-header .calc-meta strong { color: var(--gold); }
+
+  .calc-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 48px;
+  }
+
+  @media (max-width: 900px) {
+    .calc-layout { grid-template-columns: 1fr; }
+    .header-top { flex-direction: column; align-items: flex-start; gap: 12px; }
+    main { padding: 32px 24px; }
+    .calc-header { grid-template-columns: 1fr; }
+    .calc-header .calc-meta { text-align: left; }
+  }
+
+  /* FORM */
+  .form-section {
+    background: rgba(255,255,255,0.4);
+    border: 1px solid var(--parchment-deep);
+    padding: 32px;
+  }
+
+  .form-section h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--parchment-deep);
+    color: var(--ink);
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+
+  .field label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .field label .required { color: var(--burgundy); }
+
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--parchment);
+    border: 1px solid var(--parchment-deep);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: var(--ink);
+    transition: all 0.2s ease;
+  }
+
+  .field input:focus,
+  .field select:focus {
+    outline: none;
+    border-color: var(--gold);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(184,146,74,0.15);
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .field-hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  .btn-calc {
+    width: 100%;
+    background: var(--ink);
+    color: var(--parchment);
+    border: none;
+    padding: 16px 24px;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    margin-top: 16px;
+    transition: all 0.2s ease;
+    border: 1px solid var(--ink);
+  }
+
+  .btn-calc:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+
+  /* RESULT */
+  .result-section {
+    background: var(--ink);
+    color: var(--parchment);
+    padding: 32px;
+    position: relative;
+    border: 1px solid var(--ink);
+  }
+
+  .result-section::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 8px; right: 8px; bottom: 8px;
+    border: 1px solid var(--gold);
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  .result-section h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--gold-bright);
+    margin-bottom: 24px;
+  }
+
+  .result-empty {
+    text-align: center;
+    padding: 48px 16px;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 17px;
+  }
+
+  .result-total {
+    text-align: center;
+    margin-bottom: 24px;
+    padding: 24px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .result-total .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--gold-bright);
+    margin-bottom: 12px;
+  }
+
+  .result-total .amount {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 500;
+    color: var(--parchment);
+    letter-spacing: -0.02em;
+  }
+
+  .result-total .amount .currency {
+    font-size: 22px;
+    color: var(--gold-bright);
+    font-weight: 400;
+    margin-left: 6px;
+  }
+
+  .result-rows {
+    margin-top: 24px;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-size: 16px;
+  }
+
+  .result-row:last-child { border-bottom: none; }
+
+  .result-row .key {
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .result-row .val {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    color: var(--parchment);
+    font-weight: 500;
+  }
+
+  .result-note {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(184,146,74,0.08);
+    border-left: 3px solid var(--gold);
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 3px double var(--gold);
+    background: var(--ink);
+    color: var(--muted);
+    padding: 32px 48px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  footer .disclaimer {
+    color: var(--gold-bright);
+    margin-bottom: 8px;
+  }
+
+  /* INFO BOX */
+  .info-box {
+    background: rgba(107,31,46,0.05);
+    border-left: 3px solid var(--burgundy);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+
+  .info-box strong {
+    color: var(--burgundy);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <div class="brand-mark">Lex<span class="accent">Calculus</span></div>
+      <div class="brand-tagline">Bilirkişilik Hesaplama Merkezi</div>
+    </div>
+    <div class="header-meta">
+      <div>Avukatlar İçin Profesyonel Araç</div>
+      <div class="date" id="currentDate">—</div>
+    </div>
+  </div>
+  <nav class="tabs" id="tabNav">
+    <button class="tab active" data-panel="home"><span class="num">00</span>Ana Sayfa</button>
+    <button class="tab" data-panel="akturya"><span class="num">01</span>Aktüerya</button>
+    <button class="tab" data-panel="kidem"><span class="num">02</span>Kıdem & İhbar</button>
+    <button class="tab" data-panel="kat"><span class="num">03</span>Kat Mülkiyeti</button>
+    <button class="tab" data-panel="faiz"><span class="num">04</span>Faiz Hesabı</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- HOME -->
+  <section class="panel active" id="panel-home">
+    <div class="hero">
+      <div class="hero-eyebrow">Anno MMXXVI</div>
+      <h1>Bilirkişilik raporlarına eşlik eden <em>hesaplama araçları</em>.</h1>
+      <p>Avukatların adli ve idari yargı süreçlerinde sıklıkla başvurduğu bilirkişilik alt alanlarına yönelik, otomatik ve şeffaf hesaplama modülleri.</p>
+    </div>
+
+    <div class="ornament">❦ ❦ ❦</div>
+
+    <div class="tools-grid">
+      <div class="tool-card" data-go="akturya">
+        <div class="tool-num">№ 01 — AKTÜERYA</div>
+        <div class="tool-title">Destekten Yoksun Kalma Tazminatı</div>
+        <div class="tool-desc">Trafik kazası, iş kazası ve haksız fiil kaynaklı ölüm hâllerinde yakınların maddi tazminat hesabı. PMF tablosu ve progresif rant esasına göre.</div>
+        <div class="tool-meta">TRH 2010 · Aktif</div>
+      </div>
+
+      <div class="tool-card" data-go="kidem">
+        <div class="tool-num">№ 02 — İŞ HUKUKU</div>
+        <div class="tool-title">Kıdem & İhbar Tazminatı</div>
+        <div class="tool-desc">İş Kanunu 17. ve mülga 1475 sayılı 14. madde kapsamında kıdem tazminatı, ihbar süresi ve yıllık izin alacaklarının hesaplanması.</div>
+        <div class="tool-meta">İş K. m.17 / m.14 · Aktif</div>
+      </div>
+
+      <div class="tool-card" data-go="kat">
+        <div class="tool-num">№ 03 — EŞYA HUKUKU</div>
+        <div class="tool-title">Kat Mülkiyeti / Arsa Payı</div>
+        <div class="tool-desc">634 sayılı KMK uyarınca bağımsız bölümlerin arsa paylarının yeniden tesisi ve denklik kontrolü.</div>
+        <div class="tool-meta">KMK m.3 · Aktif</div>
+      </div>
+
+      <div class="tool-card" data-go="faiz">
+        <div class="tool-num">№ 04 — ALACAK</div>
+        <div class="tool-title">Faiz & Güncelleme Hesabı</div>
+        <div class="tool-desc">Yasal faiz, ticari faiz, temerrüt faizi ve TÜFE/ÜFE üzerinden alacakların güncel değerinin hesaplanması.</div>
+        <div class="tool-meta">3095 SK · Aktif</div>
+      </div>
+
+      <div class="tool-card coming-soon">
+        <div class="tool-num">№ 05 — TAŞINMAZ</div>
+        <div class="tool-title">Kira Tespiti & Uyarlama</div>
+        <div class="tool-desc">TBK m.344 hak ve nesafet ilkesi çerçevesinde kira bedelinin yeniden tespiti.</div>
+        <div class="tool-meta">Yakında</div>
+      </div>
+
+      <div class="tool-card coming-soon">
+        <div class="tool-num">№ 06 — TRAFİK</div>
+        <div class="tool-title">Maluliyet Oranı / Sürekli İş Göremezlik</div>
+        <div class="tool-desc">Erişkinler İçin Engellilik Yönetmeliği'ne göre balthazard formülü ile birleşik oran.</div>
+        <div class="tool-meta">Yakında</div>
+      </div>
+
+      <div class="tool-card coming-soon">
+        <div class="tool-num">№ 07 — MİRAS</div>
+        <div class="tool-title">Tenkis & Saklı Pay Hesabı</div>
+        <div class="tool-desc">TMK m.560 vd. tasarruf nisabı, saklı pay oranları ve tenkis sıralaması.</div>
+        <div class="tool-meta">Yakında</div>
+      </div>
+
+      <div class="tool-card coming-soon">
+        <div class="tool-num">№ 08 — TİCARET</div>
+        <div class="tool-title">Çek & Senet Vade Hesabı</div>
+        <div class="tool-desc">TTK uyarınca kıymetli evrakta vade, ibraz süresi ve faiz başlangıç tarihleri.</div>
+        <div class="tool-meta">Yakında</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AKTUARYAL HESAPLAMA -->
+  <section class="panel" id="panel-akturya">
+    <div class="calc-header">
+      <h2>Destekten Yoksun Kalma <em>Tazminatı</em></h2>
+      <div class="calc-meta">
+        Modül № 01<br>
+        <strong>Aktüer Esaslı</strong><br>
+        TRH 2010 / PMF
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Yöntem:</strong> Hesaplama, ölenin desteğinden yoksun kalanların yaşam süresi boyunca uğrayacağı kaybı, progresif rant yöntemi ile tespit eder. Aktif çalışma dönemi için yıllık %1,5 reel artış varsayımı uygulanmıştır. Kesin değer için aktüer raporu gereklidir.
+    </div>
+
+    <div class="calc-layout">
+      <div class="form-section">
+        <h3>Olay & Kişi Bilgileri</h3>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Ölenin Yaşı <span class="required">*</span></label>
+            <input type="number" id="ak-yas" value="35" min="0" max="100">
+          </div>
+          <div class="field">
+            <label>Cinsiyeti</label>
+            <select id="ak-cinsiyet">
+              <option value="erkek">Erkek</option>
+              <option value="kadin">Kadın</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Aylık Net Geliri (TL) <span class="required">*</span></label>
+          <input type="number" id="ak-gelir" value="35000" min="0">
+          <div class="field-hint">Asgari ücretin altında ise asgari ücret esas alınır.</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Eş Yaşı (varsa)</label>
+            <input type="number" id="ak-es-yas" value="32" min="0" max="100">
+          </div>
+          <div class="field">
+            <label>Çocuk Sayısı</label>
+            <input type="number" id="ak-cocuk" value="2" min="0" max="10">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Destek Payı Yöntemi</label>
+          <select id="ak-pay">
+            <option value="standart">Standart Pay (Eş 2, Çocuk 1, Öl. 2)</option>
+            <option value="esit">Eşit Pay Dağılımı</option>
+          </select>
+          <div class="field-hint">Yargıtay içtihatları standart pay yöntemini benimsemektedir.</div>
+        </div>
+
+        <button class="btn-calc" onclick="hesaplaAkturya()">Tazminatı Hesapla</button>
+      </div>
+
+      <div class="result-section">
+        <h3>Hesaplama Sonucu</h3>
+        <div id="ak-result">
+          <div class="result-empty">Bilgileri girip hesaplama başlatınız.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KIDEM TAZMINATI -->
+  <section class="panel" id="panel-kidem">
+    <div class="calc-header">
+      <h2>Kıdem & İhbar <em>Tazminatı</em></h2>
+      <div class="calc-meta">
+        Modül № 02<br>
+        <strong>İş Hukuku</strong><br>
+        İş K. m.17 / 1475 m.14
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Hesaplama Esası:</strong> Kıdem tazminatı her tam yıl için 30 günlük giydirilmiş brüt ücret üzerinden hesaplanır ve <strong>2026 yılı kıdem tazminatı tavanı</strong> ile sınırlıdır. İhbar süresi kıdeme göre 2-8 hafta arasında değişir.
+    </div>
+
+    <div class="calc-layout">
+      <div class="form-section">
+        <h3>Çalışma Bilgileri</h3>
+
+        <div class="field-row">
+          <div class="field">
+            <label>İşe Giriş Tarihi <span class="required">*</span></label>
+            <input type="date" id="kd-giris" value="2018-03-15">
+          </div>
+          <div class="field">
+            <label>İşten Çıkış Tarihi <span class="required">*</span></label>
+            <input type="date" id="kd-cikis" value="2026-04-25">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Aylık Brüt Ücret (TL) <span class="required">*</span></label>
+          <input type="number" id="kd-brut" value="40000" min="0">
+        </div>
+
+        <div class="field">
+          <label>Aylık Yan Haklar Toplamı (TL)</label>
+          <input type="number" id="kd-yan" value="3000" min="0">
+          <div class="field-hint">Yemek, yol, ikramiye, prim vb. düzenli ödemeler.</div>
+        </div>
+
+        <div class="field">
+          <label>İhbar Tazminatı Hesaplansın mı?</label>
+          <select id="kd-ihbar">
+            <option value="evet">Evet (işveren feshi)</option>
+            <option value="hayir">Hayır (işçi feshi)</option>
+          </select>
+        </div>
+
+        <button class="btn-calc" onclick="hesaplaKidem()">Tazminatları Hesapla</button>
+      </div>
+
+      <div class="result-section">
+        <h3>Hesaplama Sonucu</h3>
+        <div id="kd-result">
+          <div class="result-empty">Bilgileri girip hesaplama başlatınız.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KAT MULKIYETI -->
+  <section class="panel" id="panel-kat">
+    <div class="calc-header">
+      <h2>Kat Mülkiyeti / <em>Arsa Payı</em></h2>
+      <div class="calc-meta">
+        Modül № 03<br>
+        <strong>Eşya Hukuku</strong><br>
+        KMK m.3
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Yöntem:</strong> Her bağımsız bölümün <em>değer ağırlıklı yüzölçümü</em> hesaplanır, toplam değer içindeki yüzdesi alınır ve 1000 üzerinden arsa payı tespit edilir. Değer katsayısı; kat, cephe, kullanım amacı gibi faktörlere göre belirlenir.
+    </div>
+
+    <div class="calc-layout">
+      <div class="form-section">
+        <h3>Bağımsız Bölümler</h3>
+        <div id="kat-rows"></div>
+        <button class="btn-calc" style="background:var(--burgundy); border-color:var(--burgundy); margin-top:8px;" onclick="addKatRow()">+ Bağımsız Bölüm Ekle</button>
+        <button class="btn-calc" onclick="hesaplaKat()">Arsa Paylarını Hesapla</button>
+      </div>
+
+      <div class="result-section">
+        <h3>Hesaplama Sonucu</h3>
+        <div id="kat-result">
+          <div class="result-empty">Bağımsız bölüm bilgilerini girip hesaplama başlatınız.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAIZ HESABI -->
+  <section class="panel" id="panel-faiz">
+    <div class="calc-header">
+      <h2>Faiz & <em>Güncelleme</em></h2>
+      <div class="calc-meta">
+        Modül № 04<br>
+        <strong>Alacak Hukuku</strong><br>
+        3095 SK
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Not:</strong> Yasal faiz oranları dönemler itibariyle değişkenlik gösterir. Bu modül basitleştirilmiş hesap için tek oran kullanır; <strong>kesin işlemiş faiz hesabı için dönemsel oran tablosu</strong> entegrasyonu gerekir.
+    </div>
+
+    <div class="calc-layout">
+      <div class="form-section">
+        <h3>Alacak Bilgileri</h3>
+
+        <div class="field">
+          <label>Anapara Tutarı (TL) <span class="required">*</span></label>
+          <input type="number" id="fz-anapara" value="100000" min="0">
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Faiz Başlangıç Tarihi <span class="required">*</span></label>
+            <input type="date" id="fz-baslangic" value="2023-01-15">
+          </div>
+          <div class="field">
+            <label>Hesap Tarihi <span class="required">*</span></label>
+            <input type="date" id="fz-bitis" value="2026-04-25">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Faiz Türü</label>
+          <select id="fz-tur" onchange="updateFaizOran()">
+            <option value="9">Yasal Faiz (%9 yıllık)</option>
+            <option value="13.75">Reeskont/Avans Faizi (%13,75)</option>
+            <option value="36">Ticari Temerrüt Faizi (%36)</option>
+            <option value="custom">Özel Oran</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Yıllık Faiz Oranı (%)</label>
+          <input type="number" id="fz-oran" value="9" min="0" step="0.01">
+        </div>
+
+        <div class="field">
+          <label>Hesaplama Yöntemi</label>
+          <select id="fz-yontem">
+            <option value="basit">Basit Faiz (gün/365)</option>
+            <option value="bilesik">Bileşik Faiz (yıllık)</option>
+          </select>
+        </div>
+
+        <button class="btn-calc" onclick="hesaplaFaiz()">Faizi Hesapla</button>
+      </div>
+
+      <div class="result-section">
+        <h3>Hesaplama Sonucu</h3>
+        <div id="fz-result">
+          <div class="result-empty">Bilgileri girip hesaplama başlatınız.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="disclaimer">⚖ Bu araçlar bilgilendirme amaçlıdır. Kesin değer için bilirkişi raporu esas alınmalıdır. ⚖</div>
+  <div>LEX CALCULUS · MMXXVI · TÜM HAKLARI SAKLIDIR</div>
+</footer>
+
+<script>
+  // === DATE ===
+  const aylar = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+  const today = new Date();
+  document.getElementById('currentDate').textContent =
+    today.getDate() + ' ' + aylar[today.getMonth()] + ' ' + today.getFullYear();
+
+  // === TABS ===
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+  function showPanel(id) {
+    panels.forEach(p => p.classList.remove('active'));
+    tabs.forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    document.querySelector(`.tab[data-panel="${id}"]`).classList.add('active');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+  tabs.forEach(tab => tab.addEventListener('click', () => showPanel(tab.dataset.panel)));
+  document.querySelectorAll('.tool-card[data-go]').forEach(card => {
+    card.addEventListener('click', () => showPanel(card.dataset.go));
+  });
+
+  // === HELPERS ===
+  function fmt(n) {
+    return new Intl.NumberFormat('tr-TR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(n);
+  }
+  function fmtInt(n) {
+    return new Intl.NumberFormat('tr-TR').format(Math.round(n));
+  }
+  function buildResult(total, totalLabel, rows, note) {
+    let html = `
+      <div class="result-total">
+        <div class="label">${totalLabel}</div>
+        <div class="amount">${fmt(total)}<span class="currency">TL</span></div>
+      </div>
+      <div class="result-rows">`;
+    rows.forEach(r => {
+      html += `<div class="result-row"><span class="key">${r[0]}</span><span class="val">${r[1]}</span></div>`;
+    });
+    html += `</div>`;
+    if (note) html += `<div class="result-note">${note}</div>`;
+    return html;
+  }
+
+  // === AKTUARYAL ===
+  // Basitleştirilmiş PMF 2010 yaşam süresi tablosu (yıl olarak kalan ömür)
+  const pmf = {
+    erkek: {0:74,5:69,10:64,15:59,20:54,25:50,30:45,35:40,40:35,45:30,50:26,55:22,60:18,65:14,70:11,75:8,80:6,85:4,90:3,95:2,100:1},
+    kadin: {0:80,5:75,10:70,15:65,20:60,25:55,30:50,35:45,40:40,45:35,50:30,55:26,60:21,65:17,70:13,75:9,80:7,85:5,90:3,95:2,100:1}
+  };
+  function getYasamSuresi(yas, cinsiyet) {
+    const tbl = pmf[cinsiyet];
+    const keys = Object.keys(tbl).map(Number).sort((a,b)=>a-b);
+    let yakin = keys[0];
+    for (const k of keys) if (k <= yas) yakin = k;
+    return tbl[yakin];
+  }
+
+  function hesaplaAkturya() {
+    const yas = +document.getElementById('ak-yas').value;
+    const cinsiyet = document.getElementById('ak-cinsiyet').value;
+    const gelir = +document.getElementById('ak-gelir').value;
+    const esYas = +document.getElementById('ak-es-yas').value;
+    const cocuk = +document.getElementById('ak-cocuk').value;
+    const payYontem = document.getElementById('ak-pay').value;
+
+    if (!gelir || !yas) { alert('Lütfen yaş ve gelir bilgisi giriniz.'); return; }
+
+    const yasamSuresi = getYasamSuresi(yas, cinsiyet);
+    const aktifSure = Math.max(0, Math.min(60, 65 - yas)); // 65 yaşına kadar aktif
+    const pasifSure = Math.max(0, yasamSuresi - aktifSure);
+
+    const yillikGelir = gelir * 12;
+
+    // Destek payları
+    let olenPay, esPay, cocukPay;
+    if (payYontem === 'standart') {
+      const toplam = 2 + (esYas > 0 ? 2 : 0) + cocuk * 1;
+      olenPay = 2 / toplam;
+      esPay = esYas > 0 ? 2 / toplam : 0;
+      cocukPay = cocuk > 0 ? (cocuk * 1) / toplam : 0;
+    } else {
+      const kisi = 1 + (esYas > 0 ? 1 : 0) + cocuk;
+      olenPay = 1 / kisi;
+      esPay = esYas > 0 ? 1 / kisi : 0;
+      cocukPay = cocuk > 0 ? cocuk / kisi : 0;
+    }
+    const destekOrani = 1 - olenPay;
+
+    // Aktif dönem - yıllık %1.5 reel artışla iskontolanmış değer (basitleştirilmiş)
+    // Iskonto faktörü 1 (reel), artış 1.5% -> net büyüme ~1.5% aktif dönemde
+    let aktifTutar = 0;
+    for (let i = 0; i < aktifSure; i++) {
+      aktifTutar += yillikGelir * Math.pow(1.015, i);
+    }
+
+    // Pasif dönem - asgari ücret seviyesi (yaklaşık %50)
+    let pasifTutar = 0;
+    const pasifGelir = yillikGelir * 0.5;
+    for (let i = 0; i < pasifSure; i++) {
+      pasifTutar += pasifGelir;
+    }
+
+    const toplamGelir = aktifTutar + pasifTutar;
+    const toplamDestek = toplamGelir * destekOrani;
+    const esTazminat = toplamDestek * (esPay / destekOrani || 0);
+    const cocukTazminat = toplamDestek * (cocukPay / destekOrani || 0);
+
+    const rows = [
+      ['Beklenen Yaşam Süresi', yasamSuresi + ' yıl'],
+      ['Aktif Çalışma Dönemi', aktifSure + ' yıl'],
+      ['Pasif Dönem', pasifSure + ' yıl'],
+      ['Yıllık Net Gelir', fmt(yillikGelir) + ' TL'],
+      ['Destek Oranı (Yakınlar)', '%' + (destekOrani*100).toFixed(1)],
+    ];
+    if (esYas > 0) rows.push(['Eş Tazminatı', fmt(esTazminat) + ' TL']);
+    if (cocuk > 0) rows.push(['Çocuk(lar) Tazminatı (toplam)', fmt(cocukTazminat) + ' TL']);
+
+    document.getElementById('ak-result').innerHTML = buildResult(
+      toplamDestek,
+      'Toplam Destekten Yoksun Kalma Tazminatı',
+      rows,
+      'Bu hesap basitleştirilmiş progresif rant yöntemi ile yapılmıştır. Gerçek bilirkişi raporunda kişiselleştirilmiş PMF, dönemsel iskonto ve yetiştirme süresi gibi faktörler dikkate alınır.'
+    );
+  }
+
+  // === KIDEM TAZMINATI ===
+  const KIDEM_TAVAN_2026 = 53919.68; // 2026 ilk yarı tahmini, güncellenebilir
+
+  function hesaplaKidem() {
+    const giris = new Date(document.getElementById('kd-giris').value);
+    const cikis = new Date(document.getElementById('kd-cikis').value);
+    const brut = +document.getElementById('kd-brut').value;
+    const yan = +document.getElementById('kd-yan').value || 0;
+    const ihbarVar = document.getElementById('kd-ihbar').value === 'evet';
+
+    if (!giris || !cikis || cikis <= giris) { alert('Geçerli tarihler giriniz.'); return; }
+    if (!brut) { alert('Brüt ücret giriniz.'); return; }
+
+    const msFark = cikis - giris;
+    const gunFark = msFark / (1000 * 60 * 60 * 24);
+    const tamYil = Math.floor(gunFark / 365.25);
+    const kalanGun = Math.floor(gunFark - tamYil * 365.25);
+    const toplamYil = gunFark / 365.25;
+
+    const giydirilmis = Math.min(brut + yan, KIDEM_TAVAN_2026);
+    const tavanAsildi = (brut + yan) > KIDEM_TAVAN_2026;
+
+    // Kıdem tazminatı: 30 gün × giydirilmiş × tam yıl + (kalan gün için orantı)
+    const kidem = (giydirilmis * 30 / 30) * toplamYil; // = giydirilmis * yil
+
+    // İhbar süresi
+    let ihbarHaftasi = 0;
+    if (toplamYil < 0.5) ihbarHaftasi = 2;
+    else if (toplamYil < 1.5) ihbarHaftasi = 4;
+    else if (toplamYil < 3) ihbarHaftasi = 6;
+    else ihbarHaftasi = 8;
+    const gunlukUcret = brut / 30;
+    const ihbar = ihbarVar ? gunlukUcret * (ihbarHaftasi * 7) : 0;
+
+    const toplam = kidem + ihbar;
+
+    const rows = [
+      ['Toplam Çalışma Süresi', tamYil + ' yıl ' + kalanGun + ' gün'],
+      ['Giydirilmiş Ücret (Aylık)', fmt(giydirilmis) + ' TL'],
+      ['Kıdem Tazminatı', fmt(kidem) + ' TL'],
+    ];
+    if (ihbarVar) {
+      rows.push(['İhbar Süresi', ihbarHaftasi + ' hafta']);
+      rows.push(['İhbar Tazminatı (brüt)', fmt(ihbar) + ' TL']);
+    }
+
+    let note = `Hesaplamada 2026 yılı kıdem tazminatı tavanı olarak <strong>${fmt(KIDEM_TAVAN_2026)} TL</strong> kullanılmıştır.`;
+    if (tavanAsildi) note += ' Giydirilmiş ücret tavanı aştığı için tavan değer esas alınmıştır.';
+    note += ' Kıdem tazminatından sadece damga vergisi kesilir, gelir vergisi muafiyeti vardır.';
+
+    document.getElementById('kd-result').innerHTML = buildResult(
+      toplam,
+      'Toplam Tazminat (Brüt)',
+      rows,
+      note
+    );
+  }
+
+  // === KAT MULKIYETI ===
+  let katRowCount = 0;
+  function addKatRow(no = '', m2 = '', kat = 1, kullanim = 'mesken') {
+    katRowCount++;
+    const div = document.createElement('div');
+    div.className = 'field';
+    div.style.cssText = 'display:grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:12px;';
+    div.innerHTML = `
+      <div><label style="font-size:9px;">B.B. No</label><input type="text" class="kat-no" value="${no || katRowCount}" placeholder="1"></div>
+      <div><label style="font-size:9px;">m²</label><input type="number" class="kat-m2" value="${m2 || 100}" placeholder="100"></div>
+      <div><label style="font-size:9px;">Kat</label><input type="number" class="kat-kat" value="${kat}" placeholder="1"></div>
+      <div><label style="font-size:9px;">Kullanım</label>
+        <select class="kat-kullanim">
+          <option value="mesken" ${kullanim==='mesken'?'selected':''}>Mesken</option>
+          <option value="dukkan" ${kullanim==='dukkan'?'selected':''}>Dükkan/Ofis</option>
+          <option value="bodrum" ${kullanim==='bodrum'?'selected':''}>Bodrum/Depo</option>
+        </select>
+      </div>
+      <button onclick="this.parentElement.remove()" style="background:var(--burgundy); color:white; border:none; padding:12px; cursor:pointer; font-family:monospace;">×</button>
+    `;
+    document.getElementById('kat-rows').appendChild(div);
+  }
+
+  // Initialize with sample rows
+  addKatRow('1', 120, 1, 'mesken');
+  addKatRow('2', 95, 2, 'mesken');
+  addKatRow('3', 95, 3, 'mesken');
+  addKatRow('4', 60, 0, 'dukkan');
+
+  function hesaplaKat() {
+    const rows = document.querySelectorAll('#kat-rows > div');
+    if (rows.length === 0) { alert('En az bir bağımsız bölüm ekleyiniz.'); return; }
+
+    const data = [];
+    let toplamDeger = 0;
+
+    rows.forEach(r => {
+      const no = r.querySelector('.kat-no').value;
+      const m2 = +r.querySelector('.kat-m2').value;
+      const kat = +r.querySelector('.kat-kat').value;
+      const kullanim = r.querySelector('.kat-kullanim').value;
+
+      // Değer katsayısı
+      let katsayi = 1;
+      // Kullanım türü
+      if (kullanim === 'dukkan') katsayi *= 1.8; // dükkan değer fazlası
+      if (kullanim === 'bodrum') katsayi *= 0.6;
+      // Kat etkisi (mesken için)
+      if (kullanim === 'mesken') {
+        if (kat === 0) katsayi *= 0.95;
+        else if (kat === 1) katsayi *= 1.0;
+        else if (kat === 2) katsayi *= 1.05;
+        else if (kat === 3) katsayi *= 1.08;
+        else if (kat >= 4) katsayi *= 1.10;
+      }
+
+      const deger = m2 * katsayi;
+      toplamDeger += deger;
+      data.push({no, m2, kat, kullanim, katsayi, deger});
+    });
+
+    // Arsa payını 1000 üzerinden hesapla
+    let toplamPay = 0;
+    data.forEach(d => {
+      d.pay = (d.deger / toplamDeger) * 1000;
+      toplamPay += d.pay;
+    });
+
+    let html = `
+      <div class="result-total">
+        <div class="label">Toplam Arsa Payı</div>
+        <div class="amount">${fmt(toplamPay)}<span class="currency">/1000</span></div>
+      </div>
+      <div class="result-rows">`;
+
+    data.forEach(d => {
+      const kullanimTxt = d.kullanim === 'mesken' ? 'Mesken' : (d.kullanim === 'dukkan' ? 'Dükkan' : 'Bodrum');
+      html += `<div class="result-row">
+        <span class="key">B.B. ${d.no} · ${d.m2}m² · ${kullanimTxt} · K.${d.kat}</span>
+        <span class="val">${fmt(d.pay)} / 1000</span>
+      </div>`;
+    });
+
+    html += `</div>
+      <div class="result-note">
+        Hesaplama, KMK m.3 kapsamında değer ağırlıklı yüzölçümü esasına göre yapılmıştır.
+        Katsayılar: dükkan +%80, bodrum -%40, kat artışı %0–10. Toplam pay 1000 üzerinden dağıtılmıştır.
+      </div>`;
+
+    document.getElementById('kat-result').innerHTML = html;
+  }
+
+  // === FAIZ ===
+  function updateFaizOran() {
+    const tur = document.getElementById('fz-tur').value;
+    if (tur !== 'custom') {
+      document.getElementById('fz-oran').value = tur;
+    }
+  }
+
+  function hesaplaFaiz() {
+    const anapara = +document.getElementById('fz-anapara').value;
+    const baslangic = new Date(document.getElementById('fz-baslangic').value);
+    const bitis = new Date(document.getElementById('fz-bitis').value);
+    const oran = +document.getElementById('fz-oran').value;
+    const yontem = document.getElementById('fz-yontem').value;
+
+    if (!anapara || !oran) { alert('Anapara ve faiz oranı giriniz.'); return; }
+    if (bitis <= baslangic) { alert('Bitiş tarihi başlangıçtan sonra olmalıdır.'); return; }
+
+    const gunFark = (bitis - baslangic) / (1000 * 60 * 60 * 24);
+    const yilFark = gunFark / 365;
+
+    let faiz, toplam;
+    if (yontem === 'basit') {
+      faiz = anapara * (oran / 100) * yilFark;
+    } else {
+      toplam = anapara * Math.pow(1 + oran/100, yilFark);
+      faiz = toplam - anapara;
+    }
+    toplam = anapara + faiz;
+
+    const rows = [
+      ['Anapara', fmt(anapara) + ' TL'],
+      ['Süre', Math.floor(gunFark) + ' gün (' + yilFark.toFixed(2) + ' yıl)'],
+      ['Yıllık Faiz Oranı', '%' + oran],
+      ['Hesaplama Yöntemi', yontem === 'basit' ? 'Basit Faiz' : 'Bileşik Faiz'],
+      ['İşlemiş Faiz', fmt(faiz) + ' TL'],
+    ];
+
+    document.getElementById('fz-result').innerHTML = buildResult(
+      toplam,
+      'Faiz Dahil Toplam Alacak',
+      rows,
+      'Yasal faiz oranları dönemler itibariyle değişiklik gösterir. Kesin hesap için 3095 sayılı Kanun ve TCMB tarafından dönemsel olarak ilan edilen oran tablolarına başvurulmalıdır.'
+    );
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\LexCalculus.Core\LexCalculus.Core.csproj" />
+    <ProjectReference Include="..\LexCalculus.Infrastructure\LexCalculus.Infrastructure.csproj" />
+    <ProjectReference Include="..\LexCalculus.Jobs\LexCalculus.Jobs.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
