@@ -1,0 +1,39 @@
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  line-height: 1.6;
+  background: var(--parchment);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(184, 146, 74, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(107, 31, 46, 0.03) 0%, transparent 40%);
+  min-height: 100vh;
+  /* NOT: Referans HTML body'de font-size tanımlamaz (browser default 16px).
+     Spec'teki var(--fs-body) = 18px değeri uygulanmadı — referans kazandı. */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  letter-spacing: var(--tracking-snug);
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+code, pre, .mono {
+  font-family: var(--font-mono);
+}
+
+/* Italic burgundy emphasis — hukuki belge stili */
+em {
+  font-style: italic;
+  color: var(--burgundy);
+  font-weight: 400;
+}
+
+/* Meta label utility — JetBrains Mono uppercase küçük etiketler */
+.meta-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--ink-soft);
+}

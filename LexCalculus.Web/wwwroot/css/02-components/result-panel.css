@@ -1,0 +1,111 @@
+.result-panel {
+  background: var(--ink);
+  color: var(--parchment);
+  padding: var(--sp-8);
+  position: relative;
+  border: 1px solid var(--ink);
+}
+
+/* Çift çerçeve efekti — klasik hukuki belge stili */
+.result-panel::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border: 1px solid var(--gold);
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.result-panel__title {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--gold-bright);
+  margin-bottom: var(--sp-6);
+}
+
+.result-panel__empty {
+  text-align: center;
+  padding: var(--sp-12) var(--sp-4);
+  color: var(--muted);
+  font-style: italic;
+  font-size: 17px;
+}
+
+.result-total {
+  text-align: center;
+  margin-bottom: var(--sp-6);
+  padding: var(--sp-6) 0;
+  border-top: var(--border-thin-rule);
+  border-bottom: var(--border-thin-rule);
+}
+
+.result-total__label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--gold-bright);
+  margin-bottom: var(--sp-3);
+}
+
+.result-total__amount {
+  font-family: var(--font-heading);
+  font-size: var(--fs-amount);
+  font-weight: 500;
+  color: var(--parchment);
+  letter-spacing: var(--tracking-snug);
+}
+
+.result-total__currency {
+  font-size: 22px;
+  color: var(--gold-bright);
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.result-rows {
+  margin-top: var(--sp-6);
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px dashed var(--rule);
+  font-size: var(--fs-base);
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.result-row__key {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result-row__val {
+  font-family: var(--font-heading);
+  font-size: var(--fs-body);
+  color: var(--parchment);
+  font-weight: 500;
+}
+
+.result-note {
+  margin-top: var(--sp-6);
+  padding: var(--sp-4);
+  background: var(--bg-overlay-gold);
+  border-left: 3px solid var(--gold);
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}

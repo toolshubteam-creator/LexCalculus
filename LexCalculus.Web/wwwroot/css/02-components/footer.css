@@ -1,0 +1,23 @@
+.site-footer {
+  border-top: var(--border-double-gold);
+  background: var(--ink);
+  color: var(--muted);
+  padding: var(--sp-8) var(--sp-12);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.site-footer__disclaimer {
+  color: var(--gold-bright);
+  margin-bottom: var(--sp-2);
+}
+
+@media (max-width: 900px) {
+  .site-footer {
+    padding: var(--sp-6) var(--sp-4);
+    letter-spacing: 0.1em;
+  }
+}

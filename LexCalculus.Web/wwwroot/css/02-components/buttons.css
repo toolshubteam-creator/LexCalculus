@@ -1,0 +1,51 @@
+.btn {
+  display: inline-block;
+  padding: var(--sp-4) var(--sp-6);
+  font-family: var(--font-heading);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  letter-spacing: 0.02em; /* Referans HTML btn-calc: 0.02em. Spec'teki --tracking-snug (-0.02em) çelişiyor — referans kazandı. */
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-align: center;
+}
+
+.btn--primary {
+  background: var(--ink);
+  color: var(--parchment);
+  border-color: var(--ink);
+}
+
+.btn--primary:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.btn--ghost:hover {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.btn--danger {
+  background: var(--burgundy);
+  color: white;
+  border-color: var(--burgundy);
+  font-family: var(--font-mono);
+}
+
+.btn--block {
+  width: 100%;
+  display: block;
+}
+
+.btn--sm {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-meta);
+}

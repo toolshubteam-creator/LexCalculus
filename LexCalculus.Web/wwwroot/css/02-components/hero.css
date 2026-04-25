@@ -1,0 +1,53 @@
+.hero {
+  text-align: center;
+  margin-bottom: var(--sp-16);
+  position: relative;
+}
+
+.hero__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-mega);
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: var(--sp-6);
+}
+
+.hero__eyebrow::before,
+.hero__eyebrow::after {
+  content: '—';
+  margin: 0 var(--sp-4);
+  color: var(--ink);
+  opacity: 0.3;
+}
+
+.hero__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-hero);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--sp-6);
+}
+
+.hero__title em {
+  font-style: italic;
+  color: var(--burgundy);
+  font-weight: 400;
+}
+
+.hero__lead {
+  font-size: var(--fs-lg);
+  max-width: 640px;
+  margin: 0 auto;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.ornament {
+  text-align: center;
+  color: var(--gold);
+  font-size: var(--fs-lg);
+  margin: var(--sp-12) 0 var(--sp-14);
+  letter-spacing: 1em;
+}

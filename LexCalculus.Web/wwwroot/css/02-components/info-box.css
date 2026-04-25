@@ -1,0 +1,29 @@
+.info-box {
+  background: var(--bg-overlay-burgundy);
+  border-left: 3px solid var(--burgundy);
+  padding: var(--sp-4) var(--sp-5);
+  margin-bottom: var(--sp-6);
+  font-size: 15px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.info-box strong {
+  color: var(--burgundy);
+  font-weight: 600;
+}
+
+.info-box--danger {
+  background: rgba(107, 31, 46, 0.08);
+  border-left-color: var(--burgundy);
+}
+
+.info-box--success {
+  background: rgba(184, 146, 74, 0.08);
+  border-left-color: var(--gold);
+  color: var(--ink);
+}
+
+.info-box--success strong {
+  color: var(--gold);
+}

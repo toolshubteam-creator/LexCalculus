@@ -1,0 +1,48 @@
+.tab-nav {
+  background: var(--ink-soft);
+  padding: 0 var(--sp-12);
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 500;
+  padding: 18px var(--sp-6);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: var(--transition-fast);
+  letter-spacing: 0.02em; /* Referans HTML: 0.02em (pozitif). Spec'teki --tracking-snug (-0.02em) çelişiyor — referans kazandı. */
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.tab:hover {
+  color: var(--parchment);
+}
+
+.tab--active {
+  color: var(--gold-bright);
+  border-bottom-color: var(--gold);
+}
+
+.tab__num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta-xs);
+  color: var(--gold);
+  margin-right: var(--sp-2);
+  opacity: 0.7;
+}
+
+@media (max-width: 900px) {
+  .tab-nav {
+    padding: 0 var(--sp-6);
+  }
+}

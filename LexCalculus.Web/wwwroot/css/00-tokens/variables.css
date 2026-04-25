@@ -1,0 +1,71 @@
+:root {
+  /* === RENKLER (referans HTML :root'tan birebir) === */
+  --ink: #0a1428;
+  --ink-soft: #15243f;
+  --parchment: #f4ede0;
+  --parchment-deep: #e8dcc4;
+  --gold: #b8924a;
+  --gold-bright: #d4a960;
+  --burgundy: #6b1f2e;
+  --rule: #2a3a5a;
+  --muted: #8a9bb8;
+
+  /* === TİPOGRAFİ — FONT FAMILY === */
+  --font-heading: 'Fraunces', Georgia, serif;
+  --font-body: 'Cormorant Garamond', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* === TİPOGRAFİ — FONT SIZE ÖLÇEĞİ === */
+  --fs-meta-xs: 10px;
+  --fs-meta: 11px;
+  --fs-hint: 13px;
+  --fs-base: 16px;
+  --fs-body: 18px;
+  --fs-lg: 20px;
+  --fs-xl: 26px;
+  --fs-2xl: 32px;
+  --fs-h2: 48px;
+  --fs-amount: 44px;
+  --fs-hero: clamp(40px, 6vw, 72px);
+
+  /* === LETTER SPACING === */
+  --tracking-tight: -0.03em;
+  --tracking-snug: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.1em;
+  --tracking-wider: 0.2em;
+  --tracking-widest: 0.3em;
+  --tracking-mega: 0.4em;
+
+  /* === SPACING SCALE (4px temelli) === */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 28px;
+  --sp-8: 32px;
+  --sp-12: 48px;
+  --sp-14: 56px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  /* === BORDER === */
+  --border-double-gold: 3px double var(--gold);
+  --border-thin-rule: 1px solid var(--rule);
+  --border-thin-parchment: 1px solid var(--parchment-deep);
+
+  /* === EFFECTS === */
+  --focus-ring: 0 0 0 3px rgba(184, 146, 74, 0.15);
+  --bg-overlay-gold: rgba(184, 146, 74, 0.08);
+  --bg-overlay-burgundy: rgba(107, 31, 46, 0.05);
+
+  /* === ANIMATION === */
+  --transition-fast: all 0.2s ease;
+  --transition-base: all 0.3s ease;
+
+  /* === LAYOUT === */
+  --container-max: 1280px;
+  /* Mobile breakpoint: max-width: 900px */
+}

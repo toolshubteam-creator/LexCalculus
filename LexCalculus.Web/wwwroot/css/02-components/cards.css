@@ -1,0 +1,78 @@
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1px;
+  background: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.tool-card {
+  background: var(--parchment);
+  padding: var(--sp-8) var(--sp-7);
+  cursor: pointer;
+  transition: var(--transition-base);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.tool-card:hover {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.tool-card:hover .tool-card__num,
+.tool-card:hover .tool-card__meta {
+  color: var(--gold-bright);
+}
+
+.tool-card:hover .tool-card__title {
+  color: var(--parchment);
+}
+
+.tool-card__num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  color: var(--gold);
+  letter-spacing: var(--tracking-wider);
+  margin-bottom: var(--sp-4);
+}
+
+.tool-card__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  line-height: 1.15;
+  margin-bottom: var(--sp-3);
+  letter-spacing: -0.01em;
+}
+
+.tool-card__desc {
+  font-size: var(--fs-base);
+  color: inherit;
+  opacity: 0.75;
+  flex-grow: 1;
+  margin-bottom: var(--sp-4);
+}
+
+.tool-card__meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.15em; /* Referans HTML: 0.15em. Spec'teki --tracking-wide (0.1em) çelişiyor — referans kazandı. */
+  color: var(--ink-soft);
+  opacity: 0.6;
+  border-top: 1px solid currentColor;
+  padding-top: var(--sp-3);
+}
+
+.tool-card--coming-soon {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tool-card--coming-soon:hover {
+  background: var(--parchment);
+  color: var(--ink);
+}
