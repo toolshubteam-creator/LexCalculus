@@ -34,7 +34,12 @@
       "Bash(curl -k -s -w \"\\\\nHTTP Status: %{http_code}\\\\nContent-Type: %{content_type}\\\\n\" https://localhost:7080/sitemap.xml)",
       "Bash(curl -k -s -w \"\\\\nHTTP Status: %{http_code}\\\\nContent-Type: %{content_type}\\\\n\" https://localhost:7080/robots.txt)",
       "Bash(curl -k -s -o /dev/null -w \"Status: %{http_code}\\\\n\" https://localhost:7080/Seo)",
-      "Bash(curl -k -s -o /dev/null -w \"Status: %{http_code}\\\\n\" https://localhost:7080/SeoController)"
+      "Bash(curl -k -s -o /dev/null -w \"Status: %{http_code}\\\\n\" https://localhost:7080/SeoController)",
+      "Bash(dotnet test *)",
+      "Read(//tmp/**)",
+      "Bash(curl -k -s https://localhost:7080/health/live)",
+      "Bash(curl -k -s https://localhost:7080/health/ready)",
+      "Bash(curl -k -s https://localhost:7080/health)"
     ]
   }
 }

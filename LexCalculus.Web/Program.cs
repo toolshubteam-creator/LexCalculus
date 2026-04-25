@@ -4,10 +4,13 @@ using LexCalculus.Core.Models.Seo;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
 using LexCalculus.Infrastructure.Data.SeedData;
+using LexCalculus.Infrastructure.HealthChecks;
 using LexCalculus.Infrastructure.Repositories;
 using LexCalculus.Infrastructure.Seo;
+using LexCalculus.Web.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 
 // =============================================================================
@@ -37,25 +40,29 @@ try
     // AuditInterceptor singleton; aynı instance tüm DbContext'lere enjekte edilir
     builder.Services.AddSingleton<AuditInterceptor>();
 
-    builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+    var isTesting = builder.Configuration.GetValue<bool>("Testing");
+    if (!isTesting)
     {
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing.");
-
-        options.UseSqlServer(connectionString, sql =>
+        builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
-            sql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-            sql.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing.");
+
+            options.UseSqlServer(connectionString, sql =>
+            {
+                sql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                sql.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+            });
+
+            options.AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
+
+            if (builder.Environment.IsDevelopment())
+            {
+                options.EnableDetailedErrors();
+                options.EnableSensitiveDataLogging();
+            }
         });
-
-        options.AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
-
-        if (builder.Environment.IsDevelopment())
-        {
-            options.EnableDetailedErrors();
-            options.EnableSensitiveDataLogging();
-        }
-    });
+    }
 
     // -------------------------------------------------------------------------
     // REPOSITORY & UNIT OF WORK
@@ -69,6 +76,19 @@ try
     builder.Services.Configure<SeoSettings>(builder.Configuration.GetSection("SeoSettings"));
     builder.Services.AddSingleton<ISeoMetaProvider, DefaultSeoMetaProvider>();
     builder.Services.AddScoped<ISitemapBuilder, DefaultSitemapBuilder>();
+
+    // -------------------------------------------------------------------------
+    // HEALTH CHECKS
+    // -------------------------------------------------------------------------
+    builder.Services.AddHealthChecks()
+        .AddDbContextCheck<ApplicationDbContext>(
+            name: "database",
+            failureStatus: HealthStatus.Unhealthy,
+            tags: new[] { "ready", "db" })
+        .AddCheck<RedisHealthCheck>(
+            name: "cache",
+            failureStatus: HealthStatus.Degraded,
+            tags: new[] { "ready", "cache" });
 
     // -------------------------------------------------------------------------
     // ASP.NET IDENTITY
@@ -177,6 +197,24 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
+    // Health endpoints
+    app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
+    });
+
+    app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        Predicate = c => c.Tags.Contains("ready"),
+        ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
+    });
+
+    app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    {
+        Predicate = _ => false, // No checks — just confirms process is up
+        ResponseWriter = HealthCheckResponseWriter.WriteJsonResponse
+    });
+
     // Areas (Identity dahil)
     app.MapControllerRoute(
         name: "areas",
@@ -200,9 +238,18 @@ try
         {
             var dbContext = sp.GetRequiredService<ApplicationDbContext>();
 
-            startupLogger.LogInformation("Applying pending migrations…");
-            await dbContext.Database.MigrateAsync();
-            startupLogger.LogInformation("Migrations applied.");
+            // Skip migrations for InMemory provider (integration tests)
+            if (dbContext.Database.IsRelational())
+            {
+                startupLogger.LogInformation("Applying pending migrations…");
+                await dbContext.Database.MigrateAsync();
+                startupLogger.LogInformation("Migrations applied.");
+            }
+            else
+            {
+                startupLogger.LogInformation("Non-relational provider detected — skipping migrations.");
+                await dbContext.Database.EnsureCreatedAsync();
+            }
 
             var roleManager = sp.GetRequiredService<RoleManager<ApplicationRole>>();
             await IdentitySeeder.SeedRolesAsync(roleManager, startupLogger);
