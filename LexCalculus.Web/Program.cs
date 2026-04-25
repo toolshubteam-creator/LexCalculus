@@ -1,9 +1,11 @@
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
+using LexCalculus.Core.Models.Seo;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
 using LexCalculus.Infrastructure.Data.SeedData;
 using LexCalculus.Infrastructure.Repositories;
+using LexCalculus.Infrastructure.Seo;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -60,6 +62,12 @@ try
     // -------------------------------------------------------------------------
     builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+    // -------------------------------------------------------------------------
+    // SEO
+    // -------------------------------------------------------------------------
+    builder.Services.Configure<SeoSettings>(builder.Configuration.GetSection("SeoSettings"));
+    builder.Services.AddSingleton<ISeoMetaProvider, DefaultSeoMetaProvider>();
 
     // -------------------------------------------------------------------------
     // ASP.NET IDENTITY

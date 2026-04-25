@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using LexCalculus.Core.Models.Seo;
 using LexCalculus.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,12 +17,36 @@ public class HomeController : Controller
     public IActionResult Index()
     {
         ViewData["Title"] = "Ana Sayfa";
+
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = "Lex Calculus — Hukuki Hesaplama Platformu",
+            Description = "Türkiye'nin avukat, hâkim ve bilirkişiler için hukuki hesaplama platformu — Anno MMXXVI",
+            Keywords = "hukuki hesaplama, kıdem tazminatı, faiz hesaplama, bilirkişi, hukuk, avukat",
+            JsonLd = """
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Lex Calculus",
+              "url": "https://lexcalculus.com",
+              "description": "Türkiye'nin hukuki hesaplama platformu",
+              "foundingDate": "2026"
+            }
+            """
+        };
+
         return View();
     }
 
     public IActionResult Privacy()
     {
         ViewData["Title"] = "Gizlilik Politikası";
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = "Gizlilik Politikası — Lex Calculus",
+            Description = "Lex Calculus kişisel veri işleme politikası ve KVKK uyumluluk bildirimi.",
+            OgType = "article"
+        };
         return View();
     }
 

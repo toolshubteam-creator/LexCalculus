@@ -28,7 +28,9 @@
       "Bash(curl -k -s -X POST -b cookies.txt -c cookies.txt -d 'Input.Email=audittest@lexcalculus.local&Input.Password=AuditTest123!&Input.ConfirmPassword=AuditTest123!&__RequestVerificationToken=__TRACKED_VAR__' -o /dev/null -w 'Register POST: %{http_code}\\\\n' https://localhost:7080/Identity/Account/Register)",
       "Bash(curl -k -s -c cookies2.txt https://localhost:7080/Identity/Account/Login)",
       "Bash(curl -k -s -X POST -b cookies2.txt -c cookies2.txt -d 'Input.Email=audittest@lexcalculus.local&Input.Password=AuditTest123!&Input.RememberMe=false&__RequestVerificationToken=__TRACKED_VAR__' -o /dev/null -w 'Login POST: %{http_code}\\\\n' -L https://localhost:7080/Identity/Account/Login)",
-      "Bash(taskkill //F //IM \"dotnet.exe\")"
+      "Bash(taskkill //F //IM \"dotnet.exe\")",
+      "Bash(curl -k -s https://localhost:7080/)",
+      "Bash(curl -k -s https://localhost:7080/Home/Privacy)"
     ]
   }
 }

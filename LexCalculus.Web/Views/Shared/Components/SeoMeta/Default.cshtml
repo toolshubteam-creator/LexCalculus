@@ -1,0 +1,59 @@
+@model LexCalculus.Core.Models.Seo.SeoMeta
+
+<title>@Model.Title</title>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <meta name="description" content="@Model.Description" />
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Keywords))
+{
+    <meta name="keywords" content="@Model.Keywords" />
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.CanonicalUrl))
+{
+    <link rel="canonical" href="@Model.CanonicalUrl" />
+}
+
+@* Open Graph *@
+<meta property="og:title" content="@Model.Title" />
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <meta property="og:description" content="@Model.Description" />
+}
+<meta property="og:type" content="@Model.OgType" />
+@if (!string.IsNullOrWhiteSpace(Model.CanonicalUrl))
+{
+    <meta property="og:url" content="@Model.CanonicalUrl" />
+}
+@if (!string.IsNullOrWhiteSpace(Model.OgImage))
+{
+    <meta property="og:image" content="@Model.OgImage" />
+}
+
+@* Twitter Card *@
+<meta name="twitter:card" content="@Model.TwitterCard" />
+<meta name="twitter:title" content="@Model.Title" />
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <meta name="twitter:description" content="@Model.Description" />
+}
+@if (!string.IsNullOrWhiteSpace(Model.OgImage))
+{
+    <meta name="twitter:image" content="@Model.OgImage" />
+}
+
+@* JSON-LD structured data *@
+@if (!string.IsNullOrWhiteSpace(Model.JsonLd))
+{
+    @Html.Raw($"<script type=\"application/ld+json\">{Model.JsonLd}</script>")
+}
+@foreach (var block in Model.JsonLdBlocks)
+{
+    if (!string.IsNullOrWhiteSpace(block))
+    {
+        @Html.Raw($"<script type=\"application/ld+json\">{block}</script>")
+    }
+}
