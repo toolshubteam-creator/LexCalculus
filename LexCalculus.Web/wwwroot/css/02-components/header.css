@@ -76,3 +76,8 @@
     text-align: left;
   }
 }
+
+.header-meta__logout {
+  display: inline;
+  margin-left: var(--sp-3);
+}

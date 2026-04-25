@@ -1,48 +1,74 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var trCulture = new CultureInfo("tr-TR");
+    var currentDate = DateTime.Now.ToString("dd MMMM yyyy", trCulture);
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+}
+<!DOCTYPE html>
+<html lang="tr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - LexCalculus.Web</title>
-    <script type="importmap"></script>
+    <title>@(ViewData["Title"] ?? "Lex Calculus") — Lex Calculus</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
     <link rel="stylesheet" href="~/css/main.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/LexCalculus.Web.styles.css" asp-append-version="true" />
+
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">LexCalculus.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
+
+    <header class="site-header">
+        <div class="header-top">
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark">Lex<span class="brand-mark__accent">Calculus</span></span>
+                <span class="brand-tagline">Hukuki Hesaplama Platformu</span>
+            </a>
+
+            <div class="header-meta">
+                @if (SignInManager.IsSignedIn(User))
+                {
+                    <div>@User.Identity?.Name</div>
+                    <div>
+                        <a class="header-meta__link" asp-area="Identity" asp-page="/Account/Manage/Index">Hesabım</a>
+                        <form class="header-meta__logout" asp-area="Identity" asp-page="/Account/Logout" method="post">
+                            <button type="submit" class="btn btn--ghost btn--sm">Çıkış</button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <a class="header-meta__link" asp-area="Identity" asp-page="/Account/Login">Giriş</a>
+                        <a class="header-meta__link" asp-area="Identity" asp-page="/Account/Register">Kayıt Ol</a>
+                    </div>
+                }
+                <div class="date">@currentDate</div>
             </div>
+        </div>
+
+        <nav class="tab-nav" aria-label="Ana navigasyon">
+            <a class="tab @(currentController == "Home" ? "tab--active" : string.Empty)"
+               asp-controller="Home" asp-action="Index">
+                <span class="tab__num">00</span>Ana Sayfa
+            </a>
+            @* Faz 2'de hesaplama kategorileri tab olarak buraya eklenecek *@
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - LexCalculus.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
+    <main class="container">
+        @RenderBody()
+    </main>
+
+    <footer class="site-footer">
+        <div class="site-footer__disclaimer">⚖ Hesaplamalar yardımcı niteliktedir, hukuki bağlayıcılığı yoktur.</div>
+        <div>© @DateTime.Now.Year Lex Calculus · Tüm hakları saklıdır</div>
     </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
