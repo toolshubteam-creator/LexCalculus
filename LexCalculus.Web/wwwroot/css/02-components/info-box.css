@@ -27,3 +27,12 @@
 .info-box--success strong {
   color: var(--gold);
 }
+
+/* When info-box is the first child inside a form-section, remove top margin */
+.form-section .info-box {
+  margin-bottom: var(--sp-5);
+}
+
+.form-section .info-box:first-child {
+  margin-top: 0;
+}

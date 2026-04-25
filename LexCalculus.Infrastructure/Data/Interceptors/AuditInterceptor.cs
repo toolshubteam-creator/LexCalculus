@@ -1,4 +1,5 @@
 using LexCalculus.Core.Entities.Common;
+using LexCalculus.Core.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -35,6 +36,10 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
 
         var now = DateTime.UtcNow;
 
+        // Audit handling for two entity families:
+        // 1. BaseEntity descendants — full CreatedAt + UpdatedAt management
+        // 2. ApplicationUser — only CreatedAt on insert (Modified is too noisy for Identity tables)
+
         foreach (EntityEntry<BaseEntity> entry in context.ChangeTracker.Entries<BaseEntity>())
         {
             switch (entry.State)
@@ -51,6 +56,23 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
                     entry.Property(nameof(BaseEntity.CreatedAt)).IsModified = false;
                     break;
             }
+        }
+
+        // ApplicationUser audit (separate from BaseEntity loop because IdentityUser is the base)
+        foreach (var entry in context.ChangeTracker.Entries<ApplicationUser>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                // Only set CreatedAt if it's still default (caller may have set it explicitly)
+                if (entry.Entity.CreatedAt == default)
+                {
+                    entry.Entity.CreatedAt = now;
+                }
+            }
+            // NOT: ApplicationUser için Modified state'inde otomatik UpdatedAt güncelleme yapmıyoruz
+            // çünkü Identity'nin SecurityStamp, ConcurrencyStamp gibi her güncelleme için tetiklenen
+            // alanları var; bunlar gerçek bir kullanıcı eylemi olmadan da Modified state oluşturabilir.
+            // LastLoginAt'i ayrı bir mekanizmayla (sign-in event handler) güncelleyeceğiz.
         }
     }
 }
