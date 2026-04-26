@@ -24,7 +24,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<IhbarTazminatiInput, IhbarTazminatiResult>, IhbarTazminatiCalculator>();
         services.AddScoped<ICalculator, YillikIzinCalculator>();
         services.AddScoped<ICalculator<YillikIzinInput, YillikIzinResult>, YillikIzinCalculator>();
-        services.AddScoped<ICalculator, FazlaMesaiPlaceholder>();
+        services.AddScoped<ICalculator, FazlaMesaiCalculator>();
+        services.AddScoped<ICalculator<FazlaMesaiInput, FazlaMesaiResult>, FazlaMesaiCalculator>();
         services.AddScoped<ICalculator, IseIadeTazminatiPlaceholder>();
         services.AddScoped<ICalculator, AsgariUcretKontrolPlaceholder>();
         services.AddScoped<ICalculator, MobbingTazminatiPlaceholder>();

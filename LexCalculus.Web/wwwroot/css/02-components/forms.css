@@ -14,6 +14,12 @@
   color: var(--ink);
 }
 
+/* Secondary section heading inside a form (e.g. "Mesai Saatleri" sub-group) */
+.form-section__title--sub {
+  font-size: var(--fs-base);
+  margin-top: var(--sp-8);
+}
+
 .field {
   margin-bottom: var(--sp-5);
 }

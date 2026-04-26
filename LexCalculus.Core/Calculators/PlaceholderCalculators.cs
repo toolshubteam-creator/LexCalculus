@@ -23,19 +23,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: YillikIzin moved to real implementation in IsHukuku/YillikIzinCalculator.cs
 
-public sealed class FazlaMesaiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "fazla-mesai",
-        Category = CalculatorCategory.IsHukuku,
-        Title = "Fazla Mesai Alacağı",
-        ShortDescription = "45 saati aşan mesai %50 zamlı, hafta tatili %100, ulusal bayram %100 — kümülatif hesap.",
-        LegalReference = "4857 s.K. m.41",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "04"
-    };
-}
+// Note: FazlaMesai moved to real implementation in IsHukuku/FazlaMesaiCalculator.cs
 
 public sealed class IseIadeTazminatiPlaceholder : PlaceholderCalculator
 {
