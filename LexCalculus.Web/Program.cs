@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
+using StackExchange.Redis;
 
 // =============================================================================
 // BOOTSTRAP LOGGER — startup hatalarını yakalamak için
@@ -146,22 +147,52 @@ try
     });
 
     // -------------------------------------------------------------------------
-    // REDIS DISTRIBUTED CACHE
+    // REDIS DISTRIBUTED CACHE — pre-flight probe; fall back to in-memory on failure
     // -------------------------------------------------------------------------
     var redisConnection = builder.Configuration.GetConnectionString("Redis");
+    var useRedis = false;
+
     if (!string.IsNullOrWhiteSpace(redisConnection))
     {
-        builder.Services.AddStackExchangeRedisCache(options =>
+        try
         {
-            options.Configuration = redisConnection;
-            options.InstanceName = "LexCalculus:";
-        });
+            var configOptions = ConfigurationOptions.Parse(redisConnection);
+            configOptions.AbortOnConnectFail = false;
+            configOptions.ConnectTimeout = 2000;
+            configOptions.SyncTimeout = 2000;
+            configOptions.AsyncTimeout = 2000;
+            configOptions.ConnectRetry = 1;
+
+            using var probe = ConnectionMultiplexer.Connect(configOptions);
+            if (probe.IsConnected)
+            {
+                builder.Services.AddStackExchangeRedisCache(opts =>
+                {
+                    opts.ConfigurationOptions = configOptions;
+                    opts.InstanceName = "LexCalculus:";
+                });
+                Log.Information("Redis cache configured at {Endpoint}", redisConnection);
+                useRedis = true;
+            }
+            else
+            {
+                Log.Warning("Redis probe at {Endpoint} reported IsConnected=false; using in-memory distributed cache instead. " +
+                            "This is expected in development without Redis; in production fix the connection.",
+                            redisConnection);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Redis is not reachable at {Endpoint}; using in-memory distributed cache instead. " +
+                            "This is expected in development without Redis; in production fix the connection.",
+                            redisConnection);
+        }
     }
-    else
+
+    if (!useRedis)
     {
-        // Redis yoksa in-memory'e düş (dev convenience)
         builder.Services.AddDistributedMemoryCache();
-        Log.Warning("Redis connection string is not configured. Falling back to in-memory distributed cache.");
+        Log.Information("Using in-memory distributed cache (Redis disabled or unreachable).");
     }
 
     // -------------------------------------------------------------------------
