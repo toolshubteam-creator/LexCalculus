@@ -1,5 +1,6 @@
 using LexCalculus.Core.Calculators;
 using LexCalculus.Core.Calculators.Common;
+using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Infrastructure.Calculators;
 
 namespace LexCalculus.Web.Extensions;
@@ -17,7 +18,8 @@ public static class CalculatorServiceCollectionExtensions
     public static IServiceCollection AddCalculators(this IServiceCollection services)
     {
         // Kategori A — İş Hukuku
-        services.AddScoped<ICalculator, KidemTazminatiPlaceholder>();
+        services.AddScoped<ICalculator, KidemTazminatiCalculator>();
+        services.AddScoped<ICalculator<KidemTazminatiInput, KidemTazminatiResult>, KidemTazminatiCalculator>();
         services.AddScoped<ICalculator, IhbarTazminatiPlaceholder>();
         services.AddScoped<ICalculator, YillikIzinPlaceholder>();
         services.AddScoped<ICalculator, FazlaMesaiPlaceholder>();

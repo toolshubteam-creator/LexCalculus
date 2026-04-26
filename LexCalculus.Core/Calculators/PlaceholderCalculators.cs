@@ -17,21 +17,7 @@ public abstract class PlaceholderCalculator : ICalculator
 }
 
 // === KATEGORİ A — İŞ HUKUKU ===
-
-public sealed class KidemTazminatiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "kidem-tazminati",
-        Category = CalculatorCategory.IsHukuku,
-        Title = "Kıdem Tazminatı",
-        ShortDescription = "İş Kanunu m.14 (mülga 1475 s.K.) kapsamında giydirilmiş ücret üzerinden, dönem tavanı ve damga vergisi kesintisi ile.",
-        LegalReference = "4857 s.K. / 1475 s.K. m.14",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "01",
-        Keywords = new[] { "kıdem", "tazminat", "iş hukuku", "tavan" }
-    };
-}
+// Note: KidemTazminati moved to real implementation in IsHukuku/KidemTazminatiCalculator.cs
 
 public sealed class IhbarTazminatiPlaceholder : PlaceholderCalculator
 {

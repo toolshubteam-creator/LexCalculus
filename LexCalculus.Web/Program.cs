@@ -264,6 +264,8 @@ try
 
             var userManager = sp.GetRequiredService<UserManager<ApplicationUser>>();
             await IdentitySeeder.SeedAdminUserAsync(userManager, builder.Configuration, startupLogger);
+
+            await CalculatorParameterSeeder.SeedAsync(dbContext, startupLogger);
         }
         catch (Exception ex)
         {

@@ -64,3 +64,23 @@
   margin-top: 4px;
   font-style: italic;
 }
+
+/* Checkbox label — input next to text */
+.field__label--checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  color: var(--ink);
+}
+
+.field__label--checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--burgundy);
+  cursor: pointer;
+}

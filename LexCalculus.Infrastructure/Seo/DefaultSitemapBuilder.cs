@@ -61,6 +61,18 @@ public sealed class DefaultSitemapBuilder : ISitemapBuilder
             });
         }
 
+        // Individual calculator pages — only Active tools (not ComingSoon/Deprecated)
+        foreach (var tool in _registry.GetAll().Where(t => t.Status == CalculatorStatus.Active))
+        {
+            nodes.Add(new SitemapNode
+            {
+                Url = $"{siteUrl}{tool.UrlPath}",
+                LastModified = DateTime.UtcNow,
+                ChangeFrequency = SitemapChangeFrequency.Weekly,
+                Priority = 0.6m
+            });
+        }
+
         return Task.FromResult<IReadOnlyList<SitemapNode>>(nodes);
     }
 }

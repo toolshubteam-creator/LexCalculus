@@ -1,4 +1,5 @@
 using LexCalculus.Core.Calculators.Common;
+using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Web.Models.Hesapla;
 using Microsoft.AspNetCore.Mvc;
@@ -98,5 +99,76 @@ public class HesaplaController : Controller
 
         ViewData["Meta"] = meta;
         return View();
+    }
+
+    /// <summary>
+    /// Kıdem Tazminatı — GET form sayfası.
+    /// Spesifik route catch-all Tool action'ından önce match eder.
+    /// </summary>
+    [HttpGet("is-hukuku/kidem-tazminati")]
+    public IActionResult KidemTazminati()
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "kidem-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords),
+            JsonLd = """
+            {
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "Kıdem Tazminatı Hesaplama",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web"
+            }
+            """
+        };
+        ViewData["Meta"] = meta;
+
+        return View("~/Views/Hesapla/IsHukuku/KidemTazminati.cshtml", new KidemTazminatiInput());
+    }
+
+    [HttpPost("is-hukuku/kidem-tazminati")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> KidemTazminati(
+        KidemTazminatiInput input,
+        [FromServices] ICalculator<KidemTazminatiInput, KidemTazminatiResult> calculator,
+        CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "kidem-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription
+        };
+
+        const string viewPath = "~/Views/Hesapla/IsHukuku/KidemTazminati.cshtml";
+
+        if (!ModelState.IsValid)
+        {
+            return View(viewPath, input);
+        }
+
+        var result = await calculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+            {
+                ModelState.AddModelError(field, message);
+            }
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
     }
 }
