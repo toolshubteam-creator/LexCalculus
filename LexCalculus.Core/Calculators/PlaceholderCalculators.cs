@@ -21,19 +21,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: IhbarTazminati moved to real implementation in IsHukuku/IhbarTazminatiCalculator.cs
 
-public sealed class YillikIzinPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "yillik-izin-ucreti",
-        Category = CalculatorCategory.IsHukuku,
-        Title = "Yıllık İzin Ücreti",
-        ShortDescription = "Kullanılmayan izin günlerinin günlük brüt ücret ile çarpımı, 5 yıllık zamanaşımı uyarısı.",
-        LegalReference = "4857 s.K. m.53",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "03"
-    };
-}
+// Note: YillikIzin moved to real implementation in IsHukuku/YillikIzinCalculator.cs
 
 public sealed class FazlaMesaiPlaceholder : PlaceholderCalculator
 {

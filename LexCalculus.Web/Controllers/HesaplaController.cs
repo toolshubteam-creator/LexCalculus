@@ -12,15 +12,18 @@ public class HesaplaController : Controller
     private readonly ICalculatorRegistry _registry;
     private readonly ICalculator<KidemTazminatiInput, KidemTazminatiResult> _kidemCalculator;
     private readonly ICalculator<IhbarTazminatiInput, IhbarTazminatiResult> _ihbarCalculator;
+    private readonly ICalculator<YillikIzinInput, YillikIzinResult> _yillikIzinCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
         ICalculator<KidemTazminatiInput, KidemTazminatiResult> kidemCalculator,
-        ICalculator<IhbarTazminatiInput, IhbarTazminatiResult> ihbarCalculator)
+        ICalculator<IhbarTazminatiInput, IhbarTazminatiResult> ihbarCalculator,
+        ICalculator<YillikIzinInput, YillikIzinResult> yillikIzinCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
         _ihbarCalculator = ihbarCalculator ?? throw new ArgumentNullException(nameof(ihbarCalculator));
+        _yillikIzinCalculator = yillikIzinCalculator ?? throw new ArgumentNullException(nameof(yillikIzinCalculator));
     }
 
     /// <summary>
@@ -214,6 +217,56 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _ihbarCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("is-hukuku/yillik-izin-ucreti")]
+    public IActionResult YillikIzin()
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "yillik-izin-ucreti");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/IsHukuku/YillikIzin.cshtml", new YillikIzinInput());
+    }
+
+    [HttpPost("is-hukuku/yillik-izin-ucreti")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> YillikIzin(YillikIzinInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "yillik-izin-ucreti");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription
+        };
+
+        const string viewPath = "~/Views/Hesapla/IsHukuku/YillikIzin.cshtml";
+
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _yillikIzinCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
