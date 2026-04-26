@@ -1,6 +1,7 @@
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Models.Seo;
+using LexCalculus.Infrastructure.Calculators;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
 using LexCalculus.Infrastructure.Data.SeedData;
@@ -69,6 +70,11 @@ try
     // -------------------------------------------------------------------------
     builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
     builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+    // -------------------------------------------------------------------------
+    // CALCULATORS
+    // -------------------------------------------------------------------------
+    builder.Services.AddScoped<IFormulaParameterService, FormulaParameterService>();
 
     // -------------------------------------------------------------------------
     // SEO
