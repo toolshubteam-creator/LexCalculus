@@ -13,10 +13,12 @@ namespace LexCalculus.Infrastructure.Seo;
 public sealed class DefaultSitemapBuilder : ISitemapBuilder
 {
     private readonly SeoSettings _settings;
+    private readonly ICalculatorRegistry _registry;
 
-    public DefaultSitemapBuilder(IOptions<SeoSettings> options)
+    public DefaultSitemapBuilder(IOptions<SeoSettings> options, ICalculatorRegistry registry)
     {
         _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
     }
 
     public Task<IReadOnlyList<SitemapNode>> BuildAsync(CancellationToken cancellationToken = default)
@@ -48,7 +50,7 @@ public sealed class DefaultSitemapBuilder : ISitemapBuilder
             }
         };
 
-        foreach (var category in Enum.GetValues<CalculatorCategory>())
+        foreach (var category in _registry.GetActiveCategories())
         {
             nodes.Add(new SitemapNode
             {
