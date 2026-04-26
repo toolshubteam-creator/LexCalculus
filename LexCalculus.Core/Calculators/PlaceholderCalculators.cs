@@ -25,19 +25,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: FazlaMesai moved to real implementation in IsHukuku/FazlaMesaiCalculator.cs
 
-public sealed class IseIadeTazminatiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "ise-iade-tazminati",
-        Category = CalculatorCategory.IsHukuku,
-        Title = "İşe İade Tazminatı",
-        ShortDescription = "Feshin geçersizliği halinde 4-8 aylık brüt ücret tazminatı, boşta geçen süre ücreti.",
-        LegalReference = "4857 s.K. m.21",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "05"
-    };
-}
+// Note: IseIade moved to real implementation in IsHukuku/IseIadeCalculator.cs
 
 public sealed class AsgariUcretKontrolPlaceholder : PlaceholderCalculator
 {

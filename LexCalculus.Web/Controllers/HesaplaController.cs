@@ -14,19 +14,22 @@ public class HesaplaController : Controller
     private readonly ICalculator<IhbarTazminatiInput, IhbarTazminatiResult> _ihbarCalculator;
     private readonly ICalculator<YillikIzinInput, YillikIzinResult> _yillikIzinCalculator;
     private readonly ICalculator<FazlaMesaiInput, FazlaMesaiResult> _fazlaMesaiCalculator;
+    private readonly ICalculator<IseIadeInput, IseIadeResult> _iseIadeCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
         ICalculator<KidemTazminatiInput, KidemTazminatiResult> kidemCalculator,
         ICalculator<IhbarTazminatiInput, IhbarTazminatiResult> ihbarCalculator,
         ICalculator<YillikIzinInput, YillikIzinResult> yillikIzinCalculator,
-        ICalculator<FazlaMesaiInput, FazlaMesaiResult> fazlaMesaiCalculator)
+        ICalculator<FazlaMesaiInput, FazlaMesaiResult> fazlaMesaiCalculator,
+        ICalculator<IseIadeInput, IseIadeResult> iseIadeCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
         _ihbarCalculator = ihbarCalculator ?? throw new ArgumentNullException(nameof(ihbarCalculator));
         _yillikIzinCalculator = yillikIzinCalculator ?? throw new ArgumentNullException(nameof(yillikIzinCalculator));
         _fazlaMesaiCalculator = fazlaMesaiCalculator ?? throw new ArgumentNullException(nameof(fazlaMesaiCalculator));
+        _iseIadeCalculator = iseIadeCalculator ?? throw new ArgumentNullException(nameof(iseIadeCalculator));
     }
 
     /// <summary>
@@ -319,6 +322,55 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _fazlaMesaiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("is-hukuku/ise-iade-tazminati")]
+    public IActionResult IseIade()
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "ise-iade-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/IsHukuku/IseIade.cshtml", new IseIadeInput());
+    }
+
+    [HttpPost("is-hukuku/ise-iade-tazminati")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> IseIade(IseIadeInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "ise-iade-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription
+        };
+
+        const string viewPath = "~/Views/Hesapla/IsHukuku/IseIade.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _iseIadeCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
