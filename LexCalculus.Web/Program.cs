@@ -8,6 +8,7 @@ using LexCalculus.Infrastructure.Data.SeedData;
 using LexCalculus.Infrastructure.HealthChecks;
 using LexCalculus.Infrastructure.Repositories;
 using LexCalculus.Infrastructure.Seo;
+using LexCalculus.Web.Extensions;
 using LexCalculus.Web.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +76,7 @@ try
     // CALCULATORS
     // -------------------------------------------------------------------------
     builder.Services.AddScoped<IFormulaParameterService, FormulaParameterService>();
+    builder.Services.AddCalculators();
 
     // -------------------------------------------------------------------------
     // SEO

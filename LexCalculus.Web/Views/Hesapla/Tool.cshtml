@@ -1,0 +1,25 @@
+@using LexCalculus.Core.Calculators.Common
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@(meta.DisplayNumber ?? "—")</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero" style="text-align: left; margin-bottom: var(--sp-12);">
+    <p class="hero__lead" style="max-width: 720px; margin: 0;">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--danger">
+    <strong>Bu hesaplama aracı henüz hazır değil.</strong> Faz 2 boyunca her hafta yeni hesaplayıcı eklenmektedir. Bu araç için geliştirme planlanmıştır; tamamlandığında bu sayfada form ve sonuç paneli yer alacaktır.
+</div>
+
+<div style="text-align: center; margin-top: var(--sp-12);">
+    <a class="btn btn--ghost" href="/hesapla/@meta.Category.ToSlug()">← @meta.Category.ToDisplayName()</a>
+</div>

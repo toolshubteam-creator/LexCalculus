@@ -57,7 +57,10 @@
                asp-controller="Home" asp-action="Index">
                 <span class="tab__num">00</span>Ana Sayfa
             </a>
-            @* Faz 2'de hesaplama kategorileri tab olarak buraya eklenecek *@
+            <a class="tab @(currentController == "Hesapla" ? "tab--active" : string.Empty)"
+               asp-controller="Hesapla" asp-action="Index">
+                <span class="tab__num">01</span>Hesaplama
+            </a>
         </nav>
     </header>
 

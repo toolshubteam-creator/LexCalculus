@@ -1,0 +1,56 @@
+@using LexCalculus.Core.Calculators.Common
+@{
+    ViewData["Title"] = "Hesaplama Araçları";
+    var categoryGroups = ViewData["Categories"] as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+
+<section class="hero">
+    <div class="hero__eyebrow">Anno MMXXVI</div>
+    <h1 class="hero__title">Hukuki <em>hesaplama</em> araçları</h1>
+    <p class="hero__lead">Avukat, hâkim ve bilirkişiler için günün verilerine bağlı, şeffaf, kategorize edilmiş hesaplama modülleri.</p>
+</section>
+
+<div class="ornament" aria-hidden="true">❦ ❦ ❦</div>
+
+@foreach (var group in categoryGroups)
+{
+    CalculatorCategory cat = group.Category;
+    IReadOnlyList<CalculatorMetadata> tools = group.Tools;
+
+    <section style="margin-bottom: var(--sp-16);">
+        <div class="calc-header">
+            <h2 class="calc-header__title">@cat.ToDisplayName()</h2>
+            <div class="calc-meta">
+                <div>@tools.Count ARAÇ</div>
+                <div>KATEGORİ <strong>@(((int)cat).ToString("00"))</strong></div>
+            </div>
+        </div>
+
+        <div class="tools-grid">
+            @foreach (var tool in tools)
+            {
+                var isComingSoon = tool.Status == CalculatorStatus.ComingSoon;
+                var cardClass = isComingSoon ? "tool-card tool-card--coming-soon" : "tool-card";
+
+                if (isComingSoon)
+                {
+                    <div class="@cardClass">
+                        <div class="tool-card__num">№ @(tool.DisplayNumber ?? "—") — @cat.ToShortName().ToUpper()</div>
+                        <div class="tool-card__title">@tool.Title</div>
+                        <div class="tool-card__desc">@tool.ShortDescription</div>
+                        <div class="tool-card__meta">@tool.LegalReference · YAKINDA</div>
+                    </div>
+                }
+                else
+                {
+                    <a href="@tool.UrlPath" class="@cardClass" style="text-decoration: none; color: inherit;">
+                        <div class="tool-card__num">№ @(tool.DisplayNumber ?? "—") — @cat.ToShortName().ToUpper()</div>
+                        <div class="tool-card__title">@tool.Title</div>
+                        <div class="tool-card__desc">@tool.ShortDescription</div>
+                        <div class="tool-card__meta">@tool.LegalReference · AKTİF</div>
+                    </a>
+                }
+            }
+        </div>
+    </section>
+}
