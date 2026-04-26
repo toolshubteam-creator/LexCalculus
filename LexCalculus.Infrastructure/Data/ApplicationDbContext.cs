@@ -1,3 +1,4 @@
+using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Infrastructure.Data.Extensions;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -17,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         : base(options) { }
 
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<FormulaParameter> FormulaParameters => Set<FormulaParameter>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
