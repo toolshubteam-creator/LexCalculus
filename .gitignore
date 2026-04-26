@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 # LexCalculus custom
 **/wwwroot/lib/
 **/Logs/
+
+# Claude Code local settings (machine-specific, never commit)
+.claude/
