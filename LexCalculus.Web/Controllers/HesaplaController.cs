@@ -10,10 +10,14 @@ namespace LexCalculus.Web.Controllers;
 public class HesaplaController : Controller
 {
     private readonly ICalculatorRegistry _registry;
+    private readonly ICalculator<KidemTazminatiInput, KidemTazminatiResult> _kidemCalculator;
 
-    public HesaplaController(ICalculatorRegistry registry)
+    public HesaplaController(
+        ICalculatorRegistry registry,
+        ICalculator<KidemTazminatiInput, KidemTazminatiResult> kidemCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
     }
 
     /// <summary>
@@ -134,10 +138,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/kidem-tazminati")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> KidemTazminati(
-        KidemTazminatiInput input,
-        [FromServices] ICalculator<KidemTazminatiInput, KidemTazminatiResult> calculator,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> KidemTazminati(KidemTazminatiInput input, CancellationToken cancellationToken)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "kidem-tazminati");
         if (meta is null) return NotFound();
@@ -157,7 +158,7 @@ public class HesaplaController : Controller
             return View(viewPath, input);
         }
 
-        var result = await calculator.CalculateAsync(input, cancellationToken);
+        var result = await _kidemCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
