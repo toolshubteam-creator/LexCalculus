@@ -1,27 +1,23 @@
 @using LexCalculus.Core.Calculators.Common
-@{
-    var cat = (CalculatorCategory)ViewData["Category"]!;
-    var displayName = ViewData["CategoryDisplayName"] as string ?? "";
-    var tools = ViewData["Tools"] as IReadOnlyList<CalculatorMetadata> ?? Array.Empty<CalculatorMetadata>();
-}
+@using LexCalculus.Web.Models.Hesapla
+@model HesaplaCategoryViewModel
 
 <section class="hero">
-    <div class="hero__eyebrow">— Kategori @(((int)cat).ToString("00")) —</div>
-    <h1 class="hero__title">@displayName <em>hesaplama</em> araçları</h1>
-    <p class="hero__lead">@tools.Count araç bu kategoride yer alıyor. Her araç güncel mevzuat parametrelerini referans alır.</p>
+    <div class="hero__eyebrow">— Kategori @(((int)Model.Category).ToString("00")) —</div>
+    <h1 class="hero__title">@Model.DisplayName <em>hesaplama</em> araçları</h1>
+    <p class="hero__lead">@Model.Tools.Count araç bu kategoride yer alıyor. Her araç güncel mevzuat parametrelerini referans alır.</p>
 </section>
 
 <div class="ornament" aria-hidden="true">❦ ❦ ❦</div>
 
 <div class="tools-grid">
-    @foreach (var tool in tools)
+    @foreach (var tool in Model.Tools)
     {
         var isComingSoon = tool.Status == CalculatorStatus.ComingSoon;
-        var cardClass = isComingSoon ? "tool-card tool-card--coming-soon" : "tool-card";
 
         if (isComingSoon)
         {
-            <div class="@cardClass">
+            <div class="tool-card tool-card--coming-soon">
                 <div class="tool-card__num">№ @(tool.DisplayNumber ?? "—")</div>
                 <div class="tool-card__title">@tool.Title</div>
                 <div class="tool-card__desc">@tool.ShortDescription</div>
@@ -30,7 +26,7 @@
         }
         else
         {
-            <a href="@tool.UrlPath" class="@cardClass" style="text-decoration: none; color: inherit;">
+            <a href="@tool.UrlPath" class="tool-card tool-card--link">
                 <div class="tool-card__num">№ @(tool.DisplayNumber ?? "—")</div>
                 <div class="tool-card__title">@tool.Title</div>
                 <div class="tool-card__desc">@tool.ShortDescription</div>
@@ -40,6 +36,6 @@
     }
 </div>
 
-<div style="text-align: center; margin-top: var(--sp-12);">
+<div class="catalog-back-link">
     <a class="btn btn--ghost" href="/hesapla">← Tüm kategoriler</a>
 </div>

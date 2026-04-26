@@ -1,5 +1,6 @@
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Models.Seo;
+using LexCalculus.Web.Models.Hesapla;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LexCalculus.Web.Controllers;
@@ -28,12 +29,16 @@ public class HesaplaController : Controller
             Keywords = "hukuki hesaplama, hesaplama araçları, kıdem tazminatı, faiz hesabı"
         };
 
-        var categories = _registry.GetActiveCategories()
-            .Select(cat => new { Category = cat, Tools = _registry.GetByCategory(cat) })
+        var sections = _registry.GetActiveCategories()
+            .Select(cat => new CategorySection
+            {
+                Category = cat,
+                Tools = _registry.GetByCategory(cat)
+            })
             .ToList();
 
-        ViewData["Categories"] = categories;
-        return View();
+        var model = new HesaplaIndexViewModel { Sections = sections };
+        return View(model);
     }
 
     /// <summary>
@@ -59,11 +64,14 @@ public class HesaplaController : Controller
             OgType = "website"
         };
 
-        ViewData["Category"] = category.Value;
-        ViewData["CategoryDisplayName"] = displayName;
-        ViewData["Tools"] = tools;
+        var model = new HesaplaCategoryViewModel
+        {
+            Category = category.Value,
+            DisplayName = displayName,
+            Tools = tools
+        };
 
-        return View();
+        return View(model);
     }
 
     /// <summary>

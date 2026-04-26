@@ -1,7 +1,8 @@
 @using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Web.Models.Hesapla
+@model HesaplaIndexViewModel
 @{
     ViewData["Title"] = "Hesaplama Araçları";
-    var categoryGroups = ViewData["Categories"] as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
 <section class="hero">
@@ -12,12 +13,12 @@
 
 <div class="ornament" aria-hidden="true">❦ ❦ ❦</div>
 
-@foreach (var group in categoryGroups)
+@foreach (var section in Model.Sections)
 {
-    CalculatorCategory cat = group.Category;
-    IReadOnlyList<CalculatorMetadata> tools = group.Tools;
+    var cat = section.Category;
+    var tools = section.Tools;
 
-    <section style="margin-bottom: var(--sp-16);">
+    <section class="calc-section">
         <div class="calc-header">
             <h2 class="calc-header__title">@cat.ToDisplayName()</h2>
             <div class="calc-meta">
@@ -30,11 +31,10 @@
             @foreach (var tool in tools)
             {
                 var isComingSoon = tool.Status == CalculatorStatus.ComingSoon;
-                var cardClass = isComingSoon ? "tool-card tool-card--coming-soon" : "tool-card";
 
                 if (isComingSoon)
                 {
-                    <div class="@cardClass">
+                    <div class="tool-card tool-card--coming-soon">
                         <div class="tool-card__num">№ @(tool.DisplayNumber ?? "—") — @cat.ToShortName().ToUpper()</div>
                         <div class="tool-card__title">@tool.Title</div>
                         <div class="tool-card__desc">@tool.ShortDescription</div>
@@ -43,7 +43,7 @@
                 }
                 else
                 {
-                    <a href="@tool.UrlPath" class="@cardClass" style="text-decoration: none; color: inherit;">
+                    <a href="@tool.UrlPath" class="tool-card tool-card--link">
                         <div class="tool-card__num">№ @(tool.DisplayNumber ?? "—") — @cat.ToShortName().ToUpper()</div>
                         <div class="tool-card__title">@tool.Title</div>
                         <div class="tool-card__desc">@tool.ShortDescription</div>

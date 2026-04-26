@@ -72,7 +72,25 @@
   cursor: not-allowed;
 }
 
+/* Override invert hover for coming-soon — needs to win over .tool-card:hover .tool-card__title */
 .tool-card--coming-soon:hover {
   background: var(--parchment);
   color: var(--ink);
+}
+
+.tool-card--coming-soon:hover .tool-card__title,
+.tool-card--coming-soon:hover .tool-card__meta {
+  color: var(--ink);
+}
+
+.tool-card--coming-soon:hover .tool-card__num {
+  color: var(--gold);
+}
+
+/* Active tool card rendered as <a> — strip default link styles, restore flex layout */
+.tool-card--link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
 }

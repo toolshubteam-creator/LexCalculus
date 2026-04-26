@@ -9,3 +9,14 @@
     padding: var(--sp-8) var(--sp-6);
   }
 }
+
+/* Catalog page section spacing (between category groups) */
+.calc-section {
+  margin-bottom: var(--sp-16);
+}
+
+/* Catalog page "back to categories" / "back to category" link wrapper */
+.catalog-back-link {
+  text-align: center;
+  margin-top: var(--sp-12);
+}
