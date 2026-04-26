@@ -11,13 +11,16 @@ public class HesaplaController : Controller
 {
     private readonly ICalculatorRegistry _registry;
     private readonly ICalculator<KidemTazminatiInput, KidemTazminatiResult> _kidemCalculator;
+    private readonly ICalculator<IhbarTazminatiInput, IhbarTazminatiResult> _ihbarCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
-        ICalculator<KidemTazminatiInput, KidemTazminatiResult> kidemCalculator)
+        ICalculator<KidemTazminatiInput, KidemTazminatiResult> kidemCalculator,
+        ICalculator<IhbarTazminatiInput, IhbarTazminatiResult> ihbarCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
+        _ihbarCalculator = ihbarCalculator ?? throw new ArgumentNullException(nameof(ihbarCalculator));
     }
 
     /// <summary>
@@ -166,6 +169,56 @@ public class HesaplaController : Controller
             {
                 ModelState.AddModelError(field, message);
             }
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("is-hukuku/ihbar-tazminati")]
+    public IActionResult IhbarTazminati()
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "ihbar-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/IsHukuku/IhbarTazminati.cshtml", new IhbarTazminatiInput());
+    }
+
+    [HttpPost("is-hukuku/ihbar-tazminati")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> IhbarTazminati(IhbarTazminatiInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.IsHukuku, "ihbar-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} Hesaplama — Lex Calculus",
+            Description = meta.ShortDescription
+        };
+
+        const string viewPath = "~/Views/Hesapla/IsHukuku/IhbarTazminati.cshtml";
+
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _ihbarCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
             return View(viewPath, input);
         }
 

@@ -20,7 +20,8 @@ public static class CalculatorServiceCollectionExtensions
         // Kategori A — İş Hukuku
         services.AddScoped<ICalculator, KidemTazminatiCalculator>();
         services.AddScoped<ICalculator<KidemTazminatiInput, KidemTazminatiResult>, KidemTazminatiCalculator>();
-        services.AddScoped<ICalculator, IhbarTazminatiPlaceholder>();
+        services.AddScoped<ICalculator, IhbarTazminatiCalculator>();
+        services.AddScoped<ICalculator<IhbarTazminatiInput, IhbarTazminatiResult>, IhbarTazminatiCalculator>();
         services.AddScoped<ICalculator, YillikIzinPlaceholder>();
         services.AddScoped<ICalculator, FazlaMesaiPlaceholder>();
         services.AddScoped<ICalculator, IseIadeTazminatiPlaceholder>();

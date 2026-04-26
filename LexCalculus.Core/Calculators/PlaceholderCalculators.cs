@@ -19,19 +19,7 @@ public abstract class PlaceholderCalculator : ICalculator
 // === KATEGORİ A — İŞ HUKUKU ===
 // Note: KidemTazminati moved to real implementation in IsHukuku/KidemTazminatiCalculator.cs
 
-public sealed class IhbarTazminatiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "ihbar-tazminati",
-        Category = CalculatorCategory.IsHukuku,
-        Title = "İhbar Tazminatı",
-        ShortDescription = "Kıdeme göre 2/4/6/8 hafta ihbar süresi tablosu, günlük ücret üzerinden tazminat hesabı.",
-        LegalReference = "4857 s.K. m.17",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "02"
-    };
-}
+// Note: IhbarTazminati moved to real implementation in IsHukuku/IhbarTazminatiCalculator.cs
 
 public sealed class YillikIzinPlaceholder : PlaceholderCalculator
 {
