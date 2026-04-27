@@ -1,3 +1,4 @@
+using LexCalculus.Core.Entities;
 using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Infrastructure.Data.Extensions;
@@ -21,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<FormulaParameter> FormulaParameters => Set<FormulaParameter>();
     public DbSet<LifeTable> LifeTables => Set<LifeTable>();
     public DbSet<LifeTableRow> LifeTableRows => Set<LifeTableRow>();
+    public DbSet<CalculationHistory> CalculationHistories => Set<CalculationHistory>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

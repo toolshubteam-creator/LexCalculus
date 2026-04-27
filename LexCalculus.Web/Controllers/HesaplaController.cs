@@ -3,6 +3,7 @@ using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Core.Models.Seo;
+using LexCalculus.Core.Services;
 using LexCalculus.Web.Models.Hesapla;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,6 +30,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult> _akdiTemerrutCalculator;
     private readonly ICalculator<KiraArtisiInput, KiraArtisiResult> _kiraArtisiCalculator;
     private readonly ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> _menfiTespitFaizCalculator;
+    private readonly ICalculationHistoryService _historyService;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -48,7 +50,8 @@ public class HesaplaController : Controller
         ICalculator<TicariTemerrutFaizInput, TicariTemerrutFaizResult> ticariFaizCalculator,
         ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult> akdiTemerrutCalculator,
         ICalculator<KiraArtisiInput, KiraArtisiResult> kiraArtisiCalculator,
-        ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> menfiTespitFaizCalculator)
+        ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> menfiTespitFaizCalculator,
+        ICalculationHistoryService historyService)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
@@ -68,6 +71,35 @@ public class HesaplaController : Controller
         _akdiTemerrutCalculator = akdiTemerrutCalculator ?? throw new ArgumentNullException(nameof(akdiTemerrutCalculator));
         _kiraArtisiCalculator = kiraArtisiCalculator ?? throw new ArgumentNullException(nameof(kiraArtisiCalculator));
         _menfiTespitFaizCalculator = menfiTespitFaizCalculator ?? throw new ArgumentNullException(nameof(menfiTespitFaizCalculator));
+        _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
+    }
+
+    private async Task LogHistoryAsync<TInput, TResult>(
+        CalculatorMetadata meta,
+        TInput input,
+        TResult result,
+        decimal? totalAmount,
+        string? unit,
+        CancellationToken cancellationToken)
+    {
+        int? userId = null;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idClaim, out var parsed))
+                userId = parsed;
+        }
+
+        await _historyService.LogAsync(
+            userId,
+            meta.Category.ToShortName(),
+            meta.Slug,
+            meta.Title,
+            input,
+            result,
+            totalAmount,
+            unit,
+            cancellationToken);
     }
 
     /// <summary>
@@ -220,6 +252,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -270,6 +303,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -320,6 +354,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -369,6 +404,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -418,6 +454,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -467,6 +504,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -516,6 +554,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -565,6 +604,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -610,6 +650,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -655,6 +696,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -700,6 +742,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -745,6 +788,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -790,6 +834,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -835,6 +880,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -885,6 +931,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -935,6 +982,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -986,6 +1034,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
         return View(viewPath, input);
     }
 }

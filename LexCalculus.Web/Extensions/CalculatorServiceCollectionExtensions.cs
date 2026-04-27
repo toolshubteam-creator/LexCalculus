@@ -57,6 +57,7 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator, AkdiTemerrutFaizCalculator>();
         services.AddScoped<ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult>, AkdiTemerrutFaizCalculator>();
         services.AddScoped<ITUFEService, TUFEService>();
+        services.AddScoped<ICalculationHistoryService, CalculationHistoryService>();
         services.AddScoped<ICalculator, KiraArtisiCalculator>();
         services.AddScoped<ICalculator<KiraArtisiInput, KiraArtisiResult>, KiraArtisiCalculator>();
         services.AddScoped<ICalculator, MenfiTespitFaizCalculator>();
