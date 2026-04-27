@@ -1,4 +1,5 @@
 using LexCalculus.Core.Calculators;
+using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Infrastructure.Calculators;
@@ -34,7 +35,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<MobbingInput, MobbingResult>, MobbingCalculator>();
 
         // Kategori B — Aktüerya
-        services.AddScoped<ICalculator, DesteKtenYoksunKalmaPlaceholder>();
+        services.AddScoped<ICalculator, DesteKtenYoksunKalmaCalculator>();
+        services.AddScoped<ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult>, DesteKtenYoksunKalmaCalculator>();
         services.AddScoped<ICalculator, MaluliyetTazminatiPlaceholder>();
         services.AddScoped<ICalculator, GeciciIsGoremezlikPlaceholder>();
         services.AddScoped<ICalculator, BakiciGideriPlaceholder>();

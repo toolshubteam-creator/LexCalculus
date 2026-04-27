@@ -33,19 +33,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // === KATEGORİ B — AKTÜERYA ===
 
-public sealed class DesteKtenYoksunKalmaPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "destekten-yoksun-kalma",
-        Category = CalculatorCategory.Akturya,
-        Title = "Destekten Yoksun Kalma Tazminatı",
-        ShortDescription = "TRH 2010 PMF tablosu, aktif/pasif dönem progresif rant, eş ve çocuk paylarıyla.",
-        LegalReference = "TRH 2010 / Yargıtay içtihatları",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "08"
-    };
-}
+// Note: DestekTenYoksunKalma moved to real implementation in Akturya/DesteKtenYoksunKalmaCalculator.cs
 
 public sealed class MaluliyetTazminatiPlaceholder : PlaceholderCalculator
 {

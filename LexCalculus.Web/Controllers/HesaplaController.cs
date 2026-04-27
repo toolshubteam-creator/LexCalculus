@@ -1,3 +1,4 @@
+using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Core.Models.Seo;
@@ -17,6 +18,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<IseIadeInput, IseIadeResult> _iseIadeCalculator;
     private readonly ICalculator<AsgariUcretInput, AsgariUcretResult> _asgariUcretCalculator;
     private readonly ICalculator<MobbingInput, MobbingResult> _mobbingCalculator;
+    private readonly ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> _destekKalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -26,7 +28,8 @@ public class HesaplaController : Controller
         ICalculator<FazlaMesaiInput, FazlaMesaiResult> fazlaMesaiCalculator,
         ICalculator<IseIadeInput, IseIadeResult> iseIadeCalculator,
         ICalculator<AsgariUcretInput, AsgariUcretResult> asgariUcretCalculator,
-        ICalculator<MobbingInput, MobbingResult> mobbingCalculator)
+        ICalculator<MobbingInput, MobbingResult> mobbingCalculator,
+        ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> destekKalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
@@ -36,6 +39,7 @@ public class HesaplaController : Controller
         _iseIadeCalculator = iseIadeCalculator ?? throw new ArgumentNullException(nameof(iseIadeCalculator));
         _asgariUcretCalculator = asgariUcretCalculator ?? throw new ArgumentNullException(nameof(asgariUcretCalculator));
         _mobbingCalculator = mobbingCalculator ?? throw new ArgumentNullException(nameof(mobbingCalculator));
+        _destekKalculator = destekKalculator ?? throw new ArgumentNullException(nameof(destekKalculator));
     }
 
     /// <summary>
@@ -475,6 +479,55 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _mobbingCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("akturya/destekten-yoksun-kalma")]
+    public IActionResult DestektenYoksunKalma()
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "destekten-yoksun-kalma");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Akturya/DestektenYoksunKalma.cshtml", new DesteKtenYoksunKalmaInput());
+    }
+
+    [HttpPost("akturya/destekten-yoksun-kalma")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DestektenYoksunKalma(DesteKtenYoksunKalmaInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "destekten-yoksun-kalma");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription
+        };
+
+        const string viewPath = "~/Views/Hesapla/Akturya/DestektenYoksunKalma.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _destekKalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

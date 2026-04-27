@@ -1,0 +1,47 @@
+@using LexCalculus.Core.Calculators.Akturya
+@using LexCalculus.Core.Enums
+@model CocukInput
+@{
+    var idx = ViewData["Index"]?.ToString() ?? "0";
+    var prefix = $"Cocuklar[{idx}]";
+    var nameDogum = $"{prefix}.{nameof(CocukInput.DogumTarihi)}";
+    var nameCinsiyet = $"{prefix}.{nameof(CocukInput.Cinsiyet)}";
+    var nameOgrenci = $"{prefix}.{nameof(CocukInput.Ogrenci)}";
+}
+
+<div class="cocuk-row" data-cocuk-row>
+    <div class="field-row cocuk-row__fields">
+        <div class="field">
+            <label class="field__label field__label--required">
+                Doğum Tarihi <span class="required">*</span>
+            </label>
+            <input name="@nameDogum" class="field__input" type="date"
+                   value="@(Model.DogumTarihi?.ToString("yyyy-MM-dd"))" required />
+        </div>
+
+        <div class="field">
+            <label class="field__label">Cinsiyet</label>
+            <select name="@nameCinsiyet" class="field__input">
+                @foreach (var c in Enum.GetValues<Cinsiyet>())
+                {
+                    <option value="@c" selected="@(c == Model.Cinsiyet ? "selected" : null)">
+                        @(c == Cinsiyet.Erkek ? "Erkek" : "Kadın")
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="field cocuk-row__ogrenci">
+            <label class="field__label field__label--checkbox">
+                <input name="@nameOgrenci" type="checkbox" value="true"
+                       @(Model.Ogrenci ? "checked" : "") />
+                <span>Eğitimde</span>
+            </label>
+            <input type="hidden" name="@nameOgrenci" value="false" />
+        </div>
+    </div>
+
+    <button type="button" class="btn btn--ghost btn--small cocuk-row__remove" data-remove-row>
+        Sil
+    </button>
+</div>

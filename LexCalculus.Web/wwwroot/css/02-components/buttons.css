@@ -45,7 +45,8 @@
   display: block;
 }
 
-.btn--sm {
+.btn--sm,
+.btn--small {
   padding: var(--sp-2) var(--sp-3);
   font-size: var(--fs-meta);
 }
