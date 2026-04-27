@@ -43,7 +43,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult>, GeciciIsGoremezlikCalculator>();
         services.AddScoped<ICalculator, BakiciGideriCalculator>();
         services.AddScoped<ICalculator<BakiciGideriInput, BakiciGideriResult>, BakiciGideriCalculator>();
-        services.AddScoped<ICalculator, AracDegerKaybiPlaceholder>();
+        services.AddScoped<ICalculator, AracDegerKaybiCalculator>();
+        services.AddScoped<ICalculator<AracDegerKaybiInput, AracDegerKaybiResult>, AracDegerKaybiCalculator>();
 
         // Kategori C — Faiz
         services.AddScoped<ICalculator, YasalFaizPlaceholder>();

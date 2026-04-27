@@ -22,6 +22,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<MaluliyetInput, MaluliyetResult> _maluliyetCalculator;
     private readonly ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult> _gecIsGoremezlikCalculator;
     private readonly ICalculator<BakiciGideriInput, BakiciGideriResult> _bakiciCalculator;
+    private readonly ICalculator<AracDegerKaybiInput, AracDegerKaybiResult> _aracDegerCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -35,7 +36,8 @@ public class HesaplaController : Controller
         ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> destekKalculator,
         ICalculator<MaluliyetInput, MaluliyetResult> maluliyetCalculator,
         ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult> gecIsGoremezlikCalculator,
-        ICalculator<BakiciGideriInput, BakiciGideriResult> bakiciCalculator)
+        ICalculator<BakiciGideriInput, BakiciGideriResult> bakiciCalculator,
+        ICalculator<AracDegerKaybiInput, AracDegerKaybiResult> aracDegerCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
@@ -49,6 +51,7 @@ public class HesaplaController : Controller
         _maluliyetCalculator = maluliyetCalculator ?? throw new ArgumentNullException(nameof(maluliyetCalculator));
         _gecIsGoremezlikCalculator = gecIsGoremezlikCalculator ?? throw new ArgumentNullException(nameof(gecIsGoremezlikCalculator));
         _bakiciCalculator = bakiciCalculator ?? throw new ArgumentNullException(nameof(bakiciCalculator));
+        _aracDegerCalculator = aracDegerCalculator ?? throw new ArgumentNullException(nameof(aracDegerCalculator));
     }
 
     /// <summary>
@@ -672,6 +675,51 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _bakiciCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("akturya/arac-deger-kaybi")]
+    public IActionResult AracDegerKaybi()
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "arac-deger-kaybi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Akturya/AracDegerKaybi.cshtml", new AracDegerKaybiInput());
+    }
+
+    [HttpPost("akturya/arac-deger-kaybi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AracDegerKaybi(AracDegerKaybiInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "arac-deger-kaybi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Akturya/AracDegerKaybi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _aracDegerCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

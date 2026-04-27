@@ -41,19 +41,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: BakiciGideri moved to real implementation in Akturya/BakiciGideriCalculator.cs
 
-public sealed class AracDegerKaybiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "arac-deger-kaybi",
-        Category = CalculatorCategory.Akturya,
-        Title = "Araç Değer Kaybı",
-        ShortDescription = "Hasar oranı × piyasa değeri, tamir öncesi/sonrası değer farkı.",
-        LegalReference = "2918 s.K.",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "12"
-    };
-}
+// Note: AracDegerKaybi moved to real implementation in Akturya/AracDegerKaybiCalculator.cs
 
 // === KATEGORİ C — FAİZ ===
 
