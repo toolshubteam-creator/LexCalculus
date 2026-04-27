@@ -68,6 +68,14 @@
   margin-left: 6px;
 }
 
+.result-total__sublabel {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
 .result-rows {
   margin-top: var(--sp-6);
 }

@@ -49,19 +49,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: TicariTemerrutFaizi moved to real implementation in Faiz/TicariTemerrutFaizCalculator.cs
 
-public sealed class TemerrutFaiziPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "temerrut-faizi",
-        Category = CalculatorCategory.Faiz,
-        Title = "Temerrüt Faizi",
-        ShortDescription = "BK m.117 — temerrüt tarihi ve faiz başlangıcı, ihtar koşulları kontrolü.",
-        LegalReference = "Borçlar Kanunu m.117",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "15"
-    };
-}
+// Note: AkdiTemerrutFaizi moved to real implementation in Faiz/AkdiTemerrutFaizCalculator.cs
 
 public sealed class KiraArtisiPlaceholder : PlaceholderCalculator
 {

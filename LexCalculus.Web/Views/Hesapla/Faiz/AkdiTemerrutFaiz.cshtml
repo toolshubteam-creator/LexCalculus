@@ -1,0 +1,220 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.Faiz
+@using LexCalculus.Core.Enums
+@model AkdiTemerrutFaizInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as AkdiTemerrutFaizResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--warning">
+    <strong>Hukuki Uyarılar:</strong>
+    <ul class="legal-warning-list">
+        <li><strong>TBK m.120/2 alt sınırı:</strong> Sözleşmede belirlenen temerrüt faizi 3095 m.2'deki orandan az olamaz; düşükse 3095 oranı uygulanır.</li>
+        <li><strong>TBK m.27 ahlaka aykırılık:</strong> Aşırı yüksek oranlar (genelde yıllık %100+) mahkeme tarafından indirim konusu olabilir.</li>
+        <li><strong>Bileşik faiz:</strong> 3095 m.3 uyarınca ilke olarak yasaktır; <em>sadece tacirler arası yazılı sözleşmelerde</em> TTK kapsamında uygulanabilir.</li>
+    </ul>
+    <div class="legal-warning-meta">Uyarı son güncelleme: 27 Nisan 2026.</div>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="AkdiTemerrutFaiz">
+        <h2 class="form-section__title">Borç & Tarihler</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="AnaPara" class="field__label field__label--required">
+                @Html.DisplayNameFor(m => m.AnaPara) <span class="required">*</span>
+            </label>
+            <input asp-for="AnaPara" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 100000" />
+            <span asp-validation-for="AnaPara" class="field-hint"></span>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="TemerrutTarihi" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.TemerrutTarihi) <span class="required">*</span>
+                </label>
+                <input asp-for="TemerrutTarihi" class="field__input" type="date" />
+                <span asp-validation-for="TemerrutTarihi" class="field-hint"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="HesapTarihi" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.HesapTarihi) <span class="required">*</span>
+                </label>
+                <input asp-for="HesapTarihi" class="field__input" type="date" />
+                <span asp-validation-for="HesapTarihi" class="field-hint"></span>
+            </div>
+        </div>
+
+        <h3 class="form-section__title form-section__title--sub">Sözleşme Faiz Dönemleri</h3>
+        <p class="field-hint">Sözleşmede belirlenen temerrüt faizi oranları. Birden fazla dönem girilebilir (örn. 1 Ocak'tan %30, 1 Temmuz'dan %35).</p>
+
+        <div id="sozlesme-donemler">
+            @for (var i = 0; i < Model.SozlesmeOranlari.Count; i++)
+            {
+                <div class="field-row" data-donem-index="@i">
+                    <div class="field">
+                        <label class="field__label">Dönem @(i + 1) Başlangıcı</label>
+                        <input asp-for="SozlesmeOranlari[i].BaslangicTarihi" class="field__input" type="date" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label">Yıllık Oran (%)</label>
+                        <input asp-for="SozlesmeOranlari[i].YillikOran" class="field__input" type="number" step="0.01" min="0.01" placeholder="örn. 30" />
+                    </div>
+                </div>
+            }
+        </div>
+
+        <button type="button" id="add-donem-btn" class="btn btn--ghost" onclick="addDonem()">+ Yeni Dönem Ekle</button>
+
+        <h3 class="form-section__title form-section__title--sub">Hesap Yöntemi</h3>
+
+        <div class="field">
+            <label asp-for="FaizYontemi" class="field__label">
+                @Html.DisplayNameFor(m => m.FaizYontemi)
+            </label>
+            <select asp-for="FaizYontemi" asp-items="Html.GetEnumSelectList<FaizYontemi>()" class="field__input"></select>
+        </div>
+
+        <div class="field" id="bilesik-options">
+            <label asp-for="BilesikDonemi" class="field__label">
+                @Html.DisplayNameFor(m => m.BilesikDonemi)
+            </label>
+            <select asp-for="BilesikDonemi" asp-items="Html.GetEnumSelectList<BilesikDonemi>()" class="field__input"></select>
+            <div class="field-hint">Sadece bileşik faiz seçildiğinde geçerlidir.</div>
+        </div>
+
+        <div class="field">
+            <label class="field__label">
+                <input asp-for="TaclrlerArasiYaziliSozlesme" type="checkbox" />
+                @Html.DisplayNameFor(m => m.TaclrlerArasiYaziliSozlesme)
+            </label>
+            <div class="field-hint">Bileşik faiz uygulanabilmesi için TTK kapsamında tacirler arası yazılı sözleşme şarttır.</div>
+        </div>
+
+        <div class="field">
+            <label asp-for="GunYili" class="field__label">
+                @Html.DisplayNameFor(m => m.GunYili)
+            </label>
+            <select asp-for="GunYili" asp-items="Html.GetEnumSelectList<GunYiliBazi>()" class="field__input"></select>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Borç bilgilerini, tarihleri ve sözleşme faiz dönemlerini girip "Hesapla" butonuna basarak akdî temerrüt faizini hesaplayabilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+                <div class="result-total__sublabel">@result.UygulanacakSecim</div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @if (result.AkdiDonemDetaylar.Any())
+            {
+                <div class="result-detail">
+                    <h4 class="result-detail__title">Akdî Dönem Detayı (Sözleşme)</h4>
+                    <div class="result-detail__table">
+                        @foreach (var d in result.AkdiDonemDetaylar)
+                        {
+                            <div class="result-row">
+                                <span class="result-row__key">@d.Baslangic.ToString("dd.MM.yyyy") - @d.Bitis.ToString("dd.MM.yyyy") (%@(d.YillikOran * 100), @d.Gun gün)</span>
+                                <span class="result-row__val">@d.FaizTutari.ToString("N2", tr) TL</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (result.Yasal3095DonemDetaylar.Any())
+            {
+                <div class="result-detail">
+                    <h4 class="result-detail__title">3095 m.2 Dönem Detayı (Alt Sınır Kontrolü)</h4>
+                    <div class="result-detail__table">
+                        @foreach (var d in result.Yasal3095DonemDetaylar)
+                        {
+                            <div class="result-row">
+                                <span class="result-row__key">@d.Baslangic.ToString("dd.MM.yyyy") - @d.Bitis.ToString("dd.MM.yyyy") (%@(d.YillikOran * 100), @d.Gun gün)</span>
+                                <span class="result-row__val">@d.FaizTutari.ToString("N2", tr) TL</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/faiz">← Faiz</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function addDonem() {
+            var container = document.getElementById('sozlesme-donemler');
+            var index = container.children.length;
+            var html =
+                '<div class="field-row" data-donem-index="' + index + '">' +
+                  '<div class="field">' +
+                    '<label class="field__label">Dönem ' + (index + 1) + ' Başlangıcı</label>' +
+                    '<input name="SozlesmeOranlari[' + index + '].BaslangicTarihi" class="field__input" type="date" />' +
+                  '</div>' +
+                  '<div class="field">' +
+                    '<label class="field__label">Yıllık Oran (%)</label>' +
+                    '<input name="SozlesmeOranlari[' + index + '].YillikOran" class="field__input" type="number" step="0.01" min="0.01" placeholder="örn. 30" />' +
+                  '</div>' +
+                '</div>';
+            container.insertAdjacentHTML('beforeend', html);
+        }
+    </script>
+}

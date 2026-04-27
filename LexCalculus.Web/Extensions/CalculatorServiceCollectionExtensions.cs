@@ -52,7 +52,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<YasalFaizInput, YasalFaizResult>, YasalFaizCalculator>();
         services.AddScoped<ICalculator, TicariTemerrutFaizCalculator>();
         services.AddScoped<ICalculator<TicariTemerrutFaizInput, TicariTemerrutFaizResult>, TicariTemerrutFaizCalculator>();
-        services.AddScoped<ICalculator, TemerrutFaiziPlaceholder>();
+        services.AddScoped<ICalculator, AkdiTemerrutFaizCalculator>();
+        services.AddScoped<ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult>, AkdiTemerrutFaizCalculator>();
         services.AddScoped<ICalculator, KiraArtisiPlaceholder>();
         services.AddScoped<ICalculator, MenfiTespitPlaceholder>();
 
