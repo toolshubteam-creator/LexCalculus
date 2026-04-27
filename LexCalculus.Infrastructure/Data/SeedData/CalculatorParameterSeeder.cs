@@ -18,6 +18,18 @@ public static class CalculatorParameterSeeder
     {
         var seeds = new List<FormulaParameter>
         {
+            new() { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 35058.58m, EffectiveDate = new DateTime(2024, 1, 1),
+                Source = "Hazine ve Maliye Bakanlığı 05.01.2024 tarih ve 1 sıra no'lu Mali ve Sosyal Haklar Genelgesi",
+                Note = "01.01.2024 - 30.06.2024 dönemi kıdem tazminatı tavanı",
+                ExpectedUpdateFrequency = "Biannual",
+                LastUpdatedDate = new DateTime(2024, 1, 5),
+                Notes = "Kıdem tazminatı tavanı her yıl Ocak ve Temmuz ayında Hazine ve Maliye Bakanlığı genelgesi ile belirlenir. Kaynak: ms.hmb.gov.tr" },
+            new() { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 41828.42m, EffectiveDate = new DateTime(2024, 7, 1),
+                Source = "Hazine ve Maliye Bakanlığı 05.07.2024 tarihli Mali ve Sosyal Haklar Genelgesi",
+                Note = "01.07.2024 - 31.12.2024 dönemi kıdem tazminatı tavanı",
+                ExpectedUpdateFrequency = "Biannual",
+                LastUpdatedDate = new DateTime(2024, 7, 5),
+                Notes = "Kıdem tazminatı tavanı her yıl Ocak ve Temmuz ayında Hazine ve Maliye Bakanlığı genelgesi ile belirlenir. Kaynak: ms.hmb.gov.tr" },
             new() { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 35058.58m, EffectiveDate = new DateTime(2025, 1, 1), Source = "Çalışma Bakanlığı 2025 ilk yarı", Note = "2025/1 tebliği" },
             new() { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 41828.42m, EffectiveDate = new DateTime(2025, 7, 1), Source = "Çalışma Bakanlığı 2025 ikinci yarı", Note = "2025/2 tebliği" },
             new() { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 53919.68m, EffectiveDate = new DateTime(2026, 1, 1), Source = "Çalışma Bakanlığı 2026 ilk yarı", Note = "2026/1 tebliği — örnek değer, gerçek değerle güncellenmeli" },
