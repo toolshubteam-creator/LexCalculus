@@ -38,6 +38,25 @@
   color: var(--gold);
 }
 
+.info-box--info {
+  background: rgba(28, 60, 100, 0.08);
+  border-left: 3px solid #1c3c64;
+  color: var(--ink);
+}
+
+.info-box--info strong {
+  color: #1c3c64;
+}
+
+.link {
+  color: var(--burgundy);
+  text-decoration: underline;
+}
+
+.link:hover {
+  opacity: 0.8;
+}
+
 /* When info-box is the first child inside a form-section, remove top margin */
 .form-section .info-box {
   margin-bottom: var(--sp-5);
