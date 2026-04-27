@@ -28,6 +28,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<TicariTemerrutFaizInput, TicariTemerrutFaizResult> _ticariFaizCalculator;
     private readonly ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult> _akdiTemerrutCalculator;
     private readonly ICalculator<KiraArtisiInput, KiraArtisiResult> _kiraArtisiCalculator;
+    private readonly ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> _menfiTespitFaizCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -46,7 +47,8 @@ public class HesaplaController : Controller
         ICalculator<YasalFaizInput, YasalFaizResult> yasalFaizCalculator,
         ICalculator<TicariTemerrutFaizInput, TicariTemerrutFaizResult> ticariFaizCalculator,
         ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult> akdiTemerrutCalculator,
-        ICalculator<KiraArtisiInput, KiraArtisiResult> kiraArtisiCalculator)
+        ICalculator<KiraArtisiInput, KiraArtisiResult> kiraArtisiCalculator,
+        ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> menfiTespitFaizCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
@@ -65,6 +67,7 @@ public class HesaplaController : Controller
         _ticariFaizCalculator = ticariFaizCalculator ?? throw new ArgumentNullException(nameof(ticariFaizCalculator));
         _akdiTemerrutCalculator = akdiTemerrutCalculator ?? throw new ArgumentNullException(nameof(akdiTemerrutCalculator));
         _kiraArtisiCalculator = kiraArtisiCalculator ?? throw new ArgumentNullException(nameof(kiraArtisiCalculator));
+        _menfiTespitFaizCalculator = menfiTespitFaizCalculator ?? throw new ArgumentNullException(nameof(menfiTespitFaizCalculator));
     }
 
     /// <summary>
@@ -923,6 +926,57 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _kiraArtisiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("faiz/menfi-tespit-faizi")]
+    public IActionResult MenfiTespitFaiz()
+    {
+        var meta = _registry.Find(CalculatorCategory.Faiz, "menfi-tespit-faizi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = new MenfiTespitFaizInput
+        {
+            TahsilTarihi = DateTime.Today.AddYears(-1),
+            HesapTarihi = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/Faiz/MenfiTespitFaiz.cshtml", input);
+    }
+
+    [HttpPost("faiz/menfi-tespit-faizi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MenfiTespitFaiz(MenfiTespitFaizInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.Faiz, "menfi-tespit-faizi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Faiz/MenfiTespitFaiz.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _menfiTespitFaizCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

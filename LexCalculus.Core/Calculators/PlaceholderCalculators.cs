@@ -53,16 +53,4 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: KiraArtisi moved to real implementation in Faiz/KiraArtisiCalculator.cs
 
-public sealed class MenfiTespitPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "menfi-tespit",
-        Category = CalculatorCategory.Faiz,
-        Title = "Menfi Tespit / İstirdat Alacağı",
-        ShortDescription = "Haksız ödenen tutar + yasal faiz, ödeme tarihinden itibaren hesap.",
-        LegalReference = "Borçlar Kanunu",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "17"
-    };
-}
+// Note: MenfiTespitFaizi moved to real implementation in Faiz/MenfiTespitFaizCalculator.cs

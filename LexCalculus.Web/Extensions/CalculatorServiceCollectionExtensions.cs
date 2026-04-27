@@ -59,7 +59,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ITUFEService, TUFEService>();
         services.AddScoped<ICalculator, KiraArtisiCalculator>();
         services.AddScoped<ICalculator<KiraArtisiInput, KiraArtisiResult>, KiraArtisiCalculator>();
-        services.AddScoped<ICalculator, MenfiTespitPlaceholder>();
+        services.AddScoped<ICalculator, MenfiTespitFaizCalculator>();
+        services.AddScoped<ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult>, MenfiTespitFaizCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>
