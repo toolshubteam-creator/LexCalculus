@@ -39,19 +39,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: GeciciIsGoremezlik moved to real implementation in Akturya/GeciciIsGoremezlikCalculator.cs
 
-public sealed class BakiciGideriPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "bakici-gideri",
-        Category = CalculatorCategory.Akturya,
-        Title = "Bakıcı Gideri Tazminatı",
-        ShortDescription = "Günlük bakıcı ücreti × bakım süresi, asgari ücret referanslı taban.",
-        LegalReference = "Yargıtay içtihatları",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "11"
-    };
-}
+// Note: BakiciGideri moved to real implementation in Akturya/BakiciGideriCalculator.cs
 
 public sealed class AracDegerKaybiPlaceholder : PlaceholderCalculator
 {

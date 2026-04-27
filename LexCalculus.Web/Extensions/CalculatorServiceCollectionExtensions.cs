@@ -41,7 +41,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<MaluliyetInput, MaluliyetResult>, MaluliyetCalculator>();
         services.AddScoped<ICalculator, GeciciIsGoremezlikCalculator>();
         services.AddScoped<ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult>, GeciciIsGoremezlikCalculator>();
-        services.AddScoped<ICalculator, BakiciGideriPlaceholder>();
+        services.AddScoped<ICalculator, BakiciGideriCalculator>();
+        services.AddScoped<ICalculator<BakiciGideriInput, BakiciGideriResult>, BakiciGideriCalculator>();
         services.AddScoped<ICalculator, AracDegerKaybiPlaceholder>();
 
         // Kategori C — Faiz

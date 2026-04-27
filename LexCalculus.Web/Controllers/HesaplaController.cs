@@ -21,6 +21,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> _destekKalculator;
     private readonly ICalculator<MaluliyetInput, MaluliyetResult> _maluliyetCalculator;
     private readonly ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult> _gecIsGoremezlikCalculator;
+    private readonly ICalculator<BakiciGideriInput, BakiciGideriResult> _bakiciCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -33,7 +34,8 @@ public class HesaplaController : Controller
         ICalculator<MobbingInput, MobbingResult> mobbingCalculator,
         ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> destekKalculator,
         ICalculator<MaluliyetInput, MaluliyetResult> maluliyetCalculator,
-        ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult> gecIsGoremezlikCalculator)
+        ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult> gecIsGoremezlikCalculator,
+        ICalculator<BakiciGideriInput, BakiciGideriResult> bakiciCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
@@ -46,6 +48,7 @@ public class HesaplaController : Controller
         _destekKalculator = destekKalculator ?? throw new ArgumentNullException(nameof(destekKalculator));
         _maluliyetCalculator = maluliyetCalculator ?? throw new ArgumentNullException(nameof(maluliyetCalculator));
         _gecIsGoremezlikCalculator = gecIsGoremezlikCalculator ?? throw new ArgumentNullException(nameof(gecIsGoremezlikCalculator));
+        _bakiciCalculator = bakiciCalculator ?? throw new ArgumentNullException(nameof(bakiciCalculator));
     }
 
     /// <summary>
@@ -624,6 +627,51 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _gecIsGoremezlikCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("akturya/bakici-gideri")]
+    public IActionResult BakiciGideri()
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "bakici-gideri");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Akturya/BakiciGideri.cshtml", new BakiciGideriInput());
+    }
+
+    [HttpPost("akturya/bakici-gideri")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BakiciGideri(BakiciGideriInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "bakici-gideri");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Akturya/BakiciGideri.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _bakiciCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
