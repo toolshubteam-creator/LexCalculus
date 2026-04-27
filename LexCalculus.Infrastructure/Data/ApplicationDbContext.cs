@@ -19,6 +19,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<FormulaParameter> FormulaParameters => Set<FormulaParameter>();
+    public DbSet<LifeTable> LifeTables => Set<LifeTable>();
+    public DbSet<LifeTableRow> LifeTableRows => Set<LifeTableRow>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

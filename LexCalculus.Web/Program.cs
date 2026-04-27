@@ -77,6 +77,8 @@ try
     // CALCULATORS
     // -------------------------------------------------------------------------
     builder.Services.AddScoped<IFormulaParameterService, FormulaParameterService>();
+    builder.Services.AddScoped<ILifeTableService, LifeTableService>();
+    builder.Services.AddScoped<IActuarialService, ActuarialService>();
     builder.Services.AddCalculators();
 
     // -------------------------------------------------------------------------
@@ -297,6 +299,7 @@ try
             await IdentitySeeder.SeedAdminUserAsync(userManager, builder.Configuration, startupLogger);
 
             await CalculatorParameterSeeder.SeedAsync(dbContext, startupLogger);
+            await LifeTableSeeder.SeedAsync(dbContext, startupLogger);
         }
         catch (Exception ex)
         {
