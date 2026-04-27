@@ -1,0 +1,129 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.IsHukuku
+@model AsgariUcretInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as AsgariUcretResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="AsgariUcret">
+        <h2 class="form-section__title">İnceleme Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="BaslangicTarihi" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.BaslangicTarihi) <span class="required">*</span>
+                </label>
+                <input asp-for="BaslangicTarihi" class="field__input" type="date" />
+                <span asp-validation-for="BaslangicTarihi" class="field-hint"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="BitisTarihi" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.BitisTarihi) <span class="required">*</span>
+                </label>
+                <input asp-for="BitisTarihi" class="field__input" type="date" />
+                <span asp-validation-for="BitisTarihi" class="field-hint"></span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="OdenenBrutAylik" class="field__label field__label--required">
+                @Html.DisplayNameFor(m => m.OdenenBrutAylik) <span class="required">*</span>
+            </label>
+            <input asp-for="OdenenBrutAylik" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 22000" />
+            <div class="field-hint">İncelenen tüm dönem boyunca ödenen ortalama brüt ücret. Faz 2'de tek değer kabul edilir; Faz 3'te ay ay giriş eklenecek.</div>
+            <span asp-validation-for="OdenenBrutAylik" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label field__label--checkbox">
+                <input asp-for="FaizDahil" type="checkbox" />
+                <span>@Html.DisplayNameFor(m => m.FaizDahil)</span>
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--block">İncele</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Dönem ve ödenen brüt ücret bilgilerini girip "İncele" butonuna basarak uyumluluk kontrolünü başlatabilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @if (result.AylikDetaylar.Any(d => d.Eksiklik > 0))
+            {
+                <div class="result-detail">
+                    <h4 class="result-detail__title">Aylık Eksiklik Tablosu</h4>
+                    <div class="result-detail__table">
+                        @foreach (var d in result.AylikDetaylar.Where(x => x.Eksiklik > 0))
+                        {
+                            <div class="result-row">
+                                <span class="result-row__key">@d.Ay.ToString("yyyy MMMM", tr)</span>
+                                <span class="result-row__val">@d.Eksiklik.ToString("N2", tr) TL eksik</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/is-hukuku">← İş Hukuku</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

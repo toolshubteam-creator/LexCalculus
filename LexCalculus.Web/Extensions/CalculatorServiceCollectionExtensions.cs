@@ -28,7 +28,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<FazlaMesaiInput, FazlaMesaiResult>, FazlaMesaiCalculator>();
         services.AddScoped<ICalculator, IseIadeCalculator>();
         services.AddScoped<ICalculator<IseIadeInput, IseIadeResult>, IseIadeCalculator>();
-        services.AddScoped<ICalculator, AsgariUcretKontrolPlaceholder>();
+        services.AddScoped<ICalculator, AsgariUcretCalculator>();
+        services.AddScoped<ICalculator<AsgariUcretInput, AsgariUcretResult>, AsgariUcretCalculator>();
         services.AddScoped<ICalculator, MobbingTazminatiPlaceholder>();
 
         // Kategori B — Aktüerya

@@ -109,3 +109,25 @@
   color: var(--muted);
   line-height: 1.6;
 }
+
+/* Per-month detail block (e.g. asgari ücret aylık eksiklik tablosu) */
+.result-detail {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--rule);
+}
+
+.result-detail__title {
+  font-family: var(--font-meta);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 var(--sp-4) 0;
+}
+
+.result-detail__table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}

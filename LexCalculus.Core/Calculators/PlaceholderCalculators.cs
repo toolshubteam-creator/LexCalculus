@@ -27,19 +27,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: IseIade moved to real implementation in IsHukuku/IseIadeCalculator.cs
 
-public sealed class AsgariUcretKontrolPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "asgari-ucret-kontrol",
-        Category = CalculatorCategory.IsHukuku,
-        Title = "Asgari Ücret Uyumluluk Kontrolü",
-        ShortDescription = "Girilen ücretin dönemsel asgari ücretle karşılaştırması, eksik ödeme tespiti ve toplam alacak.",
-        LegalReference = "Çalışma Bakanlığı",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "06"
-    };
-}
+// Note: AsgariUcret moved to real implementation in IsHukuku/AsgariUcretCalculator.cs
 
 public sealed class MobbingTazminatiPlaceholder : PlaceholderCalculator
 {
