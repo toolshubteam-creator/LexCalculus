@@ -10,6 +10,7 @@ using LexCalculus.Infrastructure.Repositories;
 using LexCalculus.Infrastructure.Seo;
 using LexCalculus.Web.Extensions;
 using LexCalculus.Web.HealthChecks;
+using LexCalculus.Web.ModelBinders;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -200,7 +201,12 @@ try
     // -------------------------------------------------------------------------
     // MVC + RAZOR PAGES (Identity için lazım)
     // -------------------------------------------------------------------------
-    var mvcBuilder = builder.Services.AddControllersWithViews();
+    var mvcBuilder = builder.Services.AddControllersWithViews(options =>
+    {
+        // Custom flexible decimal binder — accepts both "3.5" and "3,5"
+        // Inserted at index 0 so it runs before the default binder
+        options.ModelBinderProviders.Insert(0, new FlexibleDecimalModelBinderProvider());
+    });
     builder.Services.AddResponseCaching();
     builder.Services.AddRazorPages();
 
