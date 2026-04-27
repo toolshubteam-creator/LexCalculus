@@ -39,7 +39,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult>, DesteKtenYoksunKalmaCalculator>();
         services.AddScoped<ICalculator, MaluliyetCalculator>();
         services.AddScoped<ICalculator<MaluliyetInput, MaluliyetResult>, MaluliyetCalculator>();
-        services.AddScoped<ICalculator, GeciciIsGoremezlikPlaceholder>();
+        services.AddScoped<ICalculator, GeciciIsGoremezlikCalculator>();
+        services.AddScoped<ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult>, GeciciIsGoremezlikCalculator>();
         services.AddScoped<ICalculator, BakiciGideriPlaceholder>();
         services.AddScoped<ICalculator, AracDegerKaybiPlaceholder>();
 

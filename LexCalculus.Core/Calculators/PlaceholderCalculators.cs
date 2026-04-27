@@ -37,19 +37,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: Maluliyet moved to real implementation in Akturya/MaluliyetCalculator.cs
 
-public sealed class GeciciIsGoremezlikPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "gecici-is-goremezlik",
-        Category = CalculatorCategory.Akturya,
-        Title = "Geçici İş Göremezlik Tazminatı",
-        ShortDescription = "Tedavi süresi × günlük net gelir, SGK ödemesi mahsubu.",
-        LegalReference = "5510 s.K.",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "10"
-    };
-}
+// Note: GeciciIsGoremezlik moved to real implementation in Akturya/GeciciIsGoremezlikCalculator.cs
 
 public sealed class BakiciGideriPlaceholder : PlaceholderCalculator
 {
