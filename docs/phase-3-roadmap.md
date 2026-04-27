@@ -44,16 +44,51 @@ yani admin@lexcalculus.local + birkaç test kullanıcısı. Faz 3 platformu
 
 **Süre:** 4-5 gün
 
-### Adım 3.3 — Veri Tazelik Widget
+### Adım 3.3 — Veri Tazelik Bildirim Sistemi
 
-- Admin dashboard'da: hangi parametre güncel mi?
-- ExpectedUpdateFrequency'ye göre uyarı:
-  * Daily/Weekly/Monthly/Quarterly/Biannual/Annual
-  * LastUpdatedDate + Frequency = beklenen son tarih
-  * Geçmişse kırmızı uyarı, yaklaşıyorsa sarı
-- Widget her parametre kategorisi için (TÜFE, TCMB, Kıdem tavanı, asgari ücret)
+**Amaç:** Avukatlar platforma sürekli girmiyor (dava bazlı kullanım).
+Bir veri eskidiğinde, admin'in admin panele girmesini beklemeden
+proaktif uyarı sistemi gerekiyor. Yoksa eski parametreyle hesap
+yapılır, mahkemede sorun çıkar.
 
-**Süre:** 2-3 gün
+**Kapsam:**
+
+1. **Hangfire altyapı kurulumu**
+   - LexCalculus.Jobs projesi zaten var (Faz 1), Hangfire bağlanmadı
+   - Hangfire DB tabloları (otomatik migration)
+   - Hangfire dashboard /admin/hangfire (AdminOnly)
+
+2. **E-posta gönderim servisi**
+   - IEmailService (SendGrid veya SMTP)
+   - Template sistemi (HTML + plaintext fallback)
+   - Faz 4'te bildirim/şifre sıfırlama da bu servisi kullanır
+
+3. **Notifications tablosu**
+   - Kullanıcı bildirim merkezi (Faz 4 sosyal platform da bunu kullanır)
+   - Type: DataFreshness, ParameterChange, SystemAlert (gelecek için Connection, Message)
+   - IsRead, CreatedAt, ActionUrl
+
+4. **Veri tazelik kontrol logic**
+   - DataFreshnessCheckJob (Hangfire recurring, günde 1 kez)
+   - Her FormulaParameter için: LastUpdatedDate + ExpectedUpdateFrequency = beklenen son tarih
+   - Geçmişse → admin'lere e-posta + Notification kaydı
+   - Yaklaşıyorsa (Frequency / 4 kala) → uyarı niteliğinde Notification
+
+5. **Admin Dashboard Widget**
+   - "Veri Sağlığı" kartı
+   - Kategori bazında durum: Yeşil (güncel), Sarı (yaklaşıyor), Kırmızı (geçti)
+   - Tıklayınca /admin/parameters?status=stale filtresine gider
+
+6. **Bildirim merkezi UI**
+   - Kullanıcı header'ında çan ikonu + okunmamış sayısı
+   - /bildirimlerim → liste, filtreleme, okundu işaretleme
+
+**Bağımlılıklar:**
+- Adım 3.1 (Admin Layout) tamamlanmış olmalı
+- Adım 3.2 (FormulaParameter CRUD) tamamlanmış olmalı (LastUpdatedDate güncellenince
+  cron'un yeniden hesaplaması gerekir)
+
+**Süre:** 5-6 gün
 
 ### Adım 3.4 — Kullanıcı Hesap Geçmişi UI
 
@@ -112,7 +147,7 @@ yani admin@lexcalculus.local + birkaç test kullanıcısı. Faz 3 platformu
 
 **Süre:** 1 gün
 
-**Toplam Faz 3:** ~30-40 iş günü (~6-8 hafta)
+**Toplam Faz 3:** ~35-45 iş günü (~7-9 hafta)
 
 ---
 
@@ -135,7 +170,10 @@ Aşağıdaki feature'lar Faz 3'te YAPILMAYACAK. Hangisinin Faz 4 olduğu, hangis
 - **Hazine sayfası scraping** — kıdem tavanı otomatik
 - **Resmi Gazete RSS** — mevzuat değişiklik takibi
 - **D-I kategorileri kalan calculator'lar** (Gayrimenkul, Aile/Miras, Ceza, Vergi, Ticaret, Bilirkişi)
-- **Hangfire job altyapısı** — duyuru çekme, e-posta bildirim, veri yenileme cron'ları
+
+**Not:** Hangfire altyapısı ve e-posta bildirim sistemi Faz 3.3'e çekildi
+(veri tazelik bildirim sisteminin temel bileşenleri). Faz 5'teki
+"otomatik veri çekme" işleri bu altyapı üzerine inşa edilecek.
 
 ### Belirsiz / Karar Bekleyen
 
@@ -159,6 +197,8 @@ Faz 2'de bilinçli olarak Faz 3 hazırlığı yapılan yerler:
 | CalculationHistory indexler | 2.22 | (UserId), (UserId+CreatedAt), (UserId+ToolSlug) |
 | CalculationHistory soft-delete | 2.22 | Kullanıcı sildiklerini geri alabilsin |
 | ApplicationUser : IdentityUser&lt;int&gt; | 1 | Multi-tenant için int FK uygun |
+| LexCalculus.Jobs projesi | 1 | Hangfire için iskelet hazır, paket eklenmesi yeterli |
+| ApplicationUser email + emailconfirmed | 1 | Bildirim e-postası gönderilebilir |
 
 Faz 3 başlarken bu altyapı yeniden yazılmayacak, üzerine ekleme yapılacak.
 
@@ -182,6 +222,12 @@ Faz 3 başlarken bu altyapı yeniden yazılmayacak, üzerine ekleme yapılacak.
 **Risk 4: Bulk CSV import validation**
 - TÜFE/TCMB toplu yükleme yanlış format'ta gelirse seed bozulabilir
 - Mitigasyon: Strict CSV schema, dry-run önizleme, transaction rollback
+
+**Risk 5: E-posta gönderim güvenilirliği**
+- SendGrid/Mailgun outage'ında veri tazelik uyarısı kaybolur
+- Bounce / spam folder durumları yönetilmeli
+- Mitigasyon: Gönderim retry policy (Hangfire built-in), bildirim merkezinde
+  in-app fallback (kullanıcı admin'e girince yine görür)
 
 ---
 
