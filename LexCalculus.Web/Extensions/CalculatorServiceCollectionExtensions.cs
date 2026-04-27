@@ -30,7 +30,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<IseIadeInput, IseIadeResult>, IseIadeCalculator>();
         services.AddScoped<ICalculator, AsgariUcretCalculator>();
         services.AddScoped<ICalculator<AsgariUcretInput, AsgariUcretResult>, AsgariUcretCalculator>();
-        services.AddScoped<ICalculator, MobbingTazminatiPlaceholder>();
+        services.AddScoped<ICalculator, MobbingCalculator>();
+        services.AddScoped<ICalculator<MobbingInput, MobbingResult>, MobbingCalculator>();
 
         // Kategori B — Aktüerya
         services.AddScoped<ICalculator, DesteKtenYoksunKalmaPlaceholder>();

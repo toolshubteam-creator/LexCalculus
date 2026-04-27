@@ -29,19 +29,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: AsgariUcret moved to real implementation in IsHukuku/AsgariUcretCalculator.cs
 
-public sealed class MobbingTazminatiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "mobbing-tazminati",
-        Category = CalculatorCategory.IsHukuku,
-        Title = "Mobbing / Manevi Tazminat",
-        ShortDescription = "Emsal kararlar tabanlı tahmini hesap; çalışma süresi ve şiddet düzeyine göre.",
-        LegalReference = "Yargıtay emsal kararları",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "07"
-    };
-}
+// Note: Mobbing moved to real implementation in IsHukuku/MobbingCalculator.cs
 
 // === KATEGORİ B — AKTÜERYA ===
 

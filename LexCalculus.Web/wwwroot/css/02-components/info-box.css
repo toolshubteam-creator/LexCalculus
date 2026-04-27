@@ -28,6 +28,16 @@
   color: var(--gold);
 }
 
+.info-box--warning {
+  background: rgba(184, 146, 74, 0.08);
+  border-left-color: var(--gold);
+  color: var(--ink);
+}
+
+.info-box--warning strong {
+  color: var(--gold);
+}
+
 /* When info-box is the first child inside a form-section, remove top margin */
 .form-section .info-box {
   margin-bottom: var(--sp-5);
