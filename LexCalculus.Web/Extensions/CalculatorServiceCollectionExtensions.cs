@@ -37,7 +37,8 @@ public static class CalculatorServiceCollectionExtensions
         // Kategori B — Aktüerya
         services.AddScoped<ICalculator, DesteKtenYoksunKalmaCalculator>();
         services.AddScoped<ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult>, DesteKtenYoksunKalmaCalculator>();
-        services.AddScoped<ICalculator, MaluliyetTazminatiPlaceholder>();
+        services.AddScoped<ICalculator, MaluliyetCalculator>();
+        services.AddScoped<ICalculator<MaluliyetInput, MaluliyetResult>, MaluliyetCalculator>();
         services.AddScoped<ICalculator, GeciciIsGoremezlikPlaceholder>();
         services.AddScoped<ICalculator, BakiciGideriPlaceholder>();
         services.AddScoped<ICalculator, AracDegerKaybiPlaceholder>();

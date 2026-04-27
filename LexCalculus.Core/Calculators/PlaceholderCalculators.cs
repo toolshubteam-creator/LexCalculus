@@ -35,19 +35,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: DestekTenYoksunKalma moved to real implementation in Akturya/DesteKtenYoksunKalmaCalculator.cs
 
-public sealed class MaluliyetTazminatiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "maluliyet-tazminati",
-        Category = CalculatorCategory.Akturya,
-        Title = "Maluliyet Tazminatı",
-        ShortDescription = "Maluliyet oranı × gelir × kalan aktif süre; mesleki ve genel maluliyet ayrımı.",
-        LegalReference = "2918 s.K. / Borçlar Kanunu",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "09"
-    };
-}
+// Note: Maluliyet moved to real implementation in Akturya/MaluliyetCalculator.cs
 
 public sealed class GeciciIsGoremezlikPlaceholder : PlaceholderCalculator
 {

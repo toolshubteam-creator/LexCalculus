@@ -19,6 +19,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<AsgariUcretInput, AsgariUcretResult> _asgariUcretCalculator;
     private readonly ICalculator<MobbingInput, MobbingResult> _mobbingCalculator;
     private readonly ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> _destekKalculator;
+    private readonly ICalculator<MaluliyetInput, MaluliyetResult> _maluliyetCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -29,7 +30,8 @@ public class HesaplaController : Controller
         ICalculator<IseIadeInput, IseIadeResult> iseIadeCalculator,
         ICalculator<AsgariUcretInput, AsgariUcretResult> asgariUcretCalculator,
         ICalculator<MobbingInput, MobbingResult> mobbingCalculator,
-        ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> destekKalculator)
+        ICalculator<DesteKtenYoksunKalmaInput, DesteKtenYoksunKalmaResult> destekKalculator,
+        ICalculator<MaluliyetInput, MaluliyetResult> maluliyetCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
@@ -40,6 +42,7 @@ public class HesaplaController : Controller
         _asgariUcretCalculator = asgariUcretCalculator ?? throw new ArgumentNullException(nameof(asgariUcretCalculator));
         _mobbingCalculator = mobbingCalculator ?? throw new ArgumentNullException(nameof(mobbingCalculator));
         _destekKalculator = destekKalculator ?? throw new ArgumentNullException(nameof(destekKalculator));
+        _maluliyetCalculator = maluliyetCalculator ?? throw new ArgumentNullException(nameof(maluliyetCalculator));
     }
 
     /// <summary>
@@ -528,6 +531,51 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _destekKalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("akturya/maluliyet-tazminati")]
+    public IActionResult Maluliyet()
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "maluliyet-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Akturya/Maluliyet.cshtml", new MaluliyetInput());
+    }
+
+    [HttpPost("akturya/maluliyet-tazminati")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Maluliyet(MaluliyetInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.Akturya, "maluliyet-tazminati");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Akturya/Maluliyet.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _maluliyetCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
