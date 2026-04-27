@@ -51,19 +51,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: AkdiTemerrutFaizi moved to real implementation in Faiz/AkdiTemerrutFaizCalculator.cs
 
-public sealed class KiraArtisiPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "kira-artisi",
-        Category = CalculatorCategory.Faiz,
-        Title = "Kira Alacağı ve Artış Hesabı",
-        ShortDescription = "6098 s.K. m.344 — TÜFE oranı sınırı, birikmiş kira alacağı ve faiz.",
-        LegalReference = "6098 s.K. m.344",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "16"
-    };
-}
+// Note: KiraArtisi moved to real implementation in Faiz/KiraArtisiCalculator.cs
 
 public sealed class MenfiTespitPlaceholder : PlaceholderCalculator
 {

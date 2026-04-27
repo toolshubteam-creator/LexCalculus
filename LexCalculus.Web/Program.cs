@@ -307,6 +307,8 @@ try
             await IdentitySeeder.SeedAdminUserAsync(userManager, builder.Configuration, startupLogger);
 
             await CalculatorParameterSeeder.SeedAsync(dbContext, startupLogger);
+            await LexCalculus.Infrastructure.Persistence.Seed.FormulaParameterMetadataBackfill.BackfillAsync(dbContext);
+            await LexCalculus.Infrastructure.Persistence.Seed.TUFESeedData.SeedAsync(dbContext);
             await LifeTableSeeder.SeedAsync(dbContext, startupLogger);
         }
         catch (Exception ex)

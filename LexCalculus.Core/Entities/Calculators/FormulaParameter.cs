@@ -53,4 +53,24 @@ public class FormulaParameter : BaseEntity
 
     /// <summary>Free-form admin note about this version, e.g. why it changed.</summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// How often this parameter is expected to be updated.
+    /// Used by Phase 3 admin panel for data freshness alerts.
+    /// Values: "Monthly", "Yearly", "Biannual", "OnLawChange", "Static"
+    /// </summary>
+    public string? ExpectedUpdateFrequency { get; set; }
+
+    /// <summary>
+    /// Date this parameter was last updated from its official source
+    /// (e.g., TÜİK announcement date, RG publication date).
+    /// Phase 3 admin panel uses this for staleness detection.
+    /// </summary>
+    public DateTime? LastUpdatedDate { get; set; }
+
+    /// <summary>
+    /// Source URL, update procedure, or contextual info for the admin.
+    /// Example: "TÜİK her ayın 3'ünde yayınlar — data.tuik.gov.tr"
+    /// </summary>
+    public string? Notes { get; set; }
 }

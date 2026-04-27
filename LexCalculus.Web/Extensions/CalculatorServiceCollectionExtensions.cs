@@ -3,7 +3,9 @@ using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.IsHukuku;
+using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Calculators;
+using LexCalculus.Infrastructure.Services;
 
 namespace LexCalculus.Web.Extensions;
 
@@ -54,7 +56,9 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<TicariTemerrutFaizInput, TicariTemerrutFaizResult>, TicariTemerrutFaizCalculator>();
         services.AddScoped<ICalculator, AkdiTemerrutFaizCalculator>();
         services.AddScoped<ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult>, AkdiTemerrutFaizCalculator>();
-        services.AddScoped<ICalculator, KiraArtisiPlaceholder>();
+        services.AddScoped<ITUFEService, TUFEService>();
+        services.AddScoped<ICalculator, KiraArtisiCalculator>();
+        services.AddScoped<ICalculator<KiraArtisiInput, KiraArtisiResult>, KiraArtisiCalculator>();
         services.AddScoped<ICalculator, MenfiTespitPlaceholder>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances

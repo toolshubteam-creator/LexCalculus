@@ -28,6 +28,9 @@ public sealed class FormulaParameterConfiguration : IEntityTypeConfiguration<For
 
         builder.Property(p => p.Source).HasMaxLength(200);
         builder.Property(p => p.Note).HasMaxLength(1000);
+        builder.Property(p => p.ExpectedUpdateFrequency).HasMaxLength(50);
+        builder.Property(p => p.Notes).HasMaxLength(500);
+        builder.Property(p => p.LastUpdatedDate).HasColumnType("datetime2(0)");
 
         builder.Property(p => p.CreatedAt).HasColumnType("datetime2(3)");
         builder.Property(p => p.UpdatedAt).HasColumnType("datetime2(3)");
