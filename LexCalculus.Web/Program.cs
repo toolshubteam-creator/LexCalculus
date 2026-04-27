@@ -80,6 +80,7 @@ try
     builder.Services.AddScoped<IFormulaParameterService, FormulaParameterService>();
     builder.Services.AddScoped<ILifeTableService, LifeTableService>();
     builder.Services.AddScoped<IActuarialService, ActuarialService>();
+    builder.Services.AddScoped<IInterestRateService, InterestRateService>();
     builder.Services.AddCalculators();
 
     // -------------------------------------------------------------------------

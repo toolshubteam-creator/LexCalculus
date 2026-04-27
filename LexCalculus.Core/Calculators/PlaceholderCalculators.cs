@@ -45,19 +45,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // === KATEGORİ C — FAİZ ===
 
-public sealed class YasalFaizPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "yasal-faiz",
-        Category = CalculatorCategory.Faiz,
-        Title = "Yasal Faiz Hesabı",
-        ShortDescription = "3095 sayılı Kanun dönemsel oranları, basit ve bileşik faiz seçeneği, çok dönemli hesap.",
-        LegalReference = "3095 s.K.",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "13"
-    };
-}
+// Note: YasalFaiz moved to real implementation in Faiz/YasalFaizCalculator.cs
 
 public sealed class TicariFaizPlaceholder : PlaceholderCalculator
 {

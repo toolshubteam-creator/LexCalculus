@@ -1,6 +1,7 @@
 using LexCalculus.Core.Calculators;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
+using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Infrastructure.Calculators;
 
@@ -47,7 +48,8 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<AracDegerKaybiInput, AracDegerKaybiResult>, AracDegerKaybiCalculator>();
 
         // Kategori C — Faiz
-        services.AddScoped<ICalculator, YasalFaizPlaceholder>();
+        services.AddScoped<ICalculator, YasalFaizCalculator>();
+        services.AddScoped<ICalculator<YasalFaizInput, YasalFaizResult>, YasalFaizCalculator>();
         services.AddScoped<ICalculator, TicariFaizPlaceholder>();
         services.AddScoped<ICalculator, TemerrutFaiziPlaceholder>();
         services.AddScoped<ICalculator, KiraArtisiPlaceholder>();

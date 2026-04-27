@@ -1,5 +1,6 @@
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
+using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Web.Models.Hesapla;
@@ -23,6 +24,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult> _gecIsGoremezlikCalculator;
     private readonly ICalculator<BakiciGideriInput, BakiciGideriResult> _bakiciCalculator;
     private readonly ICalculator<AracDegerKaybiInput, AracDegerKaybiResult> _aracDegerCalculator;
+    private readonly ICalculator<YasalFaizInput, YasalFaizResult> _yasalFaizCalculator;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -37,7 +39,8 @@ public class HesaplaController : Controller
         ICalculator<MaluliyetInput, MaluliyetResult> maluliyetCalculator,
         ICalculator<GeciciIsGoremezlikInput, GeciciIsGoremezlikResult> gecIsGoremezlikCalculator,
         ICalculator<BakiciGideriInput, BakiciGideriResult> bakiciCalculator,
-        ICalculator<AracDegerKaybiInput, AracDegerKaybiResult> aracDegerCalculator)
+        ICalculator<AracDegerKaybiInput, AracDegerKaybiResult> aracDegerCalculator,
+        ICalculator<YasalFaizInput, YasalFaizResult> yasalFaizCalculator)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
@@ -52,6 +55,7 @@ public class HesaplaController : Controller
         _gecIsGoremezlikCalculator = gecIsGoremezlikCalculator ?? throw new ArgumentNullException(nameof(gecIsGoremezlikCalculator));
         _bakiciCalculator = bakiciCalculator ?? throw new ArgumentNullException(nameof(bakiciCalculator));
         _aracDegerCalculator = aracDegerCalculator ?? throw new ArgumentNullException(nameof(aracDegerCalculator));
+        _yasalFaizCalculator = yasalFaizCalculator ?? throw new ArgumentNullException(nameof(yasalFaizCalculator));
     }
 
     /// <summary>
@@ -720,6 +724,51 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _aracDegerCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        return View(viewPath, input);
+    }
+
+    [HttpGet("faiz/yasal-faiz")]
+    public IActionResult YasalFaiz()
+    {
+        var meta = _registry.Find(CalculatorCategory.Faiz, "yasal-faiz");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Faiz/YasalFaiz.cshtml", new YasalFaizInput());
+    }
+
+    [HttpPost("faiz/yasal-faiz")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> YasalFaiz(YasalFaizInput input, CancellationToken cancellationToken)
+    {
+        var meta = _registry.Find(CalculatorCategory.Faiz, "yasal-faiz");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Faiz/YasalFaiz.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _yasalFaizCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

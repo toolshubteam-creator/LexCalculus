@@ -30,7 +30,17 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "*", Key = "asgari-ucret-brut", Value = 26005.50m, EffectiveDate = new DateTime(2025, 1, 1), Source = "Çalışma Bakanlığı 2025", Note = "2025 yılı asgari ücret brüt aylık" },
             new() { ToolSlug = "*", Key = "asgari-ucret-brut", Value = 33000.00m, EffectiveDate = new DateTime(2026, 1, 1), Source = "Çalışma Bakanlığı 2026 — örnek değer", Note = "Gerçek 2026 değeriyle güncellenmelidir" },
 
-            new() { ToolSlug = "*", Key = "yasal-faiz-orani-yillik", Value = 0.18m, EffectiveDate = new DateTime(2020, 1, 1), Source = "3095 s.K. (basitleştirilmiş)", Note = "Phase 2 — flat 18% annual; periodic table planned for Phase 3" }
+            new() { ToolSlug = "*", Key = "yasal-faiz-orani-yillik", Value = 0.18m, EffectiveDate = new DateTime(2020, 1, 1), Source = "3095 s.K. (basitleştirilmiş)", Note = "Phase 2 — flat 18% annual; periodic table planned for Phase 3" },
+
+            // ----- 3095 s.K. m.1 — Yasal Faiz Yıllık Oranı -----
+            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 5, 1), Source = "5560 s.K.", Note = "Yasal faiz yıllık %9" },
+            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.15m, EffectiveDate = new DateTime(2018, 4, 4), Source = "BKK 2018", Note = "Yasal faiz yıllık %15 (kısa süreli)" },
+            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2020, 12, 31), Source = "BKK 2020", Note = "Yasal faiz yıllık %9 (geri çekildi)" },
+
+            // ----- 3095 s.K. m.2 — Ticari Faiz (TCMB avans + 4 puan) -----
+            new() { ToolSlug = "ticari-faiz", Key = "yillik-oran", Value = 0.1875m, EffectiveDate = new DateTime(2022, 12, 1), Source = "TCMB Avans 14.75 + 4", Note = "Ticari faiz %18.75" },
+            new() { ToolSlug = "ticari-faiz", Key = "yillik-oran", Value = 0.5475m, EffectiveDate = new DateTime(2024, 3, 1), Source = "TCMB Avans 50.75 + 4", Note = "Ticari faiz %54.75" },
+            new() { ToolSlug = "ticari-faiz", Key = "yillik-oran", Value = 0.4925m, EffectiveDate = new DateTime(2025, 4, 1), Source = "TCMB Avans 45.25 + 4", Note = "Ticari faiz %49.25 (örnek 2025)" }
         };
 
         foreach (var seed in seeds)
