@@ -47,19 +47,7 @@ public abstract class PlaceholderCalculator : ICalculator
 
 // Note: YasalFaiz moved to real implementation in Faiz/YasalFaizCalculator.cs
 
-public sealed class TicariFaizPlaceholder : PlaceholderCalculator
-{
-    public override CalculatorMetadata Metadata { get; } = new()
-    {
-        Slug = "ticari-faiz",
-        Category = CalculatorCategory.Faiz,
-        Title = "Ticari Faiz",
-        ShortDescription = "TCMB avans faizi referanslı, yıllık ilan tablosu ile otomatik oran.",
-        LegalReference = "TCMB / TTK",
-        Status = CalculatorStatus.ComingSoon,
-        DisplayNumber = "14"
-    };
-}
+// Note: TicariTemerrutFaizi moved to real implementation in Faiz/TicariTemerrutFaizCalculator.cs
 
 public sealed class TemerrutFaiziPlaceholder : PlaceholderCalculator
 {

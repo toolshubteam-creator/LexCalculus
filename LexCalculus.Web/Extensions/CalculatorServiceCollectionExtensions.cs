@@ -50,7 +50,8 @@ public static class CalculatorServiceCollectionExtensions
         // Kategori C — Faiz
         services.AddScoped<ICalculator, YasalFaizCalculator>();
         services.AddScoped<ICalculator<YasalFaizInput, YasalFaizResult>, YasalFaizCalculator>();
-        services.AddScoped<ICalculator, TicariFaizPlaceholder>();
+        services.AddScoped<ICalculator, TicariTemerrutFaizCalculator>();
+        services.AddScoped<ICalculator<TicariTemerrutFaizInput, TicariTemerrutFaizResult>, TicariTemerrutFaizCalculator>();
         services.AddScoped<ICalculator, TemerrutFaiziPlaceholder>();
         services.AddScoped<ICalculator, KiraArtisiPlaceholder>();
         services.AddScoped<ICalculator, MenfiTespitPlaceholder>();

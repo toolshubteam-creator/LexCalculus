@@ -36,10 +36,26 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 1, 1), Source = "BKK 2005/9831 — RG 30.12.2005/26039", Note = "Yasal faiz yıllık %9 — 18 yıl sabit kaldı" },
             new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.24m, EffectiveDate = new DateTime(2024, 6, 1), Source = "CBK 8485 — RG 21.05.2024/32552", Note = "Yasal faiz yıllık %24 — Cumhurbaşkanı Kararı" },
 
-            // ----- 3095 s.K. m.2 — Ticari Faiz (TCMB avans + 4 puan) -----
-            new() { ToolSlug = "ticari-faiz", Key = "yillik-oran", Value = 0.1875m, EffectiveDate = new DateTime(2022, 12, 1), Source = "TCMB Avans 14.75 + 4", Note = "Ticari faiz %18.75" },
-            new() { ToolSlug = "ticari-faiz", Key = "yillik-oran", Value = 0.5475m, EffectiveDate = new DateTime(2024, 3, 1), Source = "TCMB Avans 50.75 + 4", Note = "Ticari faiz %54.75" },
-            new() { ToolSlug = "ticari-faiz", Key = "yillik-oran", Value = 0.4925m, EffectiveDate = new DateTime(2025, 4, 1), Source = "TCMB Avans 45.25 + 4", Note = "Ticari faiz %49.25 (örnek 2025)" }
+            // ----- 3095 s.K. m.2 — Ticari Temerrüt Faizi: TCMB Avans Oranları (HAM TABLO) -----
+            // Calculator 5 puan kuralını ve 6 aylık dönem algoritmasını uygular.
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1950m, EffectiveDate = new DateTime(2018, 6, 29), Source = "TCMB", Note = "TCMB avans oranı %19.50" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1825m, EffectiveDate = new DateTime(2019, 10, 11), Source = "TCMB", Note = "TCMB avans oranı %18.25" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1375m, EffectiveDate = new DateTime(2019, 12, 21), Source = "TCMB", Note = "TCMB avans oranı %13.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1000m, EffectiveDate = new DateTime(2020, 6, 13), Source = "TCMB", Note = "TCMB avans oranı %10.00" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1675m, EffectiveDate = new DateTime(2020, 12, 19), Source = "TCMB", Note = "TCMB avans oranı %16.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1575m, EffectiveDate = new DateTime(2021, 12, 31), Source = "TCMB", Note = "TCMB avans oranı %15.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1075m, EffectiveDate = new DateTime(2022, 12, 31), Source = "TCMB", Note = "TCMB avans oranı %10.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.1675m, EffectiveDate = new DateTime(2023, 6, 24), Source = "TCMB", Note = "TCMB avans oranı %16.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.2675m, EffectiveDate = new DateTime(2023, 9, 1), Source = "TCMB", Note = "TCMB avans oranı %26.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.3175m, EffectiveDate = new DateTime(2023, 9, 28), Source = "TCMB", Note = "TCMB avans oranı %31.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.3675m, EffectiveDate = new DateTime(2023, 11, 1), Source = "TCMB", Note = "TCMB avans oranı %36.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4175m, EffectiveDate = new DateTime(2023, 12, 1), Source = "TCMB", Note = "TCMB avans oranı %41.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4425m, EffectiveDate = new DateTime(2023, 12, 23), Source = "TCMB", Note = "TCMB avans oranı %44.25" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.5175m, EffectiveDate = new DateTime(2024, 4, 1), Source = "TCMB", Note = "TCMB avans oranı %51.75" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4925m, EffectiveDate = new DateTime(2024, 12, 28), Source = "TCMB", Note = "TCMB avans oranı %49.25" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4425m, EffectiveDate = new DateTime(2025, 3, 8), Source = "TCMB", Note = "TCMB avans oranı %44.25" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4225m, EffectiveDate = new DateTime(2025, 9, 17), Source = "TCMB", Note = "TCMB avans oranı %42.25" },
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.3975m, EffectiveDate = new DateTime(2025, 12, 20), Source = "TCMB", Note = "TCMB avans oranı %39.75" }
         };
 
         foreach (var seed in seeds)

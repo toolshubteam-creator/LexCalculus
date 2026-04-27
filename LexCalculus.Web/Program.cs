@@ -81,6 +81,7 @@ try
     builder.Services.AddScoped<ILifeTableService, LifeTableService>();
     builder.Services.AddScoped<IActuarialService, ActuarialService>();
     builder.Services.AddScoped<IInterestRateService, InterestRateService>();
+    builder.Services.AddScoped<IThree095CommercialRateService, Three095CommercialRateService>();
     builder.Services.AddCalculators();
 
     // -------------------------------------------------------------------------

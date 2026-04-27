@@ -100,6 +100,24 @@
   font-weight: 500;
 }
 
+/* Highlighted row — used to mark the recommended choice in parallel comparisons
+   (e.g. 3095 m.2: yasal vs ticari faiz, the higher one is highlighted). */
+.result-row--highlighted {
+  background: var(--bg-overlay-gold);
+  padding-left: var(--sp-3);
+  padding-right: var(--sp-3);
+  border-left: 3px solid var(--gold);
+}
+
+.result-row--highlighted .result-row__key {
+  color: var(--gold-bright);
+}
+
+.result-row--highlighted .result-row__val {
+  color: var(--gold-bright);
+  font-weight: 600;
+}
+
 .result-note {
   margin-top: var(--sp-6);
   padding: var(--sp-4);

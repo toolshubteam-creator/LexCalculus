@@ -1,0 +1,158 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.Faiz
+@using LexCalculus.Core.Enums
+@model TicariTemerrutFaizInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as TicariTemerrutFaizResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--warning">
+    <strong>Hukuki Uyarılar:</strong>
+    <ul class="legal-warning-list">
+        <li><strong>Mürekkep faiz yasağı:</strong> 3095 s.K. m.3 uyarınca ticari faiz hesabında bileşik faiz uygulanmaz; bu hesap <em>basit faiz</em> kullanır.</li>
+        <li><strong>5 Puan Kuralı (3095 m.2):</strong> TCMB avans oranı yıl içinde değişse bile, 3095 m.2 sadece <em>30 Haziran</em> oranını dikkate alır ve önceki yılın <em>31 Aralık</em> oranıyla karşılaştırır. Fark 5 puan veya daha fazla ise yılın ikinci yarısı yeni oranı kullanır; aksi halde ilk yarı oranı devam eder.</li>
+        <li><strong>Yüksek Olanı Tercih:</strong> 3095 m.2 alacaklıya yasal faiz ile ticari faiz arasından <em>yüksek olanı</em> talep etme hakkı tanır. Bu hesap her ikisini paralel hesaplar ve önerilen seçimi işaretler.</li>
+        <li><strong>AYM İptal Kararı:</strong> 22.07.2025 tarihli ve E:2024/24, K:2025/164 sayılı AYM Kararı ile 3095 s.K. m.1, "sözleşmeden kaynaklanmayan borç ilişkileri" yönünden iptal edilmiştir. <strong>Yürürlük: 01.08.2026.</strong> Ticari işlerden kaynaklanan alacaklar için m.2 etkilenmemektedir.</li>
+    </ul>
+    <div class="legal-warning-meta">Uyarı son güncelleme: 27 Nisan 2026.</div>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="TicariTemerrutFaiz">
+        <h2 class="form-section__title">Ticari Faiz Hesabı</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="AnaPara" class="field__label field__label--required">
+                @Html.DisplayNameFor(m => m.AnaPara) <span class="required">*</span>
+            </label>
+            <input asp-for="AnaPara" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 100000" />
+            <span asp-validation-for="AnaPara" class="field-hint"></span>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="BaslangicTarihi" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.BaslangicTarihi) <span class="required">*</span>
+                </label>
+                <input asp-for="BaslangicTarihi" class="field__input" type="date" />
+                <div class="field-hint">Temerrüde düşme veya muacceliyet tarihi.</div>
+                <span asp-validation-for="BaslangicTarihi" class="field-hint"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="HesapTarihi" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.HesapTarihi) <span class="required">*</span>
+                </label>
+                <input asp-for="HesapTarihi" class="field__input" type="date" />
+                <span asp-validation-for="HesapTarihi" class="field-hint"></span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="GunYili" class="field__label">
+                @Html.DisplayNameFor(m => m.GunYili)
+            </label>
+            <select asp-for="GunYili" asp-items="Html.GetEnumSelectList<GunYiliBazi>()" class="field__input"></select>
+            <div class="field-hint">3095 s.K. ve Yargıtay 365; bankacılık davalarında bazen 360 istenir.</div>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Ana para ve tarih bilgilerini girip "Hesapla" butonuna basarak yasal ve ticari faizin paralel hesabını görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @if (result.YasalDonemDetaylar.Any())
+            {
+                <div class="result-detail">
+                    <h4 class="result-detail__title">Yasal Faiz — Dönem Detayı</h4>
+                    <div class="result-detail__table">
+                        @foreach (var d in result.YasalDonemDetaylar)
+                        {
+                            <div class="result-row">
+                                <span class="result-row__key">@d.Baslangic.ToString("dd.MM.yyyy") - @d.Bitis.ToString("dd.MM.yyyy") (%@(d.YillikOran * 100), @d.Gun gün)</span>
+                                <span class="result-row__val">@d.FaizTutari.ToString("N2", tr) TL</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (result.TicariDonemDetaylar.Any())
+            {
+                <div class="result-detail">
+                    <h4 class="result-detail__title">Ticari Temerrüt Faizi — Dönem Detayı (3095 m.2)</h4>
+                    <div class="result-detail__table">
+                        @foreach (var d in result.TicariDonemDetaylar)
+                        {
+                            <div class="result-row">
+                                <span class="result-row__key">@d.Baslangic.ToString("dd.MM.yyyy") - @d.Bitis.ToString("dd.MM.yyyy") (%@(d.YillikOran * 100), @d.Gun gün)</span>
+                                <span class="result-row__val">@d.FaizTutari.ToString("N2", tr) TL</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/faiz">← Faiz</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
