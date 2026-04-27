@@ -13,9 +13,8 @@ public class InterestRateServiceTests
     {
         var ctx = TestDbContextFactory.Create();
         ctx.Set<FormulaParameter>().AddRange(
-            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 5, 1) },
-            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.15m, EffectiveDate = new DateTime(2018, 4, 4) },
-            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2020, 12, 31) }
+            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 1, 1) },
+            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.24m, EffectiveDate = new DateTime(2024, 6, 1) }
         );
         ctx.SaveChanges();
         return (new InterestRateService(ctx, NullLogger<InterestRateService>.Instance), ctx);
@@ -41,28 +40,28 @@ public class InterestRateServiceTests
         await using var _ = ctx;
 
         var periods = await svc.GetRatePeriodsAsync("yasal-faiz", "yillik-oran",
-            new DateTime(2017, 1, 1), new DateTime(2019, 1, 1));
+            new DateTime(2024, 1, 1), new DateTime(2024, 12, 31));
 
         periods.Should().HaveCount(2);
         periods[0].AnnualRate.Should().Be(0.09m);
-        periods[0].End.Should().Be(new DateTime(2018, 4, 3));
-        periods[1].AnnualRate.Should().Be(0.15m);
-        periods[1].Start.Should().Be(new DateTime(2018, 4, 4));
+        periods[0].End.Should().Be(new DateTime(2024, 5, 31));
+        periods[1].AnnualRate.Should().Be(0.24m);
+        periods[1].Start.Should().Be(new DateTime(2024, 6, 1));
     }
 
     [Fact]
-    public async Task Uc_Donem_Span_Eden_Aralik()
+    public async Task Genis_Aralik_Tum_Donemleri_Kapsar()
     {
         var (svc, ctx) = Build();
         await using var _ = ctx;
 
+        // 2010 → 2025 = 2 dönem (9% sonra 24%)
         var periods = await svc.GetRatePeriodsAsync("yasal-faiz", "yillik-oran",
-            new DateTime(2017, 1, 1), new DateTime(2021, 1, 1));
+            new DateTime(2010, 1, 1), new DateTime(2025, 1, 1));
 
-        periods.Should().HaveCount(3);
+        periods.Should().HaveCount(2);
         periods[0].AnnualRate.Should().Be(0.09m);
-        periods[1].AnnualRate.Should().Be(0.15m);
-        periods[2].AnnualRate.Should().Be(0.09m);
+        periods[1].AnnualRate.Should().Be(0.24m);
     }
 
     [Fact]
@@ -71,9 +70,9 @@ public class InterestRateServiceTests
         var (svc, ctx) = Build();
         await using var _ = ctx;
 
-        var rate = await svc.GetRateAsync("yasal-faiz", "yillik-oran", new DateTime(2019, 6, 1));
+        var rate = await svc.GetRateAsync("yasal-faiz", "yillik-oran", new DateTime(2024, 8, 1));
 
-        rate.Should().Be(0.15m);
+        rate.Should().Be(0.24m);
     }
 
     [Fact]

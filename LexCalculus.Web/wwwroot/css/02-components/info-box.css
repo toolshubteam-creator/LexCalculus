@@ -46,3 +46,19 @@
 .form-section .info-box:first-child {
   margin-top: 0;
 }
+
+/* Legal warning list inside info-box (e.g. Yasal Faiz hukuki uyarılar) */
+.legal-warning-list {
+  margin: var(--sp-2) 0 0 var(--sp-4);
+  padding: 0;
+}
+
+.legal-warning-list li {
+  margin-bottom: var(--sp-2);
+}
+
+.legal-warning-meta {
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-3);
+  opacity: 0.8;
+}

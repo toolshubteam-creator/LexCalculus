@@ -117,10 +117,22 @@ public sealed class YasalFaizCalculator : ICalculator<YasalFaizInput, YasalFaizR
         result.Rows.Add(new CalculationResultRow { Key = "Toplam Faiz", Value = toplamFaiz.ToString("N2", tr) + " TL", IsHighlighted = true });
         result.Rows.Add(new CalculationResultRow { Key = "Dönem Sayısı", Value = donemler.Count.ToString() });
 
+        // AYM kararı yürürlük tarihi: 01.08.2026
+        var aymYururluk = new DateTime(2026, 8, 1);
+        if (bitis >= aymYururluk)
+        {
+            result.Warnings.Add(
+                "AYM 22.07.2025 K.2025/164 — Hesap tarihiniz 01.08.2026 sonrasını içeriyor. " +
+                "Sözleşmeden kaynaklanmayan borç ilişkileri için yasal faiz uygulanması iptal edilmiştir. " +
+                "Hesap referans amaçlıdır; mahkeme takdiri farklı olabilir."
+            );
+        }
+
         result.Note = "<strong>Yöntem:</strong> 3095 s.K. m.1 — basit faiz, formula: ana × yıllık oran × (gün/yıl bazı). " +
                       "Her oran değişikliği döneminde ayrı hesaplanır, toplanır. " +
-                      "<strong>Mevzuat:</strong> 3095 s.K. m.1. " +
-                      "<strong>Uyarı:</strong> 2024 itibariyle yasal faiz %9 — TÜFE üzerinde olabilir; gerçek zarar için ticari faiz veya temerrüt faizi araştırılmalıdır.";
+                      "<strong>Mürekkep faiz:</strong> 3095 s.K. m.3 uyarınca yasaktır. " +
+                      "<strong>Resmi Tarihçe:</strong> 01.01.2006 → %9 (BKK 2005/9831), 01.06.2024 → %24 (CBK 8485). " +
+                      "<strong>Mevzuat:</strong> 3095 s.K. + 5335/14 m.";
 
         return result;
     }

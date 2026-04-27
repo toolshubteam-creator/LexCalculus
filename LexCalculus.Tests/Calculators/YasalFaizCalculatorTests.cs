@@ -14,9 +14,8 @@ public class YasalFaizCalculatorTests
     {
         var ctx = TestDbContextFactory.Create();
         ctx.Set<FormulaParameter>().AddRange(
-            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 5, 1) },
-            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.15m, EffectiveDate = new DateTime(2018, 4, 4) },
-            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2020, 12, 31) }
+            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 1, 1) },
+            new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.24m, EffectiveDate = new DateTime(2024, 6, 1) }
         );
         ctx.SaveChanges();
 
@@ -52,17 +51,20 @@ public class YasalFaizCalculatorTests
         var (calc, ctx) = Build();
         await using var _ = ctx;
 
+        // 2024 boyunca: %9 (ilk 5 ay) + %24 (son 7 ay) = 2 dönem
         var input = new YasalFaizInput
         {
             AnaPara = 10000m,
-            BaslangicTarihi = new DateTime(2017, 1, 1),
-            HesapTarihi = new DateTime(2019, 1, 1)
+            BaslangicTarihi = new DateTime(2024, 1, 1),
+            HesapTarihi = new DateTime(2025, 1, 1)
         };
 
         var r = await calc.CalculateAsync(input);
 
         r.IsValid.Should().BeTrue();
         r.DonemDetaylar.Should().HaveCount(2);
+        r.DonemDetaylar[0].YillikOran.Should().Be(0.09m);
+        r.DonemDetaylar[1].YillikOran.Should().Be(0.24m);
         r.ToplamFaiz.Should().BeGreaterThan(0m);
     }
 
@@ -136,5 +138,44 @@ public class YasalFaizCalculatorTests
     {
         var input = new YasalFaizInput();
         input.GunYili.Should().Be(LexCalculus.Core.Enums.GunYiliBazi.UcYuzAltmisBes);
+    }
+
+    [Fact]
+    public async Task AYM_Yururluk_Sonrasi_Hesap_Tarihi_Uyari_Verir()
+    {
+        var (calc, ctx) = Build();
+        await using var _ = ctx;
+
+        var input = new YasalFaizInput
+        {
+            AnaPara = 10000m,
+            BaslangicTarihi = new DateTime(2025, 1, 1),
+            HesapTarihi = new DateTime(2026, 12, 1)
+        };
+
+        var r = await calc.CalculateAsync(input);
+
+        r.IsValid.Should().BeTrue();
+        r.Warnings.Should().Contain(w => w.Contains("AYM"));
+        r.Warnings.Should().Contain(w => w.Contains("01.08.2026"));
+    }
+
+    [Fact]
+    public async Task AYM_Yururluk_Oncesi_Uyari_Yok()
+    {
+        var (calc, ctx) = Build();
+        await using var _ = ctx;
+
+        var input = new YasalFaizInput
+        {
+            AnaPara = 10000m,
+            BaslangicTarihi = new DateTime(2024, 1, 1),
+            HesapTarihi = new DateTime(2026, 7, 31)
+        };
+
+        var r = await calc.CalculateAsync(input);
+
+        r.IsValid.Should().BeTrue();
+        r.Warnings.Should().NotContain(w => w.Contains("AYM"));
     }
 }

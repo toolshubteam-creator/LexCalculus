@@ -32,10 +32,9 @@ public static class CalculatorParameterSeeder
 
             new() { ToolSlug = "*", Key = "yasal-faiz-orani-yillik", Value = 0.18m, EffectiveDate = new DateTime(2020, 1, 1), Source = "3095 s.K. (basitleştirilmiş)", Note = "Phase 2 — flat 18% annual; periodic table planned for Phase 3" },
 
-            // ----- 3095 s.K. m.1 — Yasal Faiz Yıllık Oranı -----
-            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 5, 1), Source = "5560 s.K.", Note = "Yasal faiz yıllık %9" },
-            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.15m, EffectiveDate = new DateTime(2018, 4, 4), Source = "BKK 2018", Note = "Yasal faiz yıllık %15 (kısa süreli)" },
-            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2020, 12, 31), Source = "BKK 2020", Note = "Yasal faiz yıllık %9 (geri çekildi)" },
+            // ----- 3095 s.K. m.1 — Yasal Faiz (resmi tarihçe, sadece 2 değişiklik) -----
+            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 1, 1), Source = "BKK 2005/9831 — RG 30.12.2005/26039", Note = "Yasal faiz yıllık %9 — 18 yıl sabit kaldı" },
+            new() { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.24m, EffectiveDate = new DateTime(2024, 6, 1), Source = "CBK 8485 — RG 21.05.2024/32552", Note = "Yasal faiz yıllık %24 — Cumhurbaşkanı Kararı" },
 
             // ----- 3095 s.K. m.2 — Ticari Faiz (TCMB avans + 4 puan) -----
             new() { ToolSlug = "ticari-faiz", Key = "yillik-oran", Value = 0.1875m, EffectiveDate = new DateTime(2022, 12, 1), Source = "TCMB Avans 14.75 + 4", Note = "Ticari faiz %18.75" },
