@@ -99,3 +99,13 @@
 .header-meta__logout-btn:hover {
   color: var(--parchment);
 }
+
+.header-meta__user-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+/* Bell renkleri site header (koyu arkaplan) için override */
+.header-meta .notif-bell__btn { color: var(--gold-bright); }
+.header-meta .notif-bell__btn:hover { color: var(--parchment); }

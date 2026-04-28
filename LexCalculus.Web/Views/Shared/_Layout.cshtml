@@ -18,6 +18,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
     <link rel="stylesheet" href="~/css/main.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" />
 
     @await RenderSectionAsync("Head", required: false)
 </head>
@@ -34,7 +35,8 @@
                 @if (SignInManager.IsSignedIn(User))
                 {
                     <div>@User.Identity?.Name</div>
-                    <div>
+                    <div class="header-meta__user-actions">
+                        @await Component.InvokeAsync("NotificationBell")
                         <a class="header-meta__link" asp-area="Identity" asp-page="/Account/Manage/Index">Hesabım</a>
                         <form class="header-meta__logout" asp-area="Identity" asp-page="/Account/Logout" method="post">
                             <button type="submit" class="header-meta__logout-btn">Çıkış</button>
@@ -73,6 +75,7 @@
         <div>© @DateTime.Now.Year Lex Calculus · Tüm hakları saklıdır</div>
     </footer>
 
+    <script src="~/js/notifications.js" defer asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

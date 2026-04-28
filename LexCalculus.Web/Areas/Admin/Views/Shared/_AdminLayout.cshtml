@@ -10,6 +10,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <link rel="stylesheet" href="~/css/00-tokens/variables.css" />
     <link rel="stylesheet" href="~/css/admin/admin.css" />
+    <link rel="stylesheet" href="~/css/notifications.css" />
 </head>
 <body class="admin-body">
     <div class="admin-shell">
@@ -34,7 +35,7 @@
             <header class="admin-topbar">
                 <partial name="_Breadcrumb" />
                 <div class="admin-topbar__actions">
-                    @* Phase 3.3 — bildirim ikonu burada görünecek *@
+                    @await Component.InvokeAsync("NotificationBell")
                 </div>
             </header>
 
@@ -44,6 +45,7 @@
         </main>
     </div>
 
+    <script src="~/js/notifications.js" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

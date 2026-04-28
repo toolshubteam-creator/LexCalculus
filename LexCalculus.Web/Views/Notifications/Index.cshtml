@@ -1,0 +1,132 @@
+@model LexCalculus.Web.Models.Notifications.NotificationsListViewModel
+@using LexCalculus.Core.Notifications
+
+@{
+    ViewData["Title"] = "Bildirimler";
+
+    string TypeLabel(NotificationType t) => t switch
+    {
+        NotificationType.DataFreshness => "Veri tazelik",
+        NotificationType.ParameterChange => "Parametre güncellemesi",
+        NotificationType.SystemAlert => "Sistem",
+        _ => t.ToString()
+    };
+
+    string RelativeTime(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 1) return "az önce";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} dk önce";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} saat önce";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} gün önce";
+        return utc.ToLocalTime().ToString("dd.MM.yyyy");
+    }
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/css/notifications.css" />
+}
+
+<div class="notif-page">
+    <header class="notif-page__header">
+        <div>
+            <h1 class="notif-page__title">Bildirimler</h1>
+            <p class="notif-page__sub">@Model.TotalCount toplam · @Model.UnreadCount okunmamış</p>
+        </div>
+
+        @if (Model.UnreadCount > 0)
+        {
+            <form method="post" asp-action="TumunuOku" class="notif-page__inline-form">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="notif-page__mark-all">Tümünü okundu işaretle</button>
+            </form>
+        }
+    </header>
+
+    @if (TempData["NotifSuccess"] is string success)
+    {
+        <div class="notif-banner notif-banner--success">@success</div>
+    }
+
+    <nav class="notif-page__filters">
+        <a class="notif-filter @(!Model.UnreadOnly ? "notif-filter--active" : "")"
+           href="@Url.Action("Index", new { unreadOnly = false })">Tümü</a>
+        <a class="notif-filter @(Model.UnreadOnly ? "notif-filter--active" : "")"
+           href="@Url.Action("Index", new { unreadOnly = true })">Okunmamış</a>
+    </nav>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="notif-empty">
+            <p><em>@(Model.UnreadOnly ? "Okunmamış bildirim yok." : "Henüz bildirim yok.")</em></p>
+        </div>
+    }
+    else
+    {
+        <ul class="notif-list">
+            @foreach (var n in Model.Items)
+            {
+                var typeClass = n.Type switch
+                {
+                    NotificationType.DataFreshness => "notif-item--alert",
+                    NotificationType.ParameterChange => "notif-item--info",
+                    NotificationType.SystemAlert => "notif-item--system",
+                    _ => "notif-item--info"
+                };
+
+                <li class="notif-item @typeClass @(n.IsRead ? "notif-item--read" : "")">
+                    @if (!n.IsRead)
+                    {
+                        <span class="notif-item__unread-dot" aria-label="okunmamış"></span>
+                    }
+
+                    <div class="notif-item__body">
+                        <div class="notif-item__title">@n.Title</div>
+                        <div class="notif-item__text">@n.Body</div>
+                        <div class="notif-item__meta">
+                            <span class="notif-item__type">@TypeLabel(n.Type)</span>
+                            <span class="notif-item__time">@RelativeTime(n.CreatedAt)</span>
+                        </div>
+                    </div>
+
+                    <div class="notif-item__actions">
+                        @if (!string.IsNullOrEmpty(n.Link))
+                        {
+                            <a href="@n.Link" class="notif-item__link">Aç</a>
+                        }
+                        @if (!n.IsRead)
+                        {
+                            <form method="post" asp-action="Oku" asp-route-id="@n.Id" class="notif-page__inline-form">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="notif-item__mark">Okundu</button>
+                            </form>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="notif-pagination">
+                @if (Model.HasPrevious)
+                {
+                    <a href="@Url.Action("Index", new { unreadOnly = Model.UnreadOnly, page = Model.Page - 1 })">← Önceki</a>
+                }
+                else
+                {
+                    <span></span>
+                }
+                <span class="notif-pagination__info">Sayfa @Model.Page / @Model.TotalPages</span>
+                @if (Model.HasNext)
+                {
+                    <a href="@Url.Action("Index", new { unreadOnly = Model.UnreadOnly, page = Model.Page + 1 })">Sonraki →</a>
+                }
+                else
+                {
+                    <span></span>
+                }
+            </nav>
+        }
+    }
+</div>

@@ -1,0 +1,24 @@
+@model LexCalculus.Web.ViewComponents.NotificationBellViewModel
+
+<div class="notif-bell" data-user-id="@Model.UserId" data-poll-url="/bildirimler/sayim">
+    <button type="button" class="notif-bell__btn" aria-label="Bildirimler" aria-haspopup="true" aria-expanded="false">
+        <svg class="notif-bell__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+        </svg>
+        <span class="notif-bell__badge @(Model.UnreadCount == 0 ? "notif-bell__badge--hidden" : "")">
+            @(Model.UnreadCount > 99 ? "99+" : Model.UnreadCount.ToString())
+        </span>
+    </button>
+
+    <div class="notif-bell__dropdown" role="menu" aria-hidden="true">
+        <div class="notif-bell__header">
+            <span class="notif-bell__title">Bildirimler</span>
+            <a href="/bildirimler" class="notif-bell__view-all">Tümünü gör</a>
+        </div>
+        <div class="notif-bell__list" data-list>
+            <div class="notif-bell__loading">Yükleniyor…</div>
+        </div>
+    </div>
+</div>
