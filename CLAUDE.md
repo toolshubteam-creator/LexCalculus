@@ -37,3 +37,17 @@ Detay için README.md'ye bakın. Özet:
   dosyalarında inline style ZORUNLU (e-mail clients external CSS
   strip eder).
 - **Test:** Her yeni servis için en az 1 happy path + 1 edge case test.
+
+## Test yazımı: Türkçe karakter encoding
+
+Razor view'lar default `HtmlEncoder` ile çalışır — Türkçe karakterler
+(ı, ş, ğ, ü, ö, ç, İ) response body'de HTML entity'lere encode edilir
+(örn. `ı` → `&#x131;`). Browser bunu doğru render eder; ama integration
+testlerde raw HTML'de string arıyorsan dikkat et:
+
+- **Tercih:** ASCII-only substring kullan
+  - YANLIŞ: `Assert.Contains("Hesaplarım", html)`
+  - DOĞRU: `Assert.Contains("Hesaplar", html)` veya `Assert.Contains("filtre aktif", html)`
+- **Alternatif:** Beklenen string'i runtime'da encode et
+  - `var expected = HtmlEncoder.Default.Encode("Hesaplarım");`
+- Bu kural Adım 3.4 Parça 1/3'te keşfedildi (commit cc97058).
