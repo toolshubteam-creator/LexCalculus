@@ -98,6 +98,52 @@ public sealed class LifeTableAdminService : ILifeTableAdminService
         _logger.LogInformation("{Count} aktif tablo pasif yapıldı.", active.Count);
     }
 
+    public async Task<int> CreateAsync(
+        string code, string name, DateTime effectiveDate,
+        string? source, string? note,
+        IReadOnlyList<LifeTableRow> rows,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            throw new ArgumentException("Code zorunlu.", nameof(code));
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name zorunlu.", nameof(name));
+        if (rows.Count != 200)
+            throw new ArgumentException($"200 satır bekleniyor, {rows.Count} verildi.", nameof(rows));
+
+        var trimmedCode = code.Trim();
+
+        var exists = await _ctx.Set<LifeTable>()
+            .AnyAsync(t => t.Code == trimmedCode, ct);
+        if (exists)
+            throw new InvalidOperationException($"Bu kod zaten kullanılıyor: '{trimmedCode}'.");
+
+        var entity = new LifeTable
+        {
+            Code = trimmedCode,
+            Name = name.Trim(),
+            EffectiveDate = effectiveDate,
+            IsActive = false,
+            Source = source?.Trim(),
+            Note = note?.Trim(),
+            Rows = rows.Select(r => new LifeTableRow
+            {
+                Yas = r.Yas,
+                Cinsiyet = r.Cinsiyet,
+                BekledigiYasam = r.BekledigiYasam
+            }).ToList()
+        };
+
+        _ctx.Set<LifeTable>().Add(entity);
+        await _ctx.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "LifeTable oluşturuldu: Id={Id} Code={Code} Rows={RowCount}",
+            entity.Id, entity.Code, rows.Count);
+
+        return entity.Id;
+    }
+
     private async Task TryInvalidateCacheAsync(CancellationToken ct)
     {
         try

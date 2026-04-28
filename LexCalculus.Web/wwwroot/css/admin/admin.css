@@ -901,3 +901,26 @@ button { font: inherit; }
 }
 
 .admin-link--disabled { opacity: .5; }
+
+/* ─────────── LifeTable CSV form ─────────── */
+.lifetable-csv-input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+}
+.lifetable-csv-example {
+    background: var(--ink);
+    color: var(--parchment);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    border-radius: 3px;
+    overflow-x: auto;
+    margin: 0 0 14px 0;
+}
+.lifetable-csv-example code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}

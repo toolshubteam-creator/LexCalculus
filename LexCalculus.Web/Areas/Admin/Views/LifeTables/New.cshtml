@@ -1,0 +1,90 @@
+@model LexCalculus.Web.Areas.Admin.Models.LifeTable.LifeTableCreateViewModel
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Yeni Hayat Tablosu</h1>
+        <p class="admin-page__subtitle">
+            Hazine tarafından yayınlanan yeni bir tablonun (örn. TRH 2020) sisteme eklenmesi.
+            Tablo başlangıçta <em>pasif</em> olarak eklenir; doğruluğunu kontrol ettikten
+            sonra aktif yapın.
+        </p>
+    </header>
+
+    <div asp-validation-summary="ModelOnly" class="admin-banner admin-banner--error"></div>
+
+    <div class="admin-form-layout">
+        <form method="post" enctype="multipart/form-data" asp-action="New" class="admin-form">
+            @Html.AntiForgeryToken()
+
+            <div class="admin-form__row">
+                <div class="admin-form__field">
+                    <label class="admin-form__label" asp-for="Code">Kod</label>
+                    <input class="admin-form__input" asp-for="Code" placeholder="örn. TRH-2020" />
+                    <span asp-validation-for="Code" class="admin-form__error"></span>
+                    <span class="admin-form__hint">Büyük harf + tire (örn. TRH-2020).</span>
+                </div>
+                <div class="admin-form__field">
+                    <label class="admin-form__label" asp-for="EffectiveDate">Yürürlük tarihi</label>
+                    <input class="admin-form__input" asp-for="EffectiveDate" type="date" />
+                    <span asp-validation-for="EffectiveDate" class="admin-form__error"></span>
+                </div>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Name">İsim</label>
+                <input class="admin-form__input" asp-for="Name" placeholder="örn. Türkiye Hayat Tablosu 2020" />
+                <span asp-validation-for="Name" class="admin-form__error"></span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Source">Kaynak</label>
+                <input class="admin-form__input" asp-for="Source" placeholder="örn. Hazine Müsteşarlığı, RG 32601" />
+                <span asp-validation-for="Source" class="admin-form__error"></span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Note">Not</label>
+                <textarea class="admin-form__input admin-form__input--area" asp-for="Note" rows="3"
+                          placeholder="Yürürlük detayları, kullanım notları..."></textarea>
+                <span asp-validation-for="Note" class="admin-form__error"></span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="CsvFile">CSV Dosyası</label>
+                <input class="admin-form__input lifetable-csv-input" asp-for="CsvFile" type="file" accept=".csv,text/csv" />
+                <span asp-validation-for="CsvFile" class="admin-form__error"></span>
+                <span class="admin-form__hint">
+                    Tam 200 satır (100 yaş × 2 cinsiyet). Header: <code>Yas,Cinsiyet,BekledigiYasam</code>.
+                </span>
+            </div>
+
+            <div class="admin-form__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Yükle ve Kaydet</button>
+                <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">İptal</a>
+            </div>
+        </form>
+
+        <aside class="admin-form-help">
+            <h2 class="admin-form-help__title">CSV Formatı</h2>
+            <pre class="lifetable-csv-example"><code>Yas,Cinsiyet,BekledigiYasam
+0,Erkek,71.93
+0,Kadın,78.02
+1,Erkek,71.45
+1,Kadın,77.21
+...
+99,Erkek,0.50
+99,Kadın,0.50</code></pre>
+
+            <dl class="admin-form-help__list">
+                <dt>Yas</dt>
+                <dd>0-99 arası tam sayı. Her yaş için iki satır (Erkek + Kadın).</dd>
+                <dt>Cinsiyet</dt>
+                <dd>"Erkek" veya "Kadın" / "Kadin" (büyük/küçük harf farketmez).</dd>
+                <dt>BekledigiYasam</dt>
+                <dd>Pozitif decimal. Hem nokta hem virgül kabul (1.23 = 1,23).</dd>
+                <dt>Toplam</dt>
+                <dd>Tam <strong>200 satır</strong>. Eksik veya fazla = hata.</dd>
+            </dl>
+        </aside>
+    </div>
+</div>

@@ -26,4 +26,18 @@ public interface ILifeTableAdminService
     /// Kullanım nadirdir; genellikle aktivasyon ile başka tabloya geçilir.
     /// </summary>
     Task DeactivateActiveAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Yeni LifeTable + 200 satır oluşturur. Yeni tablo PASİF olarak eklenir
+    /// (aktivasyon ayrı bir kullanıcı kararı). Code unique constraint:
+    /// duplicate ise InvalidOperationException fırlatır.
+    /// </summary>
+    Task<int> CreateAsync(
+        string code,
+        string name,
+        DateTime effectiveDate,
+        string? source,
+        string? note,
+        IReadOnlyList<LifeTableRow> rows,
+        CancellationToken ct = default);
 }
