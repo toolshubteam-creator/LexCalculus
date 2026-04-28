@@ -76,6 +76,7 @@ public sealed class HesaplarimController : Controller
         };
 
         ViewData["Title"] = "Hesaplarım";
+        ViewData["NoIndex"] = true;
         return View(vm);
     }
 
@@ -108,6 +109,7 @@ public sealed class HesaplarimController : Controller
         };
 
         ViewData["Title"] = $"{entry.ToolTitle} — Hesap Detayı";
+        ViewData["NoIndex"] = true;
         return View(vm);
     }
 }

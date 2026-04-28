@@ -44,7 +44,10 @@ public class SeoController : Controller
         sb.AppendLine("Allow: /");
         sb.AppendLine("Disallow: /Identity/");
         sb.AppendLine("Disallow: /Admin/");
+        sb.AppendLine("Disallow: /admin");
         sb.AppendLine("Disallow: /api/");
+        sb.AppendLine("Disallow: /hesaplarim");
+        sb.AppendLine("Disallow: /bildirimler");
         sb.AppendLine();
         sb.AppendLine($"Sitemap: {siteUrl}/sitemap.xml");
 

@@ -54,6 +54,7 @@ public sealed class NotificationsController : Controller
         };
 
         ViewData["Title"] = "Bildirimler";
+        ViewData["NoIndex"] = true;
         return View(vm);
     }
 
