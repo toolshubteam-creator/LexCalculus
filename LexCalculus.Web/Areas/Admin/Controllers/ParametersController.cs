@@ -377,7 +377,9 @@ public sealed class ParametersController : Controller
             LastUpdatedDate = p.LastUpdatedDate,
             Source = p.Source,
             Notes = p.Notes,
-            IsStale = _freshness.IsStale(p, now),
+            // Adım 3.3.4b bug fix: sadece (slug, key) için en yeni effective-dated
+            // satır stale olabilir. Arşiv satırlar canlı hesaplamayı etkilemez.
+            IsStale = currentIds.Contains(p.Id) && _freshness.IsStale(p, now),
             DaysUntilStale = _freshness.DaysUntilStale(p, now),
             IsCurrentVersion = currentIds.Contains(p.Id)
         };

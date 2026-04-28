@@ -1,0 +1,52 @@
+@model LexCalculus.Core.Email.Models.UserFreshnessDigestModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = "Lex Calculus — Hesaplayıcılarınızda Güncelleme";
+    var totalAffected = Model.AffectedTools.Count;
+}
+
+<h1 style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:22px;color:#0a1428;font-weight:normal;">
+  Hesaplayıcılarınızda Güncelleme
+</h1>
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.UserName,
+</p>
+
+<p style="margin:0 0 20px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Geçtiğimiz aylarda kullandığınız <strong style="color:#6b1f2e;">@totalAffected hesaplayıcı</strong>
+  ile ilgili veriler güncellenmiş olabilir. Önceki hesaplamalarınızı yeniden
+  çalıştırmanız önerilir.
+</p>
+
+@foreach (var row in Model.AffectedTools)
+{
+    <div style="border:1px solid #e8d9a8;border-left:4px solid #6b1f2e;padding:16px 18px;margin:14px 0;background-color:#fffdf8;">
+      <div style="font-family:Georgia,serif;font-size:17px;font-weight:bold;color:#0a1428;margin-bottom:6px;">
+        @row.ToolTitle
+      </div>
+      <div style="font-family:'Courier New',monospace;font-size:11px;color:#0a1428;opacity:0.6;margin-bottom:10px;">
+        Parametre: @row.ParameterKey · Son güncelleme tarihi: @(row.LastUpdatedDate?.ToString("dd.MM.yyyy") ?? "—")
+        · @row.DaysOverdue gün gecikme
+      </div>
+      <div style="font-size:14px;color:#0a1428;line-height:1.6;margin-bottom:12px;">
+        Bu hesaplayıcıyı son olarak <strong>@row.LastUserCalculation.ToString("dd.MM.yyyy")</strong>
+        tarihinde kullandınız. Güncel veriyle yeniden çalıştırmak isteyebilirsiniz.
+      </div>
+      <a href="@row.CalculatorUrl"
+         style="display:inline-block;padding:8px 14px;background-color:#0a1428;color:#f4ede0;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border:1px solid #b8924a;">
+        Hesaplayıcıya Git
+      </a>
+    </div>
+}
+
+<p style="margin:24px 0 8px 0;font-size:13px;color:#0a1428;opacity:0.7;font-style:italic;line-height:1.6;">
+  Bu bildirim, geçtiğimiz 90 gün içinde hesaplayıcıları kullandığınız için
+  gönderilmiştir.
+</p>
+
+<p style="margin:0;font-size:13px;color:#0a1428;opacity:0.7;line-height:1.6;">
+  E-posta bildirimi almak istemiyorsanız
+  <a href="@Model.SettingsUrl" style="color:#6b1f2e;">hesap ayarlarınızdan</a>
+  kapatabilirsiniz.
+</p>
