@@ -51,3 +51,19 @@ testlerde raw HTML'de string arıyorsan dikkat et:
 - **Alternatif:** Beklenen string'i runtime'da encode et
   - `var expected = HtmlEncoder.Default.Encode("Hesaplarım");`
 - Bu kural Adım 3.4 Parça 1/3'te keşfedildi (commit cc97058).
+
+## Yeni adıma başlamadan önce
+
+Faz/Adım planlamasında yol haritası dosyası tek doğrulama noktasıdır
+(`/mnt/user-data/uploads/lex-calculus-faz-3-yol-haritasi.md` veya
+projede başka bir konumdaysa o). Bir Adım'ı planlamaya başlamadan ÖNCE:
+
+1. Yol haritasında o Adım'ın bölümünü `view` aracıyla **fiilen oku**.
+   Hatırladığın varsayımla devam etme.
+2. Bir önceki Adım'ın "ileride neye geçeceğiz" tahminlerini doğrula —
+   sıra değişmiş veya yanlış hatırlamış olabilirsin.
+3. Sapma fark edersen kullanıcıya açıkça söyle: "Yol haritasında 3.X
+   farklıymış, planı düzeltiyorum."
+
+Bu kural, Adım 3.4 sonrası 3.5 planlama sırasında keşfedildi:
+"3.5 SEO olacak" demiştim, yol haritası 3.5'i LifeTable olarak yazıyordu.

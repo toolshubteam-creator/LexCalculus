@@ -109,6 +109,22 @@ Default admin: `admin@lexcalculus.local` (parola seed sırasında oluşturulur).
 
 Admin paneli: parametre CRUD, veri tazelik bildirim sistemi (Hangfire + e-posta), hesap geçmişi UI, kullanıcı yönetimi, multi-tenant. Detay: `docs/phase-3-roadmap.md`.
 
+### Faz 3 İlerleme
+
+| Adım | Konu | Durum |
+|------|------|-------|
+| 3.1  | Admin Layout & Authorization Policy | ✅ |
+| 3.2  | FormulaParameter CRUD admin paneli  | ✅ |
+| 3.3  | Veri Tazelik Bildirim Sistemi (6 parça) | ✅ |
+| 3.4  | Hesap Geçmişi UI (3 parça)          | ✅ |
+| 3.5  | LifeTable CRUD admin paneli         | ⏳ |
+| 3.6  | Kullanıcı & Rol Yönetimi            | ⏳ |
+| 3.7  | Multi-tenant altyapı                | ⏳ |
+| 3.8  | Activity Log (audit trail)          | ⏳ |
+| 3.9  | Faz 3 final + tag                    | ⏳ |
+
+**Test sayısı:** 219 (Faz 2 sonu) → 284 (Adım 3.4 sonu, 28.04.2026)
+
 ---
 
 LexCalculus, Türk hukukunun karmaşık hesaplamalarını şeffaf ve denetlenebilir kılmak için tasarlandı.
