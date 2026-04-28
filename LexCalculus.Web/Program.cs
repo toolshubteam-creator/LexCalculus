@@ -5,7 +5,9 @@ using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Notifications;
+using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Admin.Dashboard;
+using LexCalculus.Infrastructure.Services;
 using LexCalculus.Infrastructure.Calculators;
 using LexCalculus.Infrastructure.Email;
 using LexCalculus.Infrastructure.Notifications;
@@ -197,6 +199,9 @@ try
 
     // Admin dashboard summary
     builder.Services.AddScoped<IDashboardSummaryService, DashboardSummaryService>();
+
+    // Admin: LifeTable yönetimi (calculator service'ten ayrı)
+    builder.Services.AddScoped<ILifeTableAdminService, LifeTableAdminService>();
 
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>

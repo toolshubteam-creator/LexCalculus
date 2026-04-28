@@ -1,0 +1,100 @@
+@model LexCalculus.Web.Areas.Admin.Models.LifeTable.LifeTableListPageViewModel
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">Hayat Tabloları</h1>
+            <p class="admin-page__subtitle">
+                @Model.Items.Count tablo
+                @if (Model.ActiveTable != null)
+                {
+                    <span class="admin-page__filter-note">· aktif: <code>@Model.ActiveTable.Code</code></span>
+                }
+                else
+                {
+                    <span class="admin-banner admin-banner--warning admin-banner--inline">⚠ aktif tablo yok</span>
+                }
+            </p>
+        </div>
+        @* Yeni tablo ekle butonu Parça 2/3'te *@
+    </header>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Henüz hayat tablosu eklenmemiş.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Kod</th>
+                        <th>İsim</th>
+                        <th>Yürürlük</th>
+                        <th class="param-table__num">Satır</th>
+                        <th>Durum</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Items)
+                    {
+                        <tr class="param-table__row @(t.IsActive ? "param-table__row--active" : "")">
+                            <td><code class="param-table__slug">@t.Code</code></td>
+                            <td>@t.Name</td>
+                            <td>@t.EffectiveDate.ToString("dd.MM.yyyy")</td>
+                            <td class="param-table__num">@t.RowCount</td>
+                            <td>
+                                @if (t.IsActive)
+                                {
+                                    <span class="param-badge param-badge--active">Aktif</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--archived">Pasif</span>
+                                }
+                            </td>
+                            <td class="param-table__actions">
+                                @if (!t.IsActive)
+                                {
+                                    <form method="post" asp-action="Activate" asp-route-id="@t.Id"
+                                          class="admin-inline-form"
+                                          onsubmit="return confirm('Bu tabloyu aktif yapacaksınız. Etkilenen hesaplayıcılar: Destekten Yoksun Kalma, Maluliyet, Bakıcı Gideri, Geçici İş Göremezlik. Devam edilsin mi?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="admin-link admin-link--muted">Aktif yap</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="admin-link admin-link--muted admin-link--disabled">— zaten aktif</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="admin-card admin-card--note">
+        <h2 class="admin-card__title">Hayat Tabloları Hakkında</h2>
+        <p class="admin-card__body">
+            Hayat tabloları aktüeryal hesaplamalarda (destekten yoksun kalma, maluliyet
+            tazminatı, bakıcı gideri, geçici iş göremezlik) kullanılır. <em>Aynı anda
+            yalnızca bir tablo aktif</em> olabilir. Hazine yeni bir tablo yayınladığında
+            (örn. TRH 2020) buraya yüklenip aktifleştirilir, eski tablo arşivde kalır.
+        </p>
+    </div>
+</div>

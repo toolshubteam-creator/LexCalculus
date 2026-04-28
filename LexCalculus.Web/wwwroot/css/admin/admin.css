@@ -876,3 +876,28 @@ button { font: inherit; }
     color: var(--ink);
     opacity: .35;
 }
+
+/* ─────────── LifeTable list ─────────── */
+.param-table__row--active {
+    background: rgba(184, 146, 74, 0.08);
+    border-left: 3px solid var(--gold);
+}
+.param-table__row--active td:first-child { padding-left: 14px; }
+
+.param-badge--active {
+    background: var(--gold);
+    color: var(--ink);
+    border: 1px solid var(--gold);
+}
+
+.admin-banner--inline {
+    display: inline-block;
+    padding: 2px 8px;
+}
+
+.admin-card--note {
+    margin-top: 24px;
+    background: var(--parchment);
+}
+
+.admin-link--disabled { opacity: .5; }

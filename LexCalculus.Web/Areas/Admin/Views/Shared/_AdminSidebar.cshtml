@@ -11,6 +11,10 @@
        asp-area="Admin" asp-controller="Parameters" asp-action="Index">
         <span class="admin-nav-link__label">Parametreler</span>
     </a>
+    <a class="admin-nav-link @(currentController == "LifeTables" ? "admin-nav-link--active" : "")"
+       asp-area="Admin" asp-controller="LifeTables" asp-action="Index">
+        <span class="admin-nav-link__label">Hayat Tabloları</span>
+    </a>
     <a class="admin-nav-link @(currentController == "Email" ? "admin-nav-link--active" : "")"
        asp-area="Admin" asp-controller="Email" asp-action="Test">
         <span class="admin-nav-link__label">E-posta Testi</span>
