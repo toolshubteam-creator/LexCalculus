@@ -1,0 +1,132 @@
+@model LexCalculus.Web.Models.Hesaplarim.HesaplarimListPageViewModel
+
+@{
+    ViewData["Title"] = "Hesaplarım";
+
+    string RelativeTime(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 1) return "az önce";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} dk önce";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} saat önce";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} gün önce";
+        return utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
+    }
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/css/hesaplarim.css" />
+}
+
+<div class="hesap-page">
+    <header class="hesap-page__header">
+        <h1 class="hesap-page__title">Hesaplarım</h1>
+        <p class="hesap-page__sub">
+            Toplam @Model.TotalCount hesap
+            @if (Model.Filter.HasAnyFilter)
+            {
+                <span class="hesap-page__filter-note">· filtre aktif</span>
+            }
+        </p>
+    </header>
+
+    <form method="get" class="hesap-filter">
+        <div class="hesap-filter__row">
+            <div class="hesap-filter__field">
+                <label class="hesap-filter__label" for="filter-toolSlug">Hesaplayıcı</label>
+                <select id="filter-toolSlug" name="ToolSlug" class="hesap-filter__input">
+                    <option value="">Hepsi</option>
+                    @foreach (var (slug, title) in Model.ToolOptions)
+                    {
+                        <option value="@slug" selected="@(Model.Filter.ToolSlug == slug)">@title</option>
+                    }
+                </select>
+            </div>
+            <div class="hesap-filter__field">
+                <label class="hesap-filter__label" for="filter-startDate">Başlangıç</label>
+                <input type="date" id="filter-startDate" name="StartDate"
+                       value="@(Model.Filter.StartDate?.ToString("yyyy-MM-dd"))"
+                       class="hesap-filter__input" />
+            </div>
+            <div class="hesap-filter__field">
+                <label class="hesap-filter__label" for="filter-endDate">Bitiş</label>
+                <input type="date" id="filter-endDate" name="EndDate"
+                       value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))"
+                       class="hesap-filter__input" />
+            </div>
+            <div class="hesap-filter__actions">
+                <button type="submit" class="hesap-btn hesap-btn--primary">Filtrele</button>
+                <a href="@Url.Action("Index")" class="hesap-btn hesap-btn--secondary">Temizle</a>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="hesap-empty">
+            <p>
+                @if (Model.Filter.HasAnyFilter)
+                {
+                    <em>Filtreye uyan hesap bulunamadı.</em>
+                }
+                else
+                {
+                    <em>Henüz bir hesap yapmadınız. <a href="/" class="hesap-empty__link">Hesaplayıcılara göz atın</a>.</em>
+                }
+            </p>
+        </div>
+    }
+    else
+    {
+        <ul class="hesap-list">
+            @foreach (var row in Model.Items)
+            {
+                <li class="hesap-item">
+                    <div class="hesap-item__main">
+                        <div class="hesap-item__title">@row.ToolTitle</div>
+                        <div class="hesap-item__meta">
+                            <span class="hesap-item__category">@row.CategorySlug</span>
+                            <span class="hesap-item__time">@RelativeTime(row.CreatedAt)</span>
+                        </div>
+                    </div>
+                    @if (row.TotalAmount.HasValue)
+                    {
+                        <div class="hesap-item__total">
+                            <span class="hesap-item__amount">@row.TotalAmount.Value.ToString("N2")</span>
+                            @if (!string.IsNullOrWhiteSpace(row.Unit))
+                            {
+                                <span class="hesap-item__unit">@row.Unit</span>
+                            }
+                        </div>
+                    }
+                    <a class="hesap-item__open" href="/hesaplarim/@row.Id" aria-label="Detayı aç">
+                        Detay →
+                    </a>
+                </li>
+            }
+        </ul>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="hesap-pagination">
+                @if (Model.HasPrevious)
+                {
+                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, page = Model.Page - 1 })">← Önceki</a>
+                }
+                else
+                {
+                    <span></span>
+                }
+                <span class="hesap-pagination__info">Sayfa @Model.Page / @Model.TotalPages · @Model.TotalCount toplam</span>
+                @if (Model.HasNext)
+                {
+                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, page = Model.Page + 1 })">Sonraki →</a>
+                }
+                else
+                {
+                    <span></span>
+                }
+            </nav>
+        }
+    }
+</div>

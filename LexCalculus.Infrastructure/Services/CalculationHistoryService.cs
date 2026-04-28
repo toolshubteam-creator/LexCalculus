@@ -2,6 +2,7 @@ using System.Text.Json;
 using LexCalculus.Core.Entities;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace LexCalculus.Infrastructure.Services;
@@ -77,5 +78,58 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
                 "Failed to log calculation history for user={User}, tool={Tool}",
                 userId, toolSlug);
         }
+    }
+
+    public async Task<CalculationHistoryPage> GetForUserAsync(
+        int userId,
+        int page,
+        int pageSize,
+        string? toolSlugFilter = null,
+        DateTime? startDateUtc = null,
+        DateTime? endDateUtc = null,
+        CancellationToken ct = default)
+    {
+        if (userId <= 0)
+            return new CalculationHistoryPage(Array.Empty<CalculationHistory>(), 0, 1, pageSize);
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 25;
+
+        var q = _ctx.Set<CalculationHistory>().Where(h => h.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(toolSlugFilter))
+            q = q.Where(h => h.ToolSlug == toolSlugFilter);
+        if (startDateUtc.HasValue)
+            q = q.Where(h => h.CreatedAt >= startDateUtc.Value);
+        if (endDateUtc.HasValue)
+            q = q.Where(h => h.CreatedAt < endDateUtc.Value.AddDays(1));
+
+        var totalCount = await q.CountAsync(ct);
+        var items = await q
+            .OrderByDescending(h => h.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new CalculationHistoryPage(items, totalCount, page, pageSize);
+    }
+
+    public async Task<CalculationHistory?> GetByIdForUserAsync(
+        int historyId, int userId, CancellationToken ct = default)
+    {
+        if (userId <= 0) return null;
+        return await _ctx.Set<CalculationHistory>()
+            .FirstOrDefaultAsync(h => h.Id == historyId && h.UserId == userId, ct);
+    }
+
+    public async Task<IReadOnlyList<string>> GetUsedToolSlugsForUserAsync(
+        int userId, CancellationToken ct = default)
+    {
+        if (userId <= 0) return Array.Empty<string>();
+        return await _ctx.Set<CalculationHistory>()
+            .Where(h => h.UserId == userId)
+            .Select(h => h.ToolSlug)
+            .Distinct()
+            .OrderBy(s => s)
+            .ToListAsync(ct);
     }
 }
