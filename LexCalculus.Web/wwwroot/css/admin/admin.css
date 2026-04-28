@@ -492,6 +492,195 @@ button { font: inherit; }
     margin-top: 24px;
 }
 
+/* ─────────── Banners ─────────── */
+.admin-banner {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    padding: 12px 16px;
+    border-radius: 3px;
+    margin-bottom: 18px;
+    border-left: 3px solid;
+}
+
+.admin-banner--success {
+    background: #f4f0e0;
+    color: #4a3a1a;
+    border-left-color: var(--gold);
+}
+
+.admin-banner--warning {
+    background: #fbf3e3;
+    color: var(--ink);
+    border-left-color: var(--burgundy);
+}
+
+.admin-banner--error {
+    background: #f8e8ea;
+    color: var(--burgundy);
+    border-left-color: var(--burgundy);
+}
+
+/* ─────────── Form layout ─────────── */
+.admin-form-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 32px;
+    align-items: start;
+}
+
+.admin-form {
+    background: white;
+    border: 1px solid var(--gold-pale);
+    border-radius: 4px;
+    padding: 24px 28px;
+}
+
+.admin-form__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 16px;
+}
+
+.admin-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 16px;
+}
+
+.admin-form__row .admin-form__field {
+    margin-bottom: 0;
+}
+
+.admin-form__label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: 0.75;
+}
+
+.admin-form__input {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    padding: 9px 12px;
+    border: 1px solid var(--gold-pale);
+    border-radius: 3px;
+    background: var(--parchment);
+    color: var(--ink);
+}
+
+.admin-form__input:focus {
+    outline: none;
+    border-color: var(--gold);
+}
+
+.admin-form__input--locked {
+    background: rgba(212, 175, 55, 0.06);
+    color: var(--burgundy);
+    cursor: not-allowed;
+}
+
+.admin-form__input--area {
+    resize: vertical;
+    min-height: 90px;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.admin-form__hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink);
+    opacity: 0.55;
+}
+
+.admin-form__error {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    color: var(--burgundy);
+    font-style: italic;
+}
+
+.admin-form__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gold-pale);
+}
+
+/* ─────────── Form help sidebar ─────────── */
+.admin-form-help {
+    background: var(--parchment);
+    border: 1px solid var(--gold-pale);
+    border-left: 3px solid var(--gold);
+    border-radius: 3px;
+    padding: 20px 22px;
+}
+
+.admin-form-help__title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    margin: 0 0 14px;
+    color: var(--burgundy);
+}
+
+.admin-form-help__list {
+    margin: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+}
+
+.admin-form-help__list dt {
+    font-weight: 600;
+    color: var(--ink);
+    margin-top: 10px;
+}
+
+.admin-form-help__list dt:first-child {
+    margin-top: 0;
+}
+
+.admin-form-help__list dd {
+    margin: 3px 0 0 0;
+    opacity: 0.8;
+    line-height: 1.55;
+}
+
+/* ─────────── Inline form (delete button) ─────────── */
+.admin-inline-form {
+    display: inline;
+}
+
+.admin-link--muted {
+    color: var(--ink);
+    opacity: 0.7;
+}
+
+.admin-link--muted:hover {
+    opacity: 1;
+    color: var(--burgundy);
+}
+
+.admin-link--danger {
+    color: var(--burgundy);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.admin-link--danger:hover {
+    color: var(--ink);
+}
+
 /* -----------------------------------------------------------------------------
    Mobile breakpoint placeholder — full mobile sidebar collapse will be added
    in Adım 3.2 when admin gets enough surface to warrant it.
@@ -508,5 +697,18 @@ button { font: inherit; }
 
     .admin-content {
         padding: 24px 16px;
+    }
+
+    .admin-form-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-form__row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .param-filter__row {
+        grid-template-columns: 1fr;
     }
 }

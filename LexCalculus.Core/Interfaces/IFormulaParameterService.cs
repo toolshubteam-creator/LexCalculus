@@ -69,4 +69,12 @@ public interface IFormulaParameterService
     /// Updates LastModifiedByUserId.
     /// </summary>
     Task SoftDeleteAsync(int id, int modifiedByUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns true if a row with the given (ToolSlug, Key, EffectiveDate) exists.
+    /// Used by admin form for pre-insert duplicate detection (works on both
+    /// SQL Server and InMemory, unlike SqlException-based catch).
+    /// excludeId: Edit modunda mevcut row'u check'ten dışla.
+    /// </summary>
+    Task<bool> ExistsAsync(string toolSlug, string key, DateTime effectiveDate, int? excludeId = null, CancellationToken ct = default);
 }

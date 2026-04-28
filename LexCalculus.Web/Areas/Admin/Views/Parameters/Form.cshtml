@@ -1,0 +1,113 @@
+@using LexCalculus.Web.Areas.Admin.Models
+@model ParameterFormViewModel
+
+@{
+    var slugLocked = Model.Mode == ParameterFormMode.NewVersion;
+    var keyLocked = Model.Mode == ParameterFormMode.NewVersion;
+
+    string formTitle;
+    string submitLabel;
+    switch (Model.Mode)
+    {
+        case ParameterFormMode.New:
+            formTitle = "Yeni Parametre";
+            submitLabel = "Kaydet";
+            break;
+        case ParameterFormMode.NewVersion:
+            formTitle = "Yeni Versiyon";
+            submitLabel = "Versiyonu Kaydet";
+            break;
+        case ParameterFormMode.Edit:
+            formTitle = "Yapısal Düzelt";
+            submitLabel = "Düzeltmeyi Kaydet";
+            break;
+        default:
+            formTitle = "Parametre";
+            submitLabel = "Kaydet";
+            break;
+    }
+}
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">@formTitle</h1>
+        <p class="admin-page__subtitle">
+            @switch (Model.Mode)
+            {
+                case ParameterFormMode.New:
+                    <text>Daha önce var olmayan bir araç-anahtar çifti için ilk değer.</text>
+                    break;
+                case ParameterFormMode.NewVersion:
+                    <text>
+                        <code>@Model.ToolSlug</code> / <code>@Model.Key</code> için yeni
+                        yürürlük tarihi ve değer. Eski versiyon arşivde kalır.
+                    </text>
+                    break;
+                case ParameterFormMode.Edit:
+                    <text>Mevcut kaydı yerinde günceller. Sadece yapısal hata (typo) için kullanın.</text>
+                    break;
+            }
+        </p>
+    </header>
+
+    @if (Model.Mode == ParameterFormMode.Edit)
+    {
+        <div class="admin-banner admin-banner--warning" role="alert">
+            <strong>Dikkat:</strong> Yapısal düzelt modu, mevcut kaydı yerinde günceller —
+            yeni effective-dated versiyon yaratmaz. Yalnızca yanlış girilmiş bir kaydı
+            düzeltmek için kullanın. <em>Değer zaman içinde değişiyorsa</em>
+            bunun yerine "Yeni Versiyon" eylemini kullanın.
+        </div>
+    }
+
+    <div asp-validation-summary="ModelOnly" class="admin-banner admin-banner--error"></div>
+
+    <div class="admin-form-layout">
+        @if (Model.Mode == ParameterFormMode.New)
+        {
+            <form method="post" asp-action="New" class="admin-form" novalidate>
+                @await Html.PartialAsync("_ParameterFormFields", Model)
+                <div class="admin-form__actions">
+                    <button type="submit" class="admin-btn admin-btn--primary">@submitLabel</button>
+                    <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">İptal</a>
+                </div>
+            </form>
+        }
+        else if (Model.Mode == ParameterFormMode.NewVersion)
+        {
+            <form method="post" asp-action="NewVersion" asp-route-toolSlug="@Model.ToolSlug" asp-route-key="@Model.Key" class="admin-form" novalidate>
+                @await Html.PartialAsync("_ParameterFormFields", Model)
+                <div class="admin-form__actions">
+                    <button type="submit" class="admin-btn admin-btn--primary">@submitLabel</button>
+                    <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">İptal</a>
+                </div>
+            </form>
+        }
+        else
+        {
+            <form method="post" asp-action="Edit" asp-route-id="@Model.Id" class="admin-form" novalidate>
+                @await Html.PartialAsync("_ParameterFormFields", Model)
+                <div class="admin-form__actions">
+                    <button type="submit" class="admin-btn admin-btn--primary">@submitLabel</button>
+                    <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">İptal</a>
+                </div>
+            </form>
+        }
+
+        <aside class="admin-form-help">
+            <h2 class="admin-form-help__title">Yardım</h2>
+            <dl class="admin-form-help__list">
+                <dt>Araç</dt>
+                <dd><strong>Global</strong>: damga vergisi, asgari ücret gibi tüm hesaplayıcıları etkileyen parametre.</dd>
+                <dt>Anahtar</dt>
+                <dd>Kod tarafında bu parametreyi çeken sabit. Değiştirme — yeni bir parametre tanımlıyorsan yeni anahtar.</dd>
+                <dt>Yürürlük</dt>
+                <dd>Geleceğe atılabilir (örn. AYM kararı 01.08.2026). O tarihe gelene kadar eski değer kullanılır.</dd>
+                <dt>Sıklık</dt>
+                <dd>Tazelik kontrolünün ne kadar sık beklenmesi gerektiği. <em>Aylık</em> = 35 gün, <em>Üç Aylık</em> = 95, vs.</dd>
+                <dt>Sabit (Kanun)</dt>
+                <dd>Mevzuat değişmediği sürece güncellenmez (örn. ihbar tazminatı gün sayısı).</dd>
+            </dl>
+        </aside>
+    </div>
+</div>

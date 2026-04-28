@@ -187,6 +187,15 @@ public sealed class FormulaParameterService : IFormulaParameterService
         return existing;
     }
 
+    public async Task<bool> ExistsAsync(string toolSlug, string key, DateTime effectiveDate, int? excludeId = null, CancellationToken ct = default)
+    {
+        var q = _db.Set<FormulaParameter>()
+            .Where(p => p.ToolSlug == toolSlug && p.Key == key && p.EffectiveDate == effectiveDate);
+        if (excludeId.HasValue)
+            q = q.Where(p => p.Id != excludeId.Value);
+        return await q.AnyAsync(ct);
+    }
+
     public async Task SoftDeleteAsync(int id, int modifiedByUserId, CancellationToken ct = default)
     {
         var existing = await _db.Set<FormulaParameter>()

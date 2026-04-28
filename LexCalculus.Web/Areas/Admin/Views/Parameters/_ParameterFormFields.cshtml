@@ -1,0 +1,93 @@
+@using LexCalculus.Web.Areas.Admin.Models
+@model ParameterFormViewModel
+
+@{
+    var slugLocked = Model.Mode == ParameterFormMode.NewVersion;
+    var keyLocked = Model.Mode == ParameterFormMode.NewVersion;
+}
+
+<input type="hidden" asp-for="Mode" />
+@if (Model.Id.HasValue) { <input type="hidden" asp-for="Id" /> }
+
+<div class="admin-form__row">
+    <div class="admin-form__field">
+        <label class="admin-form__label" asp-for="ToolSlug">Araç</label>
+        @if (slugLocked)
+        {
+            <input class="admin-form__input admin-form__input--locked" asp-for="ToolSlug" readonly />
+        }
+        else
+        {
+            <select class="admin-form__input" asp-for="ToolSlug">
+                <option value="">— seçin —</option>
+                @foreach (var (val, label) in Model.ToolSlugOptions)
+                {
+                    <option value="@val" selected="@(Model.ToolSlug == val)">@label</option>
+                }
+            </select>
+        }
+        <span asp-validation-for="ToolSlug" class="admin-form__error"></span>
+    </div>
+
+    <div class="admin-form__field">
+        <label class="admin-form__label" asp-for="Key">Anahtar</label>
+        <input class="admin-form__input @(keyLocked ? "admin-form__input--locked" : "")"
+               asp-for="Key" readonly="@keyLocked" placeholder="örn. tavan, oran-2025" />
+        <span asp-validation-for="Key" class="admin-form__error"></span>
+        <span class="admin-form__hint">kebab-case · küçük harf · sadece tire</span>
+    </div>
+</div>
+
+<div class="admin-form__row">
+    <div class="admin-form__field">
+        <label class="admin-form__label" asp-for="Value">Değer</label>
+        <input class="admin-form__input" asp-for="Value" type="number" step="any" />
+        <span asp-validation-for="Value" class="admin-form__error"></span>
+    </div>
+
+    <div class="admin-form__field">
+        <label class="admin-form__label" asp-for="EffectiveDate">Yürürlük tarihi</label>
+        <input class="admin-form__input" asp-for="EffectiveDate" type="date" />
+        <span asp-validation-for="EffectiveDate" class="admin-form__error"></span>
+        <span class="admin-form__hint">Bu tarihten itibaren bu değer kullanılır.</span>
+    </div>
+</div>
+
+<div class="admin-form__row">
+    <div class="admin-form__field">
+        <label class="admin-form__label" asp-for="ExpectedUpdateFrequency">Güncelleme sıklığı</label>
+        <select class="admin-form__input" asp-for="ExpectedUpdateFrequency">
+            @foreach (var (val, label) in Model.FrequencyOptions)
+            {
+                <option value="@val" selected="@(Model.ExpectedUpdateFrequency == val)">@label</option>
+            }
+        </select>
+        <span asp-validation-for="ExpectedUpdateFrequency" class="admin-form__error"></span>
+    </div>
+
+    <div class="admin-form__field">
+        <label class="admin-form__label" asp-for="LastUpdatedDate">Son kontrol tarihi</label>
+        <input class="admin-form__input" asp-for="LastUpdatedDate" type="date" />
+        <span asp-validation-for="LastUpdatedDate" class="admin-form__error"></span>
+        <span class="admin-form__hint">Tazelik kontrolünde bu tarih + sıklık tolerance kullanılır.</span>
+    </div>
+</div>
+
+<div class="admin-form__field">
+    <label class="admin-form__label" asp-for="Source">Kaynak</label>
+    <input class="admin-form__input" asp-for="Source" placeholder="örn. Resmi Gazete 32601, TÜİK Aralık 2025" />
+    <span asp-validation-for="Source" class="admin-form__error"></span>
+</div>
+
+<div class="admin-form__field">
+    <label class="admin-form__label" asp-for="Note">Kısa Not</label>
+    <input class="admin-form__input" asp-for="Note" placeholder="Tek cümlelik açıklama" />
+    <span asp-validation-for="Note" class="admin-form__error"></span>
+</div>
+
+<div class="admin-form__field">
+    <label class="admin-form__label" asp-for="Notes">Detaylı Notlar</label>
+    <textarea class="admin-form__input admin-form__input--area" asp-for="Notes" rows="4"
+              placeholder="Kanun maddesi, hesaplama yöntemi, dipnotlar..."></textarea>
+    <span asp-validation-for="Notes" class="admin-form__error"></span>
+</div>
