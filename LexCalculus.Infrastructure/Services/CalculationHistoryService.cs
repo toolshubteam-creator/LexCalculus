@@ -132,4 +132,51 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
             .OrderBy(s => s)
             .ToListAsync(ct);
     }
+
+    public async Task<CalculationHistoryPage> GetAllPaginatedAsync(
+        int page, int pageSize,
+        string? toolSlugFilter = null,
+        int? userIdFilter = null,
+        DateTime? startDateUtc = null,
+        DateTime? endDateUtc = null,
+        CancellationToken ct = default)
+    {
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 25;
+
+        var q = _ctx.Set<CalculationHistory>().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(toolSlugFilter))
+            q = q.Where(h => h.ToolSlug == toolSlugFilter);
+        if (userIdFilter.HasValue)
+            q = q.Where(h => h.UserId == userIdFilter.Value);
+        if (startDateUtc.HasValue)
+            q = q.Where(h => h.CreatedAt >= startDateUtc.Value);
+        if (endDateUtc.HasValue)
+            q = q.Where(h => h.CreatedAt < endDateUtc.Value.AddDays(1));
+
+        var totalCount = await q.CountAsync(ct);
+        var items = await q
+            .OrderByDescending(h => h.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new CalculationHistoryPage(items, totalCount, page, pageSize);
+    }
+
+    public async Task<IReadOnlyList<int>> GetUsersWithHistoryAsync(CancellationToken ct = default)
+    {
+        return await _ctx.Set<CalculationHistory>()
+            .Select(h => h.UserId)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToListAsync(ct);
+    }
+
+    public async Task<CalculationHistory?> GetByIdForAdminAsync(int historyId, CancellationToken ct = default)
+    {
+        return await _ctx.Set<CalculationHistory>()
+            .FirstOrDefaultAsync(h => h.Id == historyId, ct);
+    }
 }

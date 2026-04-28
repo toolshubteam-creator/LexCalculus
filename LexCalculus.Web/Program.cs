@@ -198,6 +198,15 @@ try
     // Admin dashboard summary
     builder.Services.AddScoped<IDashboardSummaryService, DashboardSummaryService>();
 
+    // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
+    builder.Services.AddSession(options =>
+    {
+        options.IdleTimeout = TimeSpan.FromMinutes(30);
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.Name = "LexCalculus.Session";
+    });
+
     // Authorization policies — Phase 3.1: AdminOnly for /admin area
     builder.Services.AddAuthorization(options =>
     {
@@ -317,6 +326,8 @@ try
     app.UseResponseCaching();
 
     app.UseRouting();
+
+    app.UseSession();
 
     app.UseAuthentication();
     app.UseAuthorization();

@@ -1,0 +1,154 @@
+@model LexCalculus.Web.Areas.Admin.Models.Hesaplar.AdminHesaplarListPageViewModel
+
+@{
+    string RelativeTime(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalMinutes < 1) return "az önce";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} dk önce";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} saat önce";
+        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays} gün önce";
+        return utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
+    }
+
+    bool showKvkk = ViewData["ShowKvkkBanner"] is bool b && b;
+}
+
+<div class="admin-page">
+    @if (showKvkk)
+    {
+        <div class="admin-banner admin-banner--warning kvkk-banner">
+            <strong>Veri Erişim Sorumluluğu:</strong>
+            Bu sayfa kullanıcıların hesap detaylarını içerir. Görüntüleme yalnızca
+            operasyonel ihtiyaçlar (denetim, destek) için yapılmalıdır.
+            Erişimleriniz <em>Adım 3.8</em>'de açılacak Activity Log üzerinden
+            ileride loglanacaktır.
+        </div>
+    }
+
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">Hesap Geçmişi</h1>
+            <p class="admin-page__subtitle">
+                @Model.TotalCount toplam hesap
+                @if (Model.Filter.HasAnyFilter)
+                {
+                    <span class="admin-page__filter-note">· filtre aktif</span>
+                }
+            </p>
+        </div>
+    </header>
+
+    <form method="get" class="param-filter">
+        <div class="param-filter__row">
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-toolSlug">Hesaplayıcı</label>
+                <select id="filter-toolSlug" name="ToolSlug" class="param-filter__input">
+                    <option value="">Hepsi</option>
+                    @foreach (var (slug, title) in Model.ToolOptions)
+                    {
+                        <option value="@slug" selected="@(Model.Filter.ToolSlug == slug)">@title</option>
+                    }
+                </select>
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-userId">Kullanıcı</label>
+                <select id="filter-userId" name="UserId" class="param-filter__input">
+                    <option value="">Hepsi</option>
+                    @foreach (var (uid, display) in Model.UserOptions)
+                    {
+                        <option value="@uid" selected="@(Model.Filter.UserId == uid)">@display</option>
+                    }
+                </select>
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-startDate">Başlangıç</label>
+                <input type="date" id="filter-startDate" name="StartDate"
+                       value="@(Model.Filter.StartDate?.ToString("yyyy-MM-dd"))"
+                       class="param-filter__input" />
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-endDate">Bitiş</label>
+                <input type="date" id="filter-endDate" name="EndDate"
+                       value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))"
+                       class="param-filter__input" />
+            </div>
+            <div class="param-filter__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Filtrele</button>
+                <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">Temizle</a>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Filtreye uyan hesap bulunamadı.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Kullanıcı</th>
+                        <th>Hesaplayıcı</th>
+                        <th>Tarih</th>
+                        <th class="param-table__num">Sonuç</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Items)
+                    {
+                        <tr class="param-table__row">
+                            <td>
+                                <span class="hesap-admin__user">@row.UserDisplay</span>
+                            </td>
+                            <td>
+                                <strong>@row.ToolTitle</strong>
+                                <span class="hesap-admin__category">@row.CategorySlug</span>
+                            </td>
+                            <td>@RelativeTime(row.CreatedAt)</td>
+                            <td class="param-table__num">
+                                @if (row.TotalAmount.HasValue)
+                                {
+                                    @row.TotalAmount.Value.ToString("N2")
+                                    @if (!string.IsNullOrWhiteSpace(row.Unit))
+                                    {
+                                        <span class="hesap-admin__unit">@row.Unit</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="hesap-admin__no-amount">—</span>
+                                }
+                            </td>
+                            <td class="param-table__actions">
+                                <a class="admin-link" asp-action="Detail" asp-route-id="@row.Id">Detay</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="hesap-pagination">
+                @if (Model.HasPrevious)
+                {
+                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, UserId = Model.Filter.UserId, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, page = Model.Page - 1 })">← Önceki</a>
+                }
+                else { <span></span> }
+                <span class="hesap-pagination__info">Sayfa @Model.Page / @Model.TotalPages · @Model.TotalCount toplam</span>
+                @if (Model.HasNext)
+                {
+                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, UserId = Model.Filter.UserId, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, page = Model.Page + 1 })">Sonraki →</a>
+                }
+                else { <span></span> }
+            </nav>
+        }
+    }
+</div>

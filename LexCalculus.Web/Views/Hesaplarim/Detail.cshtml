@@ -1,13 +1,32 @@
 @model LexCalculus.Web.Models.Hesaplarim.HesaplarimDetailViewModel
+@{
+    bool isAdminView = ViewData["IsAdminView"] is bool b && b;
+    string? adminUser = ViewData["AdminUserDisplay"] as string;
+    string backUrl = isAdminView
+        ? (Url.Action("Index", "Hesaplar", new { area = "Admin" }) ?? "/admin/hesaplar")
+        : "/hesaplarim";
+    string backLabel = isAdminView ? "← Hesap geçmişine dön" : "← Hesaplarıma dön";
+}
 
 @section Head {
     <link rel="stylesheet" href="~/css/hesaplarim.css" />
 }
 
 <div class="hesap-page">
-    <p class="hesap-page__back">
-        <a href="/hesaplarim" class="hesap-link">← Hesaplarıma dön</a>
-    </p>
+    @if (!isAdminView)
+    {
+        <p class="hesap-page__back">
+            <a href="@backUrl" class="hesap-link">@backLabel</a>
+        </p>
+    }
+
+    @if (isAdminView && !string.IsNullOrWhiteSpace(adminUser))
+    {
+        <div class="hesap-detail__owner">
+            <span class="hesap-detail__owner-label">Hesap sahibi:</span>
+            <span class="hesap-detail__owner-value">@adminUser</span>
+        </div>
+    }
 
     <header class="hesap-page__header">
         <h1 class="hesap-page__title">@Model.ToolTitle</h1>
@@ -77,7 +96,10 @@
     }
 
     <div class="hesap-detail__actions">
-        <a href="@Model.RestoreUrl" class="hesap-btn hesap-btn--primary">Form'u Tekrarla</a>
-        <a href="/hesaplarim" class="hesap-btn hesap-btn--secondary">Listeye Dön</a>
+        @if (!isAdminView && !string.IsNullOrWhiteSpace(Model.RestoreUrl))
+        {
+            <a href="@Model.RestoreUrl" class="hesap-btn hesap-btn--primary">Form'u Tekrarla</a>
+        }
+        <a href="@backUrl" class="hesap-btn hesap-btn--secondary">Listeye Dön</a>
     </div>
 </div>

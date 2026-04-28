@@ -207,6 +207,24 @@
     color: var(--burgundy);
 }
 
+.hesap-detail__owner {
+    background: rgba(184, 146, 74, 0.08);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: var(--ink);
+}
+.hesap-detail__owner-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--burgundy);
+    margin-right: 8px;
+}
+
 .hesap-detail__total {
     background: var(--ink);
     color: var(--parchment);

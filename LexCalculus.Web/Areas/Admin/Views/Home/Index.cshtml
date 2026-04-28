@@ -29,9 +29,8 @@
         </a>
 
         @* Widget 2: Hesap Aktivitesi *@
-        <a class="dashboard-card dashboard-card--info dashboard-card--soon"
-           href="@(Model.Activity?.DashboardLink ?? "#")"
-           title="Detay sayfası Adım 3.4'te aktive olacak">
+        <a class="dashboard-card dashboard-card--info"
+           href="@(Model.Activity?.DashboardLink ?? "#")">
             <div class="dashboard-card__caption">Son 7 Gün</div>
             @if (Model.Activity == null)
             {

@@ -49,6 +49,31 @@ public interface ICalculationHistoryService
     /// </summary>
     Task<IReadOnlyList<string>> GetUsedToolSlugsForUserAsync(
         int userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Admin görünümü: tüm kullanıcıların hesaplarını sayfalama + filtre ile döner.
+    /// userIdFilter null = tüm kullanıcılar.
+    /// </summary>
+    Task<CalculationHistoryPage> GetAllPaginatedAsync(
+        int page,
+        int pageSize,
+        string? toolSlugFilter = null,
+        int? userIdFilter = null,
+        DateTime? startDateUtc = null,
+        DateTime? endDateUtc = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Hesap kaydı yapmış distinct kullanıcı ID'leri (admin filtre dropdown için).
+    /// </summary>
+    Task<IReadOnlyList<int>> GetUsersWithHistoryAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Admin görünümü: ownership kontrolü YAPMAZ. Tek bir history kaydını döner
+    /// (admin başkasının hesabını görebilir). Bu metot SADECE Admin policy'si
+    /// olan controller'lardan çağrılmalı.
+    /// </summary>
+    Task<CalculationHistory?> GetByIdForAdminAsync(int historyId, CancellationToken ct = default);
 }
 
 public sealed record CalculationHistoryPage(

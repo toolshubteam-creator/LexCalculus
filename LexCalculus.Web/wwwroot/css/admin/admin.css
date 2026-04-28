@@ -845,3 +845,34 @@ button { font: inherit; }
     font-family: 'JetBrains Mono', monospace;
     color: var(--ink);
 }
+
+/* ─────────── Admin: hesaplar listesi ─────────── */
+.kvkk-banner {
+    border-left-color: var(--burgundy);
+    background: #fbf3e3;
+}
+.hesap-admin__user {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: var(--ink);
+}
+.hesap-admin__category {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--burgundy);
+    margin-top: 2px;
+}
+.hesap-admin__unit {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink);
+    opacity: .55;
+}
+.hesap-admin__no-amount {
+    color: var(--ink);
+    opacity: .35;
+}
