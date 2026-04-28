@@ -1,0 +1,21 @@
+@{
+    var crumbs = ViewData["Breadcrumb"] as List<(string Label, string? Url)>
+                 ?? new List<(string Label, string? Url)> { ("Dashboard", null) };
+}
+
+<nav class="admin-breadcrumb" aria-label="breadcrumb">
+    @for (var i = 0; i < crumbs.Count; i++)
+    {
+        var (label, url) = crumbs[i];
+        var isLast = i == crumbs.Count - 1;
+        if (isLast || url == null)
+        {
+            <span class="admin-breadcrumb__current">@label</span>
+        }
+        else
+        {
+            <a class="admin-breadcrumb__link" href="@url">@label</a>
+            <span class="admin-breadcrumb__sep">/</span>
+        }
+    }
+</nav>

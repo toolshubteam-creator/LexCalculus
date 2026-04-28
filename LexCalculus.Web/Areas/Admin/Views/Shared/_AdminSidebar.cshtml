@@ -1,0 +1,10 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+}
+
+<nav class="admin-sidebar__nav" aria-label="Yönetim navigasyonu">
+    <a class="admin-nav-link @(currentController == "Home" ? "admin-nav-link--active" : "")"
+       asp-area="Admin" asp-controller="Home" asp-action="Index">
+        <span class="admin-nav-link__label">Dashboard</span>
+    </a>
+</nav>

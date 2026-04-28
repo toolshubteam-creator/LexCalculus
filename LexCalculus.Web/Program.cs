@@ -129,6 +129,12 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
+    // Authorization policies — Phase 3.1: AdminOnly for /admin area
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    });
+
     // No-op email sender — real implementation comes in Phase 5
     builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
         Microsoft.AspNetCore.Identity.UI.Services.NoOpEmailSender>();

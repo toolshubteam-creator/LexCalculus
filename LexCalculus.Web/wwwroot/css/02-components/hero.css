@@ -52,6 +52,12 @@
   letter-spacing: 1em;
 }
 
+/* Centered call-to-action block under a hero (e.g. AccessDenied "anasayfaya dön") */
+.hero__cta {
+  text-align: center;
+  margin-top: var(--sp-12);
+}
+
 /* Hero variant for tool detail pages: left-aligned, tighter */
 .hero--inline {
   text-align: left;

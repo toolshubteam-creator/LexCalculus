@@ -5,11 +5,15 @@
 }
 
 <section class="hero">
-    <div class="hero__eyebrow">— Yetkisiz işlem —</div>
+    <div class="hero__eyebrow">ANNO MMXXVI · CONTRA IUS</div>
     <h1 class="hero__title">Erişim <em>reddedildi.</em></h1>
-    <p class="hero__lead">Bu sayfayı görüntülemek için gerekli yetkiniz bulunmuyor. Eğer yanlışlık olduğunu düşünüyorsanız bir yöneticiyle iletişime geçin.</p>
+    <p class="hero__lead">
+        Bu sayfa için <em>yetkiniz bulunmuyor</em>. Yönetim paneline yalnızca
+        Admin rolündeki kullanıcılar erişebilir. Hesap rolünüzde değişiklik
+        gerekiyorsa sistem yöneticisiyle iletişime geçin.
+    </p>
 </section>
 
-<div style="text-align: center; margin-top: var(--sp-12);">
-    <a class="btn btn--primary" asp-controller="Home" asp-action="Index">Ana sayfaya dön</a>
+<div class="hero__cta">
+    <a class="btn btn--primary" asp-area="" asp-controller="Home" asp-action="Index">Ana sayfaya dön</a>
 </div>

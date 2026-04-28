@@ -1,0 +1,22 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Breadcrumb"] = new List<(string Label, string? Url)> { ("Dashboard", null) };
+}
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Yönetim Paneli</h1>
+        <p class="admin-page__subtitle">
+            Hoş geldiniz, @User.Identity?.Name. Adım 3.3'te aktif widget'lar burada görünecek.
+        </p>
+    </header>
+
+    <div class="admin-card">
+        <h2 class="admin-card__title">Faz 3 — yapım aşamasında</h2>
+        <p class="admin-card__body">
+            Bu panel Faz 3 ilerledikçe genişleyecek. Adım 3.1 yalnızca iskele kuruyor:
+            authorization, layout, sidebar, breadcrumb. Yetkili kullanıcılar burayı
+            görür; diğerleri 403 alır.
+        </p>
+    </div>
+</div>

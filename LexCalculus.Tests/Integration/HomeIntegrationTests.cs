@@ -3,6 +3,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Integration;
 
+[Collection("AdminWebHost")]
 public class HomeIntegrationTests : IClassFixture<WebApplicationFactoryFixture>
 {
     private readonly WebApplicationFactoryFixture _factory;

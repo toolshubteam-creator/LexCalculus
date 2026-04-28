@@ -1,0 +1,49 @@
+@{
+    var title = ViewData["Title"] as string ?? "Yönetim";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - Yönetim - Lex Calculus</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="stylesheet" href="~/css/00-tokens/variables.css" />
+    <link rel="stylesheet" href="~/css/admin/admin.css" />
+</head>
+<body class="admin-body">
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+            <div class="admin-sidebar__brand">
+                <div class="admin-sidebar__brand-name">Lex Calculus</div>
+                <div class="admin-sidebar__brand-sub">Yönetim Paneli</div>
+            </div>
+
+            <partial name="_AdminSidebar" />
+
+            <div class="admin-sidebar__user">
+                <div class="admin-sidebar__user-name">@User.Identity?.Name</div>
+                <a class="admin-sidebar__user-link" href="/">Siteye dön</a>
+                <form method="post" asp-area="Identity" asp-page="/Account/Logout" class="admin-sidebar__logout-form">
+                    <button type="submit" class="admin-sidebar__user-link admin-sidebar__user-link--button">Çıkış</button>
+                </form>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <header class="admin-topbar">
+                <partial name="_Breadcrumb" />
+                <div class="admin-topbar__actions">
+                    @* Phase 3.3 — bildirim ikonu burada görünecek *@
+                </div>
+            </header>
+
+            <div class="admin-content">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
