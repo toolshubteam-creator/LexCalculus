@@ -1,0 +1,52 @@
+@model LexCalculus.Web.Areas.Admin.Models.ParameterHistoryViewModel
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Parametre Tarihçesi</h1>
+        <p class="admin-page__subtitle">
+            <code>@Model.ToolSlug</code> / <code>@Model.Key</code>
+            · @Model.Versions.Count versiyon
+        </p>
+    </header>
+
+    <div class="param-table-wrap">
+        <table class="param-table">
+            <thead>
+                <tr>
+                    <th class="param-table__num">Değer</th>
+                    <th>Yürürlük</th>
+                    <th>Sıklık</th>
+                    <th>Son Güncelleme</th>
+                    <th>Kaynak</th>
+                    <th>Durum</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in Model.Versions)
+                {
+                    <tr class="param-table__row @(v.IsStale ? "param-table__row--stale" : "")">
+                        <td class="param-table__num">@v.Value.ToString("N4")</td>
+                        <td>@v.EffectiveDate.ToString("dd.MM.yyyy")</td>
+                        <td>@v.FrequencyLabelTr</td>
+                        <td>@(v.LastUpdatedDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                        <td>@(v.Source ?? "—")</td>
+                        <td>
+                            @if (v.IsCurrentVersion)
+                            {
+                                <span class="param-badge param-badge--current">Güncel</span>
+                            }
+                            else
+                            {
+                                <span class="param-badge param-badge--archived">Arşiv</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="admin-page__back">
+        <a class="admin-link" asp-action="Index">← Parametreler listesine dön</a>
+    </p>
+</div>

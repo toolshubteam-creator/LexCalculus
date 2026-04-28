@@ -7,4 +7,8 @@
        asp-area="Admin" asp-controller="Home" asp-action="Index">
         <span class="admin-nav-link__label">Dashboard</span>
     </a>
+    <a class="admin-nav-link @(currentController == "Parameters" ? "admin-nav-link--active" : "")"
+       asp-area="Admin" asp-controller="Parameters" asp-action="Index">
+        <span class="admin-nav-link__label">Parametreler</span>
+    </a>
 </nav>

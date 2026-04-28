@@ -1,0 +1,126 @@
+@model LexCalculus.Web.Areas.Admin.Models.ParameterListPageViewModel
+
+<div class="admin-page">
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">Parametreler</h1>
+            <p class="admin-page__subtitle">
+                @Model.TotalCount parametre · @Model.StaleCount süresi geçmiş
+                @if (Model.Filter.HasAnyFilter)
+                {
+                    <span class="admin-page__filter-note">· filtre aktif: @Model.FilteredCount sonuç</span>
+                }
+            </p>
+        </div>
+        @* Yeni parametre ekle butonu Parça 3/3'te eklenecek *@
+    </header>
+
+    <form method="get" class="param-filter">
+        <div class="param-filter__row">
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-toolSlug">Araç</label>
+                <select id="filter-toolSlug" name="ToolSlug" class="param-filter__input">
+                    <option value="">Hepsi</option>
+                    @foreach (var (val, label) in Model.ToolSlugOptions)
+                    {
+                        <option value="@val" selected="@(Model.Filter.ToolSlug == val)">@label</option>
+                    }
+                </select>
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-key">Anahtar</label>
+                <input id="filter-key" name="Key" value="@Model.Filter.Key"
+                       class="param-filter__input" placeholder="örn. tavan, oran" />
+            </div>
+            <div class="param-filter__field param-filter__field--checkbox">
+                <label class="param-filter__check">
+                    <input type="checkbox" name="OnlyStale" value="true"
+                           @(Model.Filter.OnlyStale ? "checked" : "") />
+                    <span>Sadece süresi geçmiş</span>
+                </label>
+                <label class="param-filter__check">
+                    <input type="checkbox" name="OnlyCurrent" value="true"
+                           @(Model.Filter.OnlyCurrent ? "checked" : "") />
+                    <span>Sadece güncel versiyon</span>
+                </label>
+            </div>
+            <div class="param-filter__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Filtrele</button>
+                <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">Temizle</a>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Filtreye uyan parametre bulunamadı.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Araç</th>
+                        <th>Anahtar</th>
+                        <th class="param-table__num">Değer</th>
+                        <th>Yürürlük</th>
+                        <th>Sıklık</th>
+                        <th>Son Güncelleme</th>
+                        <th>Durum</th>
+                        <th class="param-table__actions">Eylemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr class="param-table__row @(row.IsStale ? "param-table__row--stale" : "")">
+                            <td>
+                                @if (row.IsGlobal)
+                                {
+                                    <span class="param-badge param-badge--global">Global</span>
+                                }
+                                else
+                                {
+                                    <code class="param-table__slug">@row.ToolSlug</code>
+                                }
+                            </td>
+                            <td><code class="param-table__key">@row.Key</code></td>
+                            <td class="param-table__num">@row.Value.ToString("N4")</td>
+                            <td>@row.EffectiveDate.ToString("dd.MM.yyyy")</td>
+                            <td>@row.FrequencyLabelTr</td>
+                            <td>
+                                @(row.LastUpdatedDate?.ToString("dd.MM.yyyy") ?? "—")
+                            </td>
+                            <td>
+                                @if (row.IsStale)
+                                {
+                                    var late = row.DaysUntilStale.HasValue ? Math.Abs(row.DaysUntilStale.Value) : 0;
+                                    <span class="param-badge param-badge--stale" title="@late gün gecikti">
+                                        Süresi geçmiş
+                                    </span>
+                                }
+                                else if (row.IsCurrentVersion)
+                                {
+                                    <span class="param-badge param-badge--current">Güncel</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--archived">Arşiv</span>
+                                }
+                            </td>
+                            <td class="param-table__actions">
+                                <a class="admin-link"
+                                   asp-action="History"
+                                   asp-route-toolSlug="@row.ToolSlug"
+                                   asp-route-key="@row.Key">Geçmiş</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
