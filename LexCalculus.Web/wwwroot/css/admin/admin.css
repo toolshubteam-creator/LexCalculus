@@ -97,6 +97,13 @@ button { font: inherit; }
     display: inline-block;
 }
 
+.admin-nav-link__hint {
+    margin-left: 6px;
+    opacity: 0.5;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+}
+
 .admin-sidebar__user {
     padding: 24px;
     border-top: 1px solid rgba(184, 146, 74, 0.2);

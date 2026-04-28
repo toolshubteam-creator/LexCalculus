@@ -1,3 +1,4 @@
+using Hangfire;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Models.Seo;
@@ -130,6 +131,38 @@ try
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
+    // -------------------------------------------------------------------------
+    // HANGFIRE — background job processing (Phase 3.3)
+    // -------------------------------------------------------------------------
+    if (!isTesting)
+    {
+        builder.Services.AddHangfire(config =>
+        {
+            config.SetDataCompatibilityLevel(Hangfire.CompatibilityLevel.Version_180);
+            config.UseSimpleAssemblyNameTypeSerializer();
+            config.UseRecommendedSerializerSettings();
+            config.UseSqlServerStorage(
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                new Hangfire.SqlServer.SqlServerStorageOptions
+                {
+                    CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                    SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                    QueuePollInterval = TimeSpan.Zero,
+                    UseRecommendedIsolationLevel = true,
+                    DisableGlobalLocks = true,
+                    SchemaName = "HangFire"
+                });
+        });
+
+        builder.Services.AddHangfireServer(options =>
+        {
+            options.WorkerCount = Math.Min(Environment.ProcessorCount * 2, 20);
+            options.ServerName = $"lex-calculus-{Environment.MachineName}";
+        });
+
+        builder.Services.AddScoped<LexCalculus.Jobs.SmokeTestJob>();
+    }
+
     // Authorization policies — Phase 3.1: AdminOnly for /admin area
     builder.Services.AddAuthorization(options =>
     {
@@ -253,6 +286,18 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
+    // Hangfire dashboard — admin-only via cookie auth role check
+    if (!isTesting)
+    {
+        app.UseHangfireDashboard("/admin/hangfire", new Hangfire.DashboardOptions
+        {
+            Authorization = new[] { new LexCalculus.Web.Infrastructure.Hangfire.AdminDashboardAuthorizationFilter() },
+            DashboardTitle = "Lex Calculus — Background Jobs",
+            StatsPollingInterval = 5000,
+            DisplayStorageConnectionString = false
+        });
+    }
+
     // Health endpoints
     app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     {
@@ -323,6 +368,18 @@ try
             startupLogger.LogCritical(ex, "Database migration or seeding failed. Application will NOT start.");
             throw;
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // RECURRING JOBS (Hangfire) — Phase 3.3 Parça 1: smoke test only
+    // -------------------------------------------------------------------------
+    if (!isTesting)
+    {
+        Hangfire.RecurringJob.AddOrUpdate<LexCalculus.Jobs.SmokeTestJob>(
+            "smoke-test",
+            job => job.ExecuteAsync(),
+            Hangfire.Cron.Minutely,
+            new Hangfire.RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
     }
 
     // -------------------------------------------------------------------------
