@@ -1,9 +1,11 @@
 using Hangfire;
+using LexCalculus.Core.Admin.Dashboard;
 using LexCalculus.Core.Email;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Notifications;
+using LexCalculus.Infrastructure.Admin.Dashboard;
 using LexCalculus.Infrastructure.Calculators;
 using LexCalculus.Infrastructure.Email;
 using LexCalculus.Infrastructure.Notifications;
@@ -192,6 +194,9 @@ try
 
     // Notifications
     builder.Services.AddScoped<INotificationService, NotificationService>();
+
+    // Admin dashboard summary
+    builder.Services.AddScoped<IDashboardSummaryService, DashboardSummaryService>();
 
     // Authorization policies — Phase 3.1: AdminOnly for /admin area
     builder.Services.AddAuthorization(options =>

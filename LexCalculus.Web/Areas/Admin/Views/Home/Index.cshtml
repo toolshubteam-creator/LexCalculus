@@ -1,22 +1,116 @@
-@{
-    ViewData["Title"] = "Dashboard";
-    ViewData["Breadcrumb"] = new List<(string Label, string? Url)> { ("Dashboard", null) };
-}
+@model LexCalculus.Core.Admin.Dashboard.DashboardSummary
 
 <div class="admin-page">
     <header class="admin-page__header">
         <h1 class="admin-page__title">Yönetim Paneli</h1>
         <p class="admin-page__subtitle">
-            Hoş geldiniz, @User.Identity?.Name. Adım 3.3'te aktif widget'lar burada görünecek.
+            Hoş geldiniz, @User.Identity?.Name. Sistemin anlık durumu aşağıda.
         </p>
     </header>
 
-    <div class="admin-card">
-        <h2 class="admin-card__title">Faz 3 — yapım aşamasında</h2>
-        <p class="admin-card__body">
-            Bu panel Faz 3 ilerledikçe genişleyecek. Adım 3.1 yalnızca iskele kuruyor:
-            authorization, layout, sidebar, breadcrumb. Yetkili kullanıcılar burayı
-            görür; diğerleri 403 alır.
-        </p>
+    <div class="dashboard-grid">
+
+        @* Widget 1: Veri Tazelik *@
+        <a class="dashboard-card @(Model.Freshness?.StaleCount > 0 ? "dashboard-card--alert" : "dashboard-card--ok")"
+           href="@(Model.Freshness?.DashboardLink ?? "#")">
+            <div class="dashboard-card__caption">Veri Tazelik</div>
+            @if (Model.Freshness == null)
+            {
+                <div class="dashboard-card__error">Yüklenemedi</div>
+            }
+            else
+            {
+                <div class="dashboard-card__metric">@Model.Freshness.StaleCount</div>
+                <div class="dashboard-card__detail">
+                    parametre kontrol gerektiriyor
+                    <span class="dashboard-card__sub">@Model.Freshness.TotalParameters toplam</span>
+                </div>
+            }
+        </a>
+
+        @* Widget 2: Hesap Aktivitesi *@
+        <a class="dashboard-card dashboard-card--info dashboard-card--soon"
+           href="@(Model.Activity?.DashboardLink ?? "#")"
+           title="Detay sayfası Adım 3.4'te aktive olacak">
+            <div class="dashboard-card__caption">Son 7 Gün</div>
+            @if (Model.Activity == null)
+            {
+                <div class="dashboard-card__error">Yüklenemedi</div>
+            }
+            else
+            {
+                <div class="dashboard-card__metric">@Model.Activity.TotalLast7Days</div>
+                <div class="dashboard-card__detail">hesap yapıldı</div>
+
+                @if (Model.Activity.TopTools.Count > 0)
+                {
+                    <ul class="dashboard-card__list">
+                        @foreach (var t in Model.Activity.TopTools)
+                        {
+                            <li><strong>@t.UsageCount</strong> · @t.ToolTitle</li>
+                        }
+                    </ul>
+                }
+            }
+        </a>
+
+        @* Widget 3: Kullanıcı Özeti *@
+        <a class="dashboard-card dashboard-card--info dashboard-card--soon"
+           href="@(Model.Users?.DashboardLink ?? "#")"
+           title="Detay sayfası Adım 3.6'da aktive olacak">
+            <div class="dashboard-card__caption">Kullanıcılar</div>
+            @if (Model.Users == null)
+            {
+                <div class="dashboard-card__error">Yüklenemedi</div>
+            }
+            else
+            {
+                <div class="dashboard-card__metric">@Model.Users.TotalActiveUsers</div>
+                <div class="dashboard-card__detail">
+                    aktif kullanıcı
+                    <span class="dashboard-card__sub">@Model.Users.ActiveLast30Days son 30 günde</span>
+                </div>
+            }
+        </a>
+
+        @* Widget 4: Hangfire *@
+        <a class="dashboard-card dashboard-card--info"
+           href="@(Model.Jobs?.DashboardLink ?? "/admin/hangfire")"
+           target="_blank" rel="noopener">
+            <div class="dashboard-card__caption">Background Jobs <span class="dashboard-card__hint">↗</span></div>
+            @if (Model.Jobs == null)
+            {
+                <div class="dashboard-card__error">Yüklenemedi</div>
+            }
+            else
+            {
+                <div class="dashboard-card__metric">@Model.Jobs.RecurringJobCount</div>
+                <div class="dashboard-card__detail">
+                    recurring job
+                    <span class="dashboard-card__sub">@Model.Jobs.ServerCount sunucu aktif</span>
+                </div>
+            }
+        </a>
+
+        @* Widget 5: Bildirimler *@
+        <a class="dashboard-card @(Model.Notifications?.UnreadForCurrentAdmin > 0 ? "dashboard-card--alert" : "dashboard-card--ok") dashboard-card--soon"
+           href="@(Model.Notifications?.DashboardLink ?? "#")"
+           title="Bildirim merkezi Parça 6/6'da aktive olacak">
+            <div class="dashboard-card__caption">Bildirimler</div>
+            @if (Model.Notifications == null)
+            {
+                <div class="dashboard-card__error">Yüklenemedi</div>
+            }
+            else
+            {
+                <div class="dashboard-card__metric">@Model.Notifications.UnreadForCurrentAdmin</div>
+                <div class="dashboard-card__detail">okunmamış bildirim</div>
+            }
+        </a>
+
     </div>
+
+    <p class="dashboard-footnote">
+        Veriler @Model.GeneratedAt.ToString("HH:mm:ss") UTC itibariyle.
+    </p>
 </div>
