@@ -141,6 +141,70 @@ public sealed class FormulaParameterService : IFormulaParameterService
         }
     }
 
+    public async Task<IReadOnlyList<FormulaParameter>> GetAllAsync(CancellationToken ct = default)
+    {
+        return await _db.Set<FormulaParameter>()
+            .OrderBy(p => p.ToolSlug)
+            .ThenBy(p => p.Key)
+            .ThenByDescending(p => p.EffectiveDate)
+            .ToListAsync(ct);
+    }
+
+    public async Task<FormulaParameter> UpdateAsync(FormulaParameter parameter, int modifiedByUserId, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(parameter);
+
+        var existing = await _db.Set<FormulaParameter>()
+            .FirstOrDefaultAsync(p => p.Id == parameter.Id, ct)
+            ?? throw new InvalidOperationException($"FormulaParameter {parameter.Id} not found");
+
+        var oldToolSlug = existing.ToolSlug;
+        var oldKey = existing.Key;
+
+        existing.ToolSlug = parameter.ToolSlug;
+        existing.Key = parameter.Key;
+        existing.Value = parameter.Value;
+        existing.EffectiveDate = parameter.EffectiveDate;
+        existing.Source = parameter.Source;
+        existing.Note = parameter.Note;
+        existing.ExpectedUpdateFrequency = parameter.ExpectedUpdateFrequency;
+        existing.LastUpdatedDate = parameter.LastUpdatedDate;
+        existing.Notes = parameter.Notes;
+        existing.LastModifiedByUserId = modifiedByUserId;
+
+        await _db.SaveChangesAsync(ct);
+
+        await InvalidateAsync(existing.ToolSlug, existing.Key, ct);
+        if (oldToolSlug != existing.ToolSlug || oldKey != existing.Key)
+        {
+            await InvalidateAsync(oldToolSlug, oldKey, ct);
+        }
+
+        _logger.LogInformation(
+            "Updated parameter id={Id} {ToolSlug}/{Key} by user {UserId}",
+            existing.Id, existing.ToolSlug, existing.Key, modifiedByUserId);
+
+        return existing;
+    }
+
+    public async Task SoftDeleteAsync(int id, int modifiedByUserId, CancellationToken ct = default)
+    {
+        var existing = await _db.Set<FormulaParameter>()
+            .FirstOrDefaultAsync(p => p.Id == id, ct)
+            ?? throw new InvalidOperationException($"FormulaParameter {id} not found");
+
+        existing.IsDeleted = true;
+        existing.LastModifiedByUserId = modifiedByUserId;
+
+        await _db.SaveChangesAsync(ct);
+
+        await InvalidateAsync(existing.ToolSlug, existing.Key, ct);
+
+        _logger.LogInformation(
+            "Soft-deleted parameter id={Id} {ToolSlug}/{Key} by user {UserId}",
+            existing.Id, existing.ToolSlug, existing.Key, modifiedByUserId);
+    }
+
     private async Task<FormulaParameter?> QueryDatabaseAsync(string toolSlug, string key, DateTime asOfDate, CancellationToken ct)
     {
         return await _db.Set<FormulaParameter>()

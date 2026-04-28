@@ -40,5 +40,18 @@ public sealed class FormulaParameterConfiguration : IEntityTypeConfiguration<For
 
         builder.HasIndex(p => new { p.ToolSlug, p.Key, p.EffectiveDate }, "UX_FormulaParameters_Version")
             .IsUnique();
+
+        // FK'ler NoAction — SQL Server multi-path cascade kısıtı (1785).
+        // Kullanıcıyı silmek isteyen admin önce parametreleri reassign etmeli.
+        // Audit'in kaybolmaması için bu davranış istenir.
+        builder.HasOne(p => p.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(p => p.CreatedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(p => p.LastModifiedByUser)
+            .WithMany()
+            .HasForeignKey(p => p.LastModifiedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

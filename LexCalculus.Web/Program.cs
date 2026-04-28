@@ -78,6 +78,7 @@ try
     // CALCULATORS
     // -------------------------------------------------------------------------
     builder.Services.AddScoped<IFormulaParameterService, FormulaParameterService>();
+    builder.Services.AddSingleton<IFormulaFreshnessChecker, FormulaFreshnessChecker>();
     builder.Services.AddScoped<ILifeTableService, LifeTableService>();
     builder.Services.AddScoped<IActuarialService, ActuarialService>();
     builder.Services.AddScoped<IInterestRateService, InterestRateService>();

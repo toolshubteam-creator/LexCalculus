@@ -48,4 +48,25 @@ public interface IFormulaParameterService
     /// Called by AddAsync; admins may also call after bulk inserts.
     /// </summary>
     Task InvalidateAsync(string toolSlug, string key, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns ALL parameter rows. Soft-deleted rows excluded (global query filter).
+    /// Sorted by ToolSlug ASC, Key ASC, EffectiveDate DESC. Used by admin list view.
+    /// </summary>
+    Task<IReadOnlyList<FormulaParameter>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Mutates an existing parameter row IN PLACE. Use only to fix structural
+    /// errors (typo in Key, wrong ToolSlug). DO NOT use to change Value over
+    /// time — for that, AddAsync creates a new effective-dated version.
+    /// Updates LastModifiedByUserId. Invalidates cache.
+    /// </summary>
+    Task<FormulaParameter> UpdateAsync(FormulaParameter parameter, int modifiedByUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Soft-deletes (IsDeleted=true). Cache invalidated. The row stays in DB
+    /// for audit purposes but is excluded from all queries (global filter).
+    /// Updates LastModifiedByUserId.
+    /// </summary>
+    Task SoftDeleteAsync(int id, int modifiedByUserId, CancellationToken ct = default);
 }

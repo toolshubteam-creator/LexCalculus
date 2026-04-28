@@ -1,4 +1,5 @@
 using LexCalculus.Core.Entities.Common;
+using LexCalculus.Core.Entities.Identity;
 
 namespace LexCalculus.Core.Entities.Calculators;
 
@@ -73,4 +74,20 @@ public class FormulaParameter : BaseEntity
     /// Example: "TÜİK her ayın 3'ünde yayınlar — data.tuik.gov.tr"
     /// </summary>
     public string? Notes { get; set; }
+
+    /// <summary>
+    /// User who created this parameter version (admin who clicked "save").
+    /// Nullable: null for rows seeded programmatically before Faz 3.2.
+    /// </summary>
+    public int? CreatedByUserId { get; set; }
+
+    /// <summary>
+    /// User who last modified this parameter (only set when admin edits a
+    /// structural error via UpdateAsync, NOT when adding a new EffectiveDate version).
+    /// Nullable for the same reason as CreatedByUserId.
+    /// </summary>
+    public int? LastModifiedByUserId { get; set; }
+
+    public ApplicationUser? CreatedByUser { get; set; }
+    public ApplicationUser? LastModifiedByUser { get; set; }
 }
