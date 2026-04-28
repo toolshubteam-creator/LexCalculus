@@ -1,6 +1,7 @@
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Services;
+using LexCalculus.Web.Infrastructure.Hesaplarim;
 using LexCalculus.Web.Models.Hesaplarim;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -75,6 +76,38 @@ public sealed class HesaplarimController : Controller
         };
 
         ViewData["Title"] = "Hesaplarım";
+        return View(vm);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Detail(int id, CancellationToken ct)
+    {
+        var idStr = _userManager.GetUserId(User);
+        if (!int.TryParse(idStr, out var userId)) return Forbid();
+
+        var entry = await _history.GetByIdForUserAsync(id, userId, ct);
+        if (entry == null) return NotFound();
+
+        var inputFields = JsonViewerHelper.ParseTopLevel(entry.InputJson);
+        var outputFields = JsonViewerHelper.ParseTopLevel(entry.OutputJson);
+        var outputPretty = JsonViewerHelper.PrettyPrint(entry.OutputJson);
+
+        var vm = new HesaplarimDetailViewModel
+        {
+            Id = entry.Id,
+            ToolSlug = entry.ToolSlug,
+            CategorySlug = entry.CategorySlug,
+            ToolTitle = entry.ToolTitle,
+            CreatedAt = entry.CreatedAt,
+            TotalAmount = entry.TotalAmount,
+            Unit = entry.Unit,
+            InputFields = inputFields,
+            OutputFields = outputFields,
+            OutputJsonPretty = outputPretty,
+            RestoreUrl = $"/hesapla/{entry.CategorySlug}/{entry.ToolSlug}?restore={entry.Id}"
+        };
+
+        ViewData["Title"] = $"{entry.ToolTitle} — Hesap Detayı";
         return View(vm);
     }
 }

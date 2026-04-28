@@ -68,6 +68,10 @@
     </header>
 
     <main class="container">
+        @if (TempData["RestoreWarning"] is string restoreWarning)
+        {
+            <div class="restore-warning">@restoreWarning</div>
+        }
         @RenderBody()
     </main>
 

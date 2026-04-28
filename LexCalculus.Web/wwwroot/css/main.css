@@ -20,6 +20,7 @@
 @import url('02-components/info-box.css');
 @import url('02-components/hero.css');
 @import url('02-components/footer.css');
+@import url('02-components/restore-warning.css');
 
 /* 03 — Yardımcı sınıflar */
 @import url('03-utilities/animations.css');

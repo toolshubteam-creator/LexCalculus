@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
@@ -102,6 +104,41 @@ public class HesaplaController : Controller
             cancellationToken);
     }
 
+    private static readonly JsonSerializerOptions RestoreJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private async Task<TInput?> RestoreFromHistoryAsync<TInput>(
+        int? restoreId, CancellationToken ct)
+        where TInput : class
+    {
+        if (!restoreId.HasValue || restoreId.Value <= 0) return null;
+
+        var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(idClaim, out var userId)) return null;
+
+        var entry = await _historyService.GetByIdForUserAsync(restoreId.Value, userId, ct);
+        if (entry == null)
+        {
+            TempData["RestoreWarning"] =
+                "Eski hesap yüklenemedi (bulunamadı veya size ait değil).";
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<TInput>(entry.InputJson, RestoreJsonOptions);
+        }
+        catch (JsonException)
+        {
+            TempData["RestoreWarning"] =
+                "Eski hesap yüklenemedi (kayıt eski olabilir, hesaplayıcı güncellenmiş olabilir).";
+            return null;
+        }
+    }
+
     /// <summary>
     /// /hesapla — catalog of all calculators grouped by category.
     /// </summary>
@@ -192,7 +229,7 @@ public class HesaplaController : Controller
     /// Spesifik route catch-all Tool action'ından önce match eder.
     /// </summary>
     [HttpGet("is-hukuku/kidem-tazminati")]
-    public IActionResult KidemTazminati()
+    public async Task<IActionResult> KidemTazminati([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "kidem-tazminati");
         if (meta is null) return NotFound();
@@ -215,7 +252,7 @@ public class HesaplaController : Controller
         };
         ViewData["Meta"] = meta;
 
-        return View("~/Views/Hesapla/IsHukuku/KidemTazminati.cshtml", new KidemTazminatiInput());
+        return View("~/Views/Hesapla/IsHukuku/KidemTazminati.cshtml", await RestoreFromHistoryAsync<KidemTazminatiInput>(restore, ct) ?? new KidemTazminatiInput());
     }
 
     [HttpPost("is-hukuku/kidem-tazminati")]
@@ -257,7 +294,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("is-hukuku/ihbar-tazminati")]
-    public IActionResult IhbarTazminati()
+    public async Task<IActionResult> IhbarTazminati([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "ihbar-tazminati");
         if (meta is null) return NotFound();
@@ -271,7 +308,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/IsHukuku/IhbarTazminati.cshtml", new IhbarTazminatiInput());
+        return View("~/Views/Hesapla/IsHukuku/IhbarTazminati.cshtml", await RestoreFromHistoryAsync<IhbarTazminatiInput>(restore, ct) ?? new IhbarTazminatiInput());
     }
 
     [HttpPost("is-hukuku/ihbar-tazminati")]
@@ -308,7 +345,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("is-hukuku/yillik-izin-ucreti")]
-    public IActionResult YillikIzin()
+    public async Task<IActionResult> YillikIzin([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "yillik-izin-ucreti");
         if (meta is null) return NotFound();
@@ -322,7 +359,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/IsHukuku/YillikIzin.cshtml", new YillikIzinInput());
+        return View("~/Views/Hesapla/IsHukuku/YillikIzin.cshtml", await RestoreFromHistoryAsync<YillikIzinInput>(restore, ct) ?? new YillikIzinInput());
     }
 
     [HttpPost("is-hukuku/yillik-izin-ucreti")]
@@ -359,7 +396,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("is-hukuku/fazla-mesai")]
-    public IActionResult FazlaMesai()
+    public async Task<IActionResult> FazlaMesai([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "fazla-mesai");
         if (meta is null) return NotFound();
@@ -373,7 +410,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/IsHukuku/FazlaMesai.cshtml", new FazlaMesaiInput());
+        return View("~/Views/Hesapla/IsHukuku/FazlaMesai.cshtml", await RestoreFromHistoryAsync<FazlaMesaiInput>(restore, ct) ?? new FazlaMesaiInput());
     }
 
     [HttpPost("is-hukuku/fazla-mesai")]
@@ -409,7 +446,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("is-hukuku/ise-iade-tazminati")]
-    public IActionResult IseIade()
+    public async Task<IActionResult> IseIade([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "ise-iade-tazminati");
         if (meta is null) return NotFound();
@@ -423,7 +460,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/IsHukuku/IseIade.cshtml", new IseIadeInput());
+        return View("~/Views/Hesapla/IsHukuku/IseIade.cshtml", await RestoreFromHistoryAsync<IseIadeInput>(restore, ct) ?? new IseIadeInput());
     }
 
     [HttpPost("is-hukuku/ise-iade-tazminati")]
@@ -459,7 +496,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("is-hukuku/asgari-ucret-kontrol")]
-    public IActionResult AsgariUcret()
+    public async Task<IActionResult> AsgariUcret([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "asgari-ucret-kontrol");
         if (meta is null) return NotFound();
@@ -473,7 +510,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/IsHukuku/AsgariUcret.cshtml", new AsgariUcretInput());
+        return View("~/Views/Hesapla/IsHukuku/AsgariUcret.cshtml", await RestoreFromHistoryAsync<AsgariUcretInput>(restore, ct) ?? new AsgariUcretInput());
     }
 
     [HttpPost("is-hukuku/asgari-ucret-kontrol")]
@@ -509,7 +546,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("is-hukuku/mobbing-tazminati")]
-    public IActionResult Mobbing()
+    public async Task<IActionResult> Mobbing([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "mobbing-tazminati");
         if (meta is null) return NotFound();
@@ -523,7 +560,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/IsHukuku/Mobbing.cshtml", new MobbingInput());
+        return View("~/Views/Hesapla/IsHukuku/Mobbing.cshtml", await RestoreFromHistoryAsync<MobbingInput>(restore, ct) ?? new MobbingInput());
     }
 
     [HttpPost("is-hukuku/mobbing-tazminati")]
@@ -559,7 +596,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("akturya/destekten-yoksun-kalma")]
-    public IActionResult DestektenYoksunKalma()
+    public async Task<IActionResult> DestektenYoksunKalma([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "destekten-yoksun-kalma");
         if (meta is null) return NotFound();
@@ -573,7 +610,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/Akturya/DestektenYoksunKalma.cshtml", new DesteKtenYoksunKalmaInput());
+        return View("~/Views/Hesapla/Akturya/DestektenYoksunKalma.cshtml", await RestoreFromHistoryAsync<DesteKtenYoksunKalmaInput>(restore, ct) ?? new DesteKtenYoksunKalmaInput());
     }
 
     [HttpPost("akturya/destekten-yoksun-kalma")]
@@ -609,7 +646,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("akturya/maluliyet-tazminati")]
-    public IActionResult Maluliyet()
+    public async Task<IActionResult> Maluliyet([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "maluliyet-tazminati");
         if (meta is null) return NotFound();
@@ -623,7 +660,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/Akturya/Maluliyet.cshtml", new MaluliyetInput());
+        return View("~/Views/Hesapla/Akturya/Maluliyet.cshtml", await RestoreFromHistoryAsync<MaluliyetInput>(restore, ct) ?? new MaluliyetInput());
     }
 
     [HttpPost("akturya/maluliyet-tazminati")]
@@ -655,7 +692,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("akturya/gecici-is-goremezlik")]
-    public IActionResult GeciciIsGoremezlik()
+    public async Task<IActionResult> GeciciIsGoremezlik([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "gecici-is-goremezlik");
         if (meta is null) return NotFound();
@@ -669,7 +706,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/Akturya/GeciciIsGoremezlik.cshtml", new GeciciIsGoremezlikInput());
+        return View("~/Views/Hesapla/Akturya/GeciciIsGoremezlik.cshtml", await RestoreFromHistoryAsync<GeciciIsGoremezlikInput>(restore, ct) ?? new GeciciIsGoremezlikInput());
     }
 
     [HttpPost("akturya/gecici-is-goremezlik")]
@@ -701,7 +738,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("akturya/bakici-gideri")]
-    public IActionResult BakiciGideri()
+    public async Task<IActionResult> BakiciGideri([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "bakici-gideri");
         if (meta is null) return NotFound();
@@ -715,7 +752,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/Akturya/BakiciGideri.cshtml", new BakiciGideriInput());
+        return View("~/Views/Hesapla/Akturya/BakiciGideri.cshtml", await RestoreFromHistoryAsync<BakiciGideriInput>(restore, ct) ?? new BakiciGideriInput());
     }
 
     [HttpPost("akturya/bakici-gideri")]
@@ -747,7 +784,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("akturya/arac-deger-kaybi")]
-    public IActionResult AracDegerKaybi()
+    public async Task<IActionResult> AracDegerKaybi([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "arac-deger-kaybi");
         if (meta is null) return NotFound();
@@ -761,7 +798,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/Akturya/AracDegerKaybi.cshtml", new AracDegerKaybiInput());
+        return View("~/Views/Hesapla/Akturya/AracDegerKaybi.cshtml", await RestoreFromHistoryAsync<AracDegerKaybiInput>(restore, ct) ?? new AracDegerKaybiInput());
     }
 
     [HttpPost("akturya/arac-deger-kaybi")]
@@ -793,7 +830,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("faiz/yasal-faiz")]
-    public IActionResult YasalFaiz()
+    public async Task<IActionResult> YasalFaiz([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "yasal-faiz");
         if (meta is null) return NotFound();
@@ -807,7 +844,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/Faiz/YasalFaiz.cshtml", new YasalFaizInput());
+        return View("~/Views/Hesapla/Faiz/YasalFaiz.cshtml", await RestoreFromHistoryAsync<YasalFaizInput>(restore, ct) ?? new YasalFaizInput());
     }
 
     [HttpPost("faiz/yasal-faiz")]
@@ -839,7 +876,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("faiz/ticari-temerrut-faizi")]
-    public IActionResult TicariTemerrutFaiz()
+    public async Task<IActionResult> TicariTemerrutFaiz([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "ticari-temerrut-faizi");
         if (meta is null) return NotFound();
@@ -853,7 +890,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        return View("~/Views/Hesapla/Faiz/TicariTemerrutFaiz.cshtml", new TicariTemerrutFaizInput());
+        return View("~/Views/Hesapla/Faiz/TicariTemerrutFaiz.cshtml", await RestoreFromHistoryAsync<TicariTemerrutFaizInput>(restore, ct) ?? new TicariTemerrutFaizInput());
     }
 
     [HttpPost("faiz/ticari-temerrut-faizi")]
@@ -885,7 +922,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("faiz/akdi-temerrut-faizi")]
-    public IActionResult AkdiTemerrutFaiz()
+    public async Task<IActionResult> AkdiTemerrutFaiz([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "akdi-temerrut-faizi");
         if (meta is null) return NotFound();
@@ -899,7 +936,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        var input = new AkdiTemerrutFaizInput
+        var input = await RestoreFromHistoryAsync<AkdiTemerrutFaizInput>(restore, ct) ?? new AkdiTemerrutFaizInput
         {
             SozlesmeOranlari = new List<SozlesmeOranDonem> { new() }
         };
@@ -936,7 +973,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("faiz/kira-artisi")]
-    public IActionResult KiraArtisi()
+    public async Task<IActionResult> KiraArtisi([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "kira-artisi");
         if (meta is null) return NotFound();
@@ -950,7 +987,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        var input = new KiraArtisiInput
+        var input = await RestoreFromHistoryAsync<KiraArtisiInput>(restore, ct) ?? new KiraArtisiInput
         {
             YenilenmeTarihi = DateTime.Today
         };
@@ -987,7 +1024,7 @@ public class HesaplaController : Controller
     }
 
     [HttpGet("faiz/menfi-tespit-faizi")]
-    public IActionResult MenfiTespitFaiz()
+    public async Task<IActionResult> MenfiTespitFaiz([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "menfi-tespit-faizi");
         if (meta is null) return NotFound();
@@ -1001,7 +1038,7 @@ public class HesaplaController : Controller
             Keywords = string.Join(", ", meta.Keywords)
         };
 
-        var input = new MenfiTespitFaizInput
+        var input = await RestoreFromHistoryAsync<MenfiTespitFaizInput>(restore, ct) ?? new MenfiTespitFaizInput
         {
             TahsilTarihi = DateTime.Today.AddYears(-1),
             HesapTarihi = DateTime.Today

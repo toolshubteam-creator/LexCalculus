@@ -1,0 +1,13 @@
+/* TempData["RestoreWarning"] banner — _Layout.cshtml içerisinde main üstünde
+   görünür. Form'u tekrarla başarısız olduğunda kullanıcıya bilgi verir. */
+.restore-warning {
+    max-width: 880px;
+    margin: 16px auto;
+    padding: 12px 18px;
+    background: #fbf3e3;
+    border-left: 3px solid var(--burgundy);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    color: var(--ink);
+    font-style: italic;
+}

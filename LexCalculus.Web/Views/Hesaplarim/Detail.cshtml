@@ -1,0 +1,83 @@
+@model LexCalculus.Web.Models.Hesaplarim.HesaplarimDetailViewModel
+
+@section Head {
+    <link rel="stylesheet" href="~/css/hesaplarim.css" />
+}
+
+<div class="hesap-page">
+    <p class="hesap-page__back">
+        <a href="/hesaplarim" class="hesap-link">← Hesaplarıma dön</a>
+    </p>
+
+    <header class="hesap-page__header">
+        <h1 class="hesap-page__title">@Model.ToolTitle</h1>
+        <p class="hesap-page__sub">
+            <span class="hesap-detail__category">@Model.CategorySlug</span>
+            ·
+            <span>@Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+        </p>
+    </header>
+
+    @if (Model.TotalAmount.HasValue)
+    {
+        <div class="hesap-detail__total">
+            <div class="hesap-detail__total-label">Sonuç</div>
+            <div class="hesap-detail__total-amount">
+                @Model.TotalAmount.Value.ToString("N2")
+                @if (!string.IsNullOrWhiteSpace(Model.Unit))
+                {
+                    <span class="hesap-detail__total-unit">@Model.Unit</span>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.InputFields.Count > 0)
+    {
+        <section class="hesap-detail__section">
+            <h2 class="hesap-detail__section-title">Girdiler</h2>
+            <dl class="hesap-detail__fields">
+                @foreach (var f in Model.InputFields.Where(x => !x.IsComplex))
+                {
+                    <div class="hesap-detail__field">
+                        <dt class="hesap-detail__field-key">@f.DisplayKey</dt>
+                        <dd class="hesap-detail__field-value hesap-detail__field-value--@f.Type">
+                            @f.DisplayValue
+                        </dd>
+                    </div>
+                }
+            </dl>
+        </section>
+    }
+
+    @if (Model.OutputFields.Count > 0)
+    {
+        <section class="hesap-detail__section">
+            <h2 class="hesap-detail__section-title">Sonuç Detayı</h2>
+            <dl class="hesap-detail__fields">
+                @foreach (var f in Model.OutputFields.Where(x => !x.IsComplex))
+                {
+                    <div class="hesap-detail__field">
+                        <dt class="hesap-detail__field-key">@f.DisplayKey</dt>
+                        <dd class="hesap-detail__field-value hesap-detail__field-value--@f.Type">
+                            @f.DisplayValue
+                        </dd>
+                    </div>
+                }
+            </dl>
+        </section>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.OutputJsonPretty))
+    {
+        <section class="hesap-detail__section">
+            <h2 class="hesap-detail__section-title">Detaylı Sonuç (JSON)</h2>
+            <pre class="hesap-detail__json"><code>@Model.OutputJsonPretty</code></pre>
+        </section>
+    }
+
+    <div class="hesap-detail__actions">
+        <a href="@Model.RestoreUrl" class="hesap-btn hesap-btn--primary">Form'u Tekrarla</a>
+        <a href="/hesaplarim" class="hesap-btn hesap-btn--secondary">Listeye Dön</a>
+    </div>
+</div>
