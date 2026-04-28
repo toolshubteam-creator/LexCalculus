@@ -1,8 +1,11 @@
 using Hangfire;
+using LexCalculus.Core.Email;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Infrastructure.Calculators;
+using LexCalculus.Infrastructure.Email;
+using LexCalculus.Web.Infrastructure.Email;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
 using LexCalculus.Infrastructure.Data.SeedData;
@@ -162,6 +165,28 @@ try
 
         builder.Services.AddScoped<LexCalculus.Jobs.SmokeTestJob>();
     }
+
+    // -------------------------------------------------------------------------
+    // EMAIL — Phase 3.3 Parça 2: provider seçimi appsettings'den
+    // -------------------------------------------------------------------------
+    builder.Services.Configure<EmailOptions>(
+        builder.Configuration.GetSection(EmailOptions.SectionName));
+
+    var emailProvider = builder.Configuration.GetValue<string>("Email:Provider") ?? "Logging";
+    switch (emailProvider)
+    {
+        case "Smtp":
+            builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+            break;
+        case "SendGrid":
+            builder.Services.AddScoped<IEmailService, SendGridEmailService>();
+            break;
+        default:
+            builder.Services.AddScoped<IEmailService, LoggingEmailService>();
+            break;
+    }
+
+    builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
 
     // Authorization policies — Phase 3.1: AdminOnly for /admin area
     builder.Services.AddAuthorization(options =>

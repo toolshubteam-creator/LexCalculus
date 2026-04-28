@@ -1,0 +1,61 @@
+@model LexCalculus.Web.Areas.Admin.Models.TestEmailFormViewModel
+
+@if (TempData["AdminSuccess"] is string success)
+{
+    <div class="admin-banner admin-banner--success" role="status">@success</div>
+}
+@if (TempData["AdminError"] is string error)
+{
+    <div class="admin-banner admin-banner--error" role="alert">@error</div>
+}
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">E-posta Testi</h1>
+        <p class="admin-page__subtitle">
+            Aktif provider: <code>@Model.ActiveProvider</code>.
+            @if (Model.ActiveProvider == "Logging")
+            {
+                <span class="admin-page__filter-note">(Bu modda gerçek e-posta gönderilmez — sadece Logs/log-*.txt'ye yazılır.)</span>
+            }
+        </p>
+    </header>
+
+    <div class="admin-form-layout">
+        <form method="post" asp-action="Test" class="admin-form" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="ToAddress">Alıcı E-posta</label>
+                <input class="admin-form__input" asp-for="ToAddress" type="email" />
+                <span asp-validation-for="ToAddress" class="admin-form__error"></span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="RecipientName">Alıcı Adı (opsiyonel)</label>
+                <input class="admin-form__input" asp-for="RecipientName" />
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Subject">Konu</label>
+                <input class="admin-form__input" asp-for="Subject" />
+            </div>
+
+            <div class="admin-form__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Test Gönder</button>
+            </div>
+        </form>
+
+        <aside class="admin-form-help">
+            <h2 class="admin-form-help__title">Provider Davranışları</h2>
+            <dl class="admin-form-help__list">
+                <dt>Logging</dt>
+                <dd>Geliştirme/test. Gerçek e-posta yok; mesaj <code>Logs/log-*.txt</code>'ye yazılır.</dd>
+                <dt>SMTP</dt>
+                <dd>Self-hosted SMTP veya MailHog (port 1025) gibi dev sunucu.</dd>
+                <dt>SendGrid</dt>
+                <dd>Production. API key User Secrets'te tanımlı olmalı.</dd>
+            </dl>
+        </aside>
+    </div>
+</div>

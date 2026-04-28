@@ -1,0 +1,53 @@
+@{
+    Layout = null;
+    string title = ViewBag.Title as string ?? "Lex Calculus";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>@title</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4ede0;font-family:Georgia,serif;color:#0a1428;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+       style="background-color:#f4ede0;padding:32px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0"
+             style="max-width:600px;background-color:#ffffff;border:1px solid #e8d9a8;border-radius:4px;">
+
+        <tr>
+          <td style="padding:28px 32px 20px 32px;border-bottom:3px double #b8924a;">
+            <div style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#6b1f2e;letter-spacing:0.02em;">
+              LEX CALCULUS
+            </div>
+            <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:#0a1428;opacity:0.6;margin-top:4px;">
+              Hukuki Hesaplama Platformu
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:28px 32px;">
+            @RenderBody()
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:20px 32px;border-top:1px solid #e8d9a8;background-color:#f4ede0;">
+            <p style="margin:0 0 8px 0;font-family:Georgia,serif;font-size:13px;color:#0a1428;opacity:0.7;">
+              Bu otomatik bir e-postadır. Yanıtlanmaz.
+            </p>
+            <p style="margin:0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.08em;color:#0a1428;opacity:0.5;">
+              ANNO MMXXVI · LEX CALCULUS
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,51 @@
+@model LexCalculus.Web.Areas.Admin.Models.TestEmailModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = "Lex Calculus — E-posta Testi";
+}
+
+<h1 style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:22px;color:#0a1428;font-weight:normal;">
+  E-posta Sistemi Testi
+</h1>
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.RecipientName,
+</p>
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Bu, Lex Calculus e-posta altyapısının doğru çalıştığını teyit eden bir test
+  iletisidir. Aşağıdaki bilgiler sistem tarafından üretilmiştir:
+</p>
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+       style="margin:16px 0;border:1px solid #e8d9a8;">
+  <tr>
+    <td style="padding:10px 14px;background-color:#f4ede0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#0a1428;width:140px;">
+      Provider
+    </td>
+    <td style="padding:10px 14px;font-size:14px;color:#0a1428;border-left:1px solid #e8d9a8;">
+      @Model.Provider
+    </td>
+  </tr>
+  <tr style="background-color:#f4ede0;">
+    <td style="padding:10px 14px;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#0a1428;border-top:1px solid #e8d9a8;">
+      Gönderim Zamanı
+    </td>
+    <td style="padding:10px 14px;font-size:14px;color:#0a1428;border-left:1px solid #e8d9a8;border-top:1px solid #e8d9a8;">
+      @Model.SentAt.ToString("dd.MM.yyyy HH:mm:ss") UTC
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:10px 14px;background-color:#f4ede0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#0a1428;border-top:1px solid #e8d9a8;">
+      Sunucu
+    </td>
+    <td style="padding:10px 14px;font-size:14px;color:#0a1428;border-left:1px solid #e8d9a8;border-top:1px solid #e8d9a8;">
+      @Model.MachineName
+    </td>
+  </tr>
+</table>
+
+<p style="margin:24px 0 0 0;font-size:14px;font-style:italic;color:#6b1f2e;line-height:1.6;">
+  E-posta sistemleri arasındaki farklar nedeniyle, gerçek üretim
+  şablonlarının her e-posta istemcisinde test edilmesi önerilir.
+</p>
