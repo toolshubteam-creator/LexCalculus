@@ -1,6 +1,7 @@
 using LexCalculus.Core.Entities;
 using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Entities.Identity;
+using LexCalculus.Core.Entities.Notifications;
 using LexCalculus.Infrastructure.Data.Extensions;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<LifeTable> LifeTables => Set<LifeTable>();
     public DbSet<LifeTableRow> LifeTableRows => Set<LifeTableRow>();
     public DbSet<CalculationHistory> CalculationHistories => Set<CalculationHistory>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

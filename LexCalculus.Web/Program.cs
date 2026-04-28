@@ -3,8 +3,10 @@ using LexCalculus.Core.Email;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Models.Seo;
+using LexCalculus.Core.Notifications;
 using LexCalculus.Infrastructure.Calculators;
 using LexCalculus.Infrastructure.Email;
+using LexCalculus.Infrastructure.Notifications;
 using LexCalculus.Web.Infrastructure.Email;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
@@ -187,6 +189,9 @@ try
     }
 
     builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
+
+    // Notifications
+    builder.Services.AddScoped<INotificationService, NotificationService>();
 
     // Authorization policies — Phase 3.1: AdminOnly for /admin area
     builder.Services.AddAuthorization(options =>
