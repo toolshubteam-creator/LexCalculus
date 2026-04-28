@@ -1,7 +1,7 @@
 using FluentAssertions;
+using LexCalculus.Core.Email;
 using LexCalculus.Tests.Integration;
 using LexCalculus.Web.Areas.Admin.Models;
-using LexCalculus.Web.Infrastructure.Email;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 

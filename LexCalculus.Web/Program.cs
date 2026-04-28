@@ -165,7 +165,7 @@ try
             options.ServerName = $"lex-calculus-{Environment.MachineName}";
         });
 
-        builder.Services.AddScoped<LexCalculus.Jobs.SmokeTestJob>();
+        builder.Services.AddScoped<LexCalculus.Jobs.DataFreshness.DataFreshnessCheckJob>();
     }
 
     // -------------------------------------------------------------------------
@@ -405,11 +405,26 @@ try
     // -------------------------------------------------------------------------
     if (!isTesting)
     {
-        Hangfire.RecurringJob.AddOrUpdate<LexCalculus.Jobs.SmokeTestJob>(
-            "smoke-test",
-            job => job.ExecuteAsync(),
-            Hangfire.Cron.Minutely,
-            new Hangfire.RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+        // Eski smoke-test job'ı sil (Parça 1'deki geçici alive log)
+        Hangfire.RecurringJob.RemoveIfExists("smoke-test");
+
+        // Veri tazelik kontrolü — her gün sabah 06:00 (Europe/Istanbul)
+        TimeZoneInfo istanbulTz;
+        try
+        {
+            istanbulTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Istanbul");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            // Windows fallback
+            istanbulTz = TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time");
+        }
+
+        Hangfire.RecurringJob.AddOrUpdate<LexCalculus.Jobs.DataFreshness.DataFreshnessCheckJob>(
+            "data-freshness-check",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 6 * * *",
+            new Hangfire.RecurringJobOptions { TimeZone = istanbulTz });
     }
 
     // -------------------------------------------------------------------------

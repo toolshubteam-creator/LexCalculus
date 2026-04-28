@@ -34,4 +34,13 @@ public class ApplicationUser : IdentityUser<int>
     /// Nullable because profile is created lazily after registration.
     /// </summary>
     public UserProfile? Profile { get; set; }
+
+    /// <summary>
+    /// Master switch for outbound email notifications. Default true (opt-in).
+    /// Faz 3.6'da kullanıcı ayarları sayfası bunu UI'da toggle eder.
+    /// Stale parameter digest, system alerts gibi e-postalar bunu kontrol eder.
+    /// In-app bildirimler (Notification entity) bu flag'den ETKİLENMEZ —
+    /// kullanıcı bell icon'da yine görür, sadece e-posta engellenir.
+    /// </summary>
+    public bool NotificationsEmailEnabled { get; set; } = true;
 }

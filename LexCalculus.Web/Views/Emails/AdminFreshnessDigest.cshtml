@@ -1,0 +1,66 @@
+@model LexCalculus.Core.Email.Models.AdminFreshnessDigestModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = "Lex Calculus — Veri Tazelik Raporu";
+    var totalStale = Model.StaleRows.Count;
+}
+
+<h1 style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:22px;color:#0a1428;font-weight:normal;">
+  Veri Tazelik Raporu
+</h1>
+
+<p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.AdminName,
+</p>
+
+<p style="margin:0 0 20px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Bu sabah <strong style="color:#6b1f2e;">@totalStale parametre</strong>
+  kontrol gerektiriyor. Toplam @Model.TotalParameterCount parametre arasından
+  güncelleme sıklığı tolerance'ını aşan (slug, anahtar) çiftleri aşağıda
+  listelenmiştir.
+</p>
+
+@if (totalStale > 0)
+{
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+           style="border-collapse:collapse;margin:16px 0;border:1px solid #e8d9a8;">
+      <tr style="background-color:#0a1428;">
+        <th align="left" style="padding:10px 12px;color:#f4ede0;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:bold;">Araç / Anahtar</th>
+        <th align="left" style="padding:10px 12px;color:#f4ede0;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:bold;">Sıklık</th>
+        <th align="right" style="padding:10px 12px;color:#f4ede0;font-family:'Courier New',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:bold;">Gecikme</th>
+      </tr>
+      @foreach (var row in Model.StaleRows)
+      {
+        <tr style="border-top:1px solid #e8d9a8;">
+          <td style="padding:10px 12px;font-family:'Courier New',monospace;font-size:13px;color:#0a1428;">
+            <strong>@row.ToolSlug</strong> / @row.Key
+          </td>
+          <td style="padding:10px 12px;font-size:13px;color:#0a1428;">
+            @(row.FrequencyLabelTr ?? "—")
+          </td>
+          <td align="right" style="padding:10px 12px;font-size:13px;color:#6b1f2e;font-weight:bold;">
+            @row.DaysOverdue gün
+          </td>
+        </tr>
+      }
+    </table>
+}
+else
+{
+    <p style="margin:16px 0;padding:16px;background-color:#f4ede0;border-left:3px solid #b8924a;font-style:italic;color:#0a1428;">
+      Tüm parametreler güncel. Bu sabah eylem gerekmiyor.
+    </p>
+}
+
+<p style="margin:24px 0;text-align:center;">
+  <a href="@Model.DashboardUrl"
+     style="display:inline-block;padding:12px 24px;background-color:#0a1428;color:#f4ede0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border:1px solid #b8924a;">
+    Yönetim Panelinde Görüntüle
+  </a>
+</p>
+
+<p style="margin:24px 0 0 0;font-size:13px;color:#0a1428;opacity:0.7;font-style:italic;line-height:1.5;">
+  Rapor zamanı: @Model.GeneratedAt.ToString("dd.MM.yyyy HH:mm") UTC.
+  Bu rapor günlük olarak sabah 06:00 (Europe/Istanbul) itibariyle
+  oluşturulur.
+</p>

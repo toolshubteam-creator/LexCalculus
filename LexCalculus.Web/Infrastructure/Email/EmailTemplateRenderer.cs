@@ -1,3 +1,4 @@
+using LexCalculus.Core.Email;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -10,14 +11,9 @@ using Microsoft.AspNetCore.Routing;
 namespace LexCalculus.Web.Infrastructure.Email;
 
 /// <summary>
-/// Renders a Razor view to a string for use in email bodies.
-/// Templates live under /Views/Emails/.
+/// Razor view → string renderer. Interface IEmailTemplateRenderer lives in
+/// LexCalculus.Core.Email so Jobs/Infrastructure can consume it.
 /// </summary>
-public interface IEmailTemplateRenderer
-{
-    Task<string> RenderAsync<TModel>(string viewName, TModel model, CancellationToken ct = default);
-}
-
 public sealed class EmailTemplateRenderer : IEmailTemplateRenderer
 {
     private readonly IRazorViewEngine _viewEngine;
@@ -38,7 +34,6 @@ public sealed class EmailTemplateRenderer : IEmailTemplateRenderer
     {
         var actionContext = GetActionContext();
 
-        // Önce tam path ile dene (/Views/Emails/X.cshtml), bulunmazsa relative
         var viewResult = _viewEngine.GetView(executingFilePath: null, viewPath: $"/Views/Emails/{viewName}.cshtml", isMainPage: false);
         if (!viewResult.Success)
             viewResult = _viewEngine.FindView(actionContext, viewName, isMainPage: false);
