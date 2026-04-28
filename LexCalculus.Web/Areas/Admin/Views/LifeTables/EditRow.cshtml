@@ -1,0 +1,63 @@
+@model LexCalculus.Web.Areas.Admin.Models.LifeTable.LifeTableRowEditViewModel
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Satır Düzelt</h1>
+        <p class="admin-page__subtitle">
+            <code>@Model.TableCode</code> · Yaş <strong>@Model.Yas</strong> · <strong>@Model.Cinsiyet</strong>
+        </p>
+    </header>
+
+    <div asp-validation-summary="ModelOnly" class="admin-banner admin-banner--error"></div>
+
+    <div class="admin-form-layout">
+        <form method="post" class="admin-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="TableId" />
+            <input type="hidden" asp-for="RowId" />
+            <input type="hidden" asp-for="TableCode" />
+            <input type="hidden" asp-for="Yas" />
+            <input type="hidden" asp-for="Cinsiyet" />
+
+            <div class="admin-form__row">
+                <div class="admin-form__field">
+                    <label class="admin-form__label">Yaş</label>
+                    <input class="admin-form__input admin-form__input--locked" value="@Model.Yas" readonly />
+                    <span class="admin-form__hint">Değiştirilemez.</span>
+                </div>
+                <div class="admin-form__field">
+                    <label class="admin-form__label">Cinsiyet</label>
+                    <input class="admin-form__input admin-form__input--locked" value="@Model.Cinsiyet" readonly />
+                    <span class="admin-form__hint">Değiştirilemez.</span>
+                </div>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="BekledigiYasam">Beklenen Yaşam</label>
+                <input class="admin-form__input" asp-for="BekledigiYasam" type="number" step="0.0001" />
+                <span asp-validation-for="BekledigiYasam" class="admin-form__error"></span>
+                <span class="admin-form__hint">
+                    Mevcut değer: @Model.BekledigiYasam.ToString("N4"). 4 ondalık basamak yeter.
+                </span>
+            </div>
+
+            <div class="admin-form__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Kaydet</button>
+                <a href="@Url.Action("Detail", new { id = Model.TableId })" class="admin-btn admin-btn--secondary">İptal</a>
+            </div>
+        </form>
+
+        <aside class="admin-form-help">
+            <h2 class="admin-form-help__title">Dikkat</h2>
+            <p class="admin-form-help__text">
+                Bu işlem yalnızca <em>yanlış girilmiş</em> bir değeri düzeltmek için kullanılmalıdır.
+                Eğer Hazine yeni bir tablo yayınladıysa, mevcut satırı düzeltmek yerine yeni
+                bir tablo eklemek daha doğrudur.
+            </p>
+            <p class="admin-form-help__text">
+                Eğer bu satır <strong>aktif tablodaysa</strong>, kaydetme sonrası calculator
+                cache'i otomatik temizlenir — değişiklik anında geçerli olur.
+            </p>
+        </aside>
+    </div>
+</div>

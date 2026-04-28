@@ -924,3 +924,39 @@ button { font: inherit; }
     color: inherit;
     padding: 0;
 }
+
+/* ─────────── Admin sub-header (sayfa içi alt başlık) ─────────── */
+.admin-page__sub-header {
+    margin: 24px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--gold-pale);
+}
+.admin-page__sub-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    color: var(--burgundy);
+    margin: 0;
+}
+
+/* ─────────── LifeTable rows table (200 satır kompakt) ─────────── */
+.lifetable-rows-table tbody td {
+    padding: 6px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+}
+.lifetable-rows-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--parchment);
+    z-index: 1;
+}
+
+/* ─────────── Admin form help text (dl/dt/dd dışında p) ─────────── */
+.admin-form-help__text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.6;
+    margin: 0 0 10px 0;
+}
+.admin-form-help__text:last-child { margin-bottom: 0; }

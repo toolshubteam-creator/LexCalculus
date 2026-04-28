@@ -28,4 +28,11 @@ public interface ILifeTableService
     /// and the calculator's table selection dropdown.
     /// </summary>
     Task<IReadOnlyList<LifeTable>> GetAllTablesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Cache invalidation. Admin tarafı tablo aktivasyon/satır güncellemesi
+    /// sonrası çağırır; calculator sonraki çağrısında DB'den yeni değerleri
+    /// okur (cache miss → fresh).
+    /// </summary>
+    Task InvalidateCacheAsync(CancellationToken ct = default);
 }

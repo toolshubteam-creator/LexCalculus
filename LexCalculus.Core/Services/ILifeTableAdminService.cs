@@ -40,4 +40,10 @@ public interface ILifeTableAdminService
         string? note,
         IReadOnlyList<LifeTableRow> rows,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Bir LifeTableRow'un BekledigiYasam değerini günceller. Yas ve Cinsiyet
+    /// değiştirilemez. Eğer satır aktif tabloya aitse cache invalidate edilir.
+    /// </summary>
+    Task UpdateRowAsync(int rowId, decimal newValue, CancellationToken ct = default);
 }

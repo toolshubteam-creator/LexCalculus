@@ -92,4 +92,38 @@ public class LifeTableAdminServiceTests
         var anyActive = await ctx.Set<LifeTable>().AsNoTracking().AnyAsync(x => x.IsActive);
         anyActive.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task UpdateRowAsync_UpdatesValueAndPersists()
+    {
+        await using var ctx = TestDbContextFactory.Create();
+        var table = MakeTable("T1", new DateTime(2020, 1, 1), isActive: true);
+        var row = new LifeTableRow
+        {
+            Yas = 30,
+            Cinsiyet = LexCalculus.Core.Enums.Cinsiyet.Erkek,
+            BekledigiYasam = 44.45m,
+            LifeTable = table
+        };
+        table.Rows = new List<LifeTableRow> { row };
+        ctx.Set<LifeTable>().Add(table);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.UpdateRowAsync(row.Id, 45.00m);
+
+        var refreshed = await ctx.Set<LifeTableRow>().AsNoTracking().FirstAsync(r => r.Id == row.Id);
+        refreshed.BekledigiYasam.Should().Be(45.00m);
+    }
+
+    [Fact]
+    public async Task UpdateRowAsync_RowNotFound_Throws()
+    {
+        await using var ctx = TestDbContextFactory.Create();
+        var svc = CreateService(ctx);
+
+        var act = () => svc.UpdateRowAsync(rowId: 99999, newValue: 50.0m);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
 }

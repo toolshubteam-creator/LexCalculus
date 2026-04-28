@@ -67,6 +67,7 @@
                                 }
                             </td>
                             <td class="param-table__actions">
+                                <a class="admin-link" asp-action="Detail" asp-route-id="@t.Id">Detay</a>
                                 @if (!t.IsActive)
                                 {
                                     <form method="post" asp-action="Activate" asp-route-id="@t.Id"

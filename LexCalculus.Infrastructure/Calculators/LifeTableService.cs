@@ -117,4 +117,28 @@ public sealed class LifeTableService : ILifeTableService
             .OrderByDescending(t => t.EffectiveDate)
             .ToListAsync(ct);
     }
+
+    public async Task InvalidateCacheAsync(CancellationToken ct = default)
+    {
+        // 1. Aktif tablo cache'i (GetActiveTableAsync)
+        await _cache.RemoveAsync(ActiveCacheKey, ct);
+
+        // 2. Default (active table) ex cache'leri — 100 yaş × 2 cinsiyet = 200 key.
+        //    IDistributedCache wildcard remove desteklemiyor; tüm olası
+        //    default key'leri tek tek siliyoruz. Aktivasyon nadir bir işlem
+        //    olduğu için 200 RemoveAsync çağrısı kabul edilebilir.
+        var removeTasks = new List<Task>();
+        foreach (var cinsiyet in Enum.GetValues<Cinsiyet>())
+        {
+            for (int yas = 0; yas <= 99; yas++)
+            {
+                removeTasks.Add(_cache.RemoveAsync($"life-table:ex:default:{yas}:{cinsiyet}", ct));
+            }
+        }
+        await Task.WhenAll(removeTasks);
+
+        _logger.LogInformation(
+            "LifeTable cache invalidate: '{ActiveKey}' + {ExCount} ex key (default) silindi.",
+            ActiveCacheKey, removeTasks.Count);
+    }
 }

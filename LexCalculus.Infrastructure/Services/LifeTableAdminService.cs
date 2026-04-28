@@ -144,22 +144,34 @@ public sealed class LifeTableAdminService : ILifeTableAdminService
         return entity.Id;
     }
 
+    public async Task UpdateRowAsync(int rowId, decimal newValue, CancellationToken ct = default)
+    {
+        if (newValue <= 0)
+            throw new ArgumentException("BekledigiYasam pozitif olmalı.", nameof(newValue));
+
+        var row = await _ctx.Set<LifeTableRow>()
+            .Include(r => r.LifeTable)
+            .FirstOrDefaultAsync(r => r.Id == rowId, ct)
+            ?? throw new InvalidOperationException($"LifeTableRow {rowId} bulunamadı.");
+
+        var oldValue = row.BekledigiYasam;
+        row.BekledigiYasam = newValue;
+
+        await _ctx.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "LifeTableRow güncellendi: Id={Id} TableCode={Code} Yas={Yas} Cinsiyet={Cinsiyet} {Old} → {New}",
+            rowId, row.LifeTable!.Code, row.Yas, row.Cinsiyet, oldValue, newValue);
+
+        if (row.LifeTable!.IsActive)
+            await TryInvalidateCacheAsync(ct);
+    }
+
     private async Task TryInvalidateCacheAsync(CancellationToken ct)
     {
         try
         {
-            var method = _calculatorSvc.GetType().GetMethod("InvalidateCacheAsync");
-            if (method != null)
-            {
-                if (method.Invoke(_calculatorSvc, new object[] { ct }) is Task task)
-                    await task;
-                _logger.LogInformation("LifeTable cache invalidate edildi.");
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "ILifeTableService.InvalidateCacheAsync bulunamadı — cache TTL ile yenilenir.");
-            }
+            await _calculatorSvc.InvalidateCacheAsync(ct);
         }
         catch (Exception ex)
         {

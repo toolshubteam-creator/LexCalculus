@@ -1,0 +1,89 @@
+@model LexCalculus.Web.Areas.Admin.Models.LifeTable.LifeTableDetailPageViewModel
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">@Model.Code</h1>
+            <p class="admin-page__subtitle">
+                @Model.Name · @Model.EffectiveDate.ToString("dd.MM.yyyy")
+                @if (Model.IsActive)
+                {
+                    <span class="param-badge param-badge--active">Aktif</span>
+                }
+                else
+                {
+                    <span class="param-badge param-badge--archived">Pasif</span>
+                }
+            </p>
+        </div>
+        @if (!Model.IsActive)
+        {
+            <form method="post" asp-action="Activate" asp-route-id="@Model.Id"
+                  class="admin-inline-form"
+                  onsubmit="return confirm('Bu tabloyu aktif yapacaksınız. Etkilenen hesaplayıcılar: Destekten Yoksun Kalma, Maluliyet, Bakıcı Gideri, Geçici İş Göremezlik. Devam edilsin mi?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="admin-btn admin-btn--primary">Bu tabloyu aktif yap</button>
+            </form>
+        }
+    </header>
+
+    @if (!string.IsNullOrEmpty(Model.Source) || !string.IsNullOrEmpty(Model.Note))
+    {
+        <div class="admin-card admin-card--note">
+            @if (!string.IsNullOrEmpty(Model.Source))
+            {
+                <p class="admin-card__body"><strong>Kaynak:</strong> @Model.Source</p>
+            }
+            @if (!string.IsNullOrEmpty(Model.Note))
+            {
+                <p class="admin-card__body">@Model.Note</p>
+            }
+        </div>
+    }
+
+    <header class="admin-page__sub-header">
+        <h2 class="admin-page__sub-title">Satırlar (@Model.Rows.Count)</h2>
+    </header>
+
+    <div class="param-table-wrap">
+        <table class="param-table lifetable-rows-table">
+            <thead>
+                <tr>
+                    <th class="param-table__num">Yaş</th>
+                    <th>Cinsiyet</th>
+                    <th class="param-table__num">Beklenen Yaşam</th>
+                    <th class="param-table__actions">Eylem</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr class="param-table__row">
+                        <td class="param-table__num">@row.Yas</td>
+                        <td>@row.Cinsiyet</td>
+                        <td class="param-table__num">@row.BekledigiYasam.ToString("N4")</td>
+                        <td class="param-table__actions">
+                            <a class="admin-link"
+                               asp-action="EditRow"
+                               asp-route-id="@Model.Id"
+                               asp-route-rowId="@row.Id">Düzelt</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="admin-page__back">
+        <a class="admin-link" asp-action="Index">← Hayat tablolarına dön</a>
+    </p>
+</div>

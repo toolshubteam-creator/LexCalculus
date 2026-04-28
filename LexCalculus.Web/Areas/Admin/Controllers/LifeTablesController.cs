@@ -1,3 +1,4 @@
+using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Services;
 using LexCalculus.Core.Services.Csv;
 using LexCalculus.Web.Areas.Admin.Models.LifeTable;
@@ -48,6 +49,97 @@ public sealed class LifeTablesController : Controller
         };
 
         return View(vm);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Detail(int id, CancellationToken ct)
+    {
+        var entity = await _admin.GetByIdAsync(id, ct);
+        if (entity == null) return NotFound();
+
+        var vm = new LifeTableDetailPageViewModel
+        {
+            Id = entity.Id,
+            Code = entity.Code,
+            Name = entity.Name,
+            EffectiveDate = entity.EffectiveDate,
+            IsActive = entity.IsActive,
+            Source = entity.Source,
+            Note = entity.Note,
+            Rows = (entity.Rows ?? new List<LifeTableRow>())
+                .OrderBy(r => r.Yas)
+                .ThenBy(r => r.Cinsiyet)
+                .Select(r => new LifeTableDetailRowViewModel
+                {
+                    Id = r.Id,
+                    Yas = r.Yas,
+                    Cinsiyet = r.Cinsiyet,
+                    BekledigiYasam = r.BekledigiYasam
+                }).ToList()
+        };
+
+        ViewData["Title"] = $"{entity.Code} — Detay";
+        ViewData["Breadcrumb"] = new List<(string Label, string? Url)>
+        {
+            ("Dashboard", Url.Action("Index", "Home", new { area = "Admin" })),
+            ("Hayat Tabloları", Url.Action("Index")),
+            (entity.Code, null)
+        };
+
+        return View(vm);
+    }
+
+    [HttpGet("{id:int}/satir/{rowId:int}/duzelt")]
+    public async Task<IActionResult> EditRow(int id, int rowId, CancellationToken ct)
+    {
+        var entity = await _admin.GetByIdAsync(id, ct);
+        if (entity == null) return NotFound();
+
+        var row = entity.Rows?.FirstOrDefault(r => r.Id == rowId);
+        if (row == null) return NotFound();
+
+        var vm = new LifeTableRowEditViewModel
+        {
+            TableId = id,
+            RowId = rowId,
+            TableCode = entity.Code,
+            Yas = row.Yas,
+            Cinsiyet = row.Cinsiyet,
+            BekledigiYasam = row.BekledigiYasam
+        };
+
+        ViewData["Title"] = $"{entity.Code} — Yas {row.Yas} {row.Cinsiyet} düzelt";
+        ViewData["Breadcrumb"] = new List<(string Label, string? Url)>
+        {
+            ("Dashboard", Url.Action("Index", "Home", new { area = "Admin" })),
+            ("Hayat Tabloları", Url.Action("Index")),
+            (entity.Code, Url.Action("Detail", new { id })),
+            ($"Yas {row.Yas} {row.Cinsiyet}", null)
+        };
+
+        return View(vm);
+    }
+
+    [HttpPost("{id:int}/satir/{rowId:int}/duzelt")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditRow(int id, int rowId, LifeTableRowEditViewModel vm, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+            return View(vm);
+
+        try
+        {
+            await _admin.UpdateRowAsync(rowId, vm.BekledigiYasam, ct);
+            TempData["AdminSuccess"] =
+                $"✓ Yas {vm.Yas} {vm.Cinsiyet} satırı güncellendi: {vm.BekledigiYasam:N4}. " +
+                "Aktif tablo ise cache temizlendi.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError("", ex.Message);
+            return View(vm);
+        }
     }
 
     [HttpGet("yeni")]
