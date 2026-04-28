@@ -55,4 +55,11 @@ oluşturur (admin'lere); opt-in admin'lere e-posta atar.
 
 ---
 
+## Teknik borç defteri
+
+Bilinçli olarak ertelenen mimari kararlar ve "bir gün dokunulmalı"
+notları için bkz. `docs/tech-debt.md`.
+
+---
+
 **Son güncelleme:** Faz 3.3 Parça 4a (Adım 3.3.4 başlangıcı).

@@ -1,0 +1,116 @@
+# Lex Calculus — Teknik Borç Defteri
+
+Bu dosya, hızlı ilerlemek için bilinçli olarak ertelenen veya ileride
+gözden geçirilmesi gereken teknik kararları kayıt altına alır. Her madde
+kalıcı bir bug değil; "şu an yeterli, ama bir gün dokunulmalı" niteliğinde.
+
+Faz sonlarında bu listeyi gözden geçir; uygun olanları çöz, hâlâ erken
+olanları ertele.
+
+---
+
+## 1. Hangfire bağımlılığı Infrastructure katmanına sızdı
+
+**Bağlam:** Adım 3.3 Parça 5/6 (admin dashboard widget'ları). Hangfire
+recurring job sayısı ve aktif server sayısını widget'ta göstermek için
+`JobStorage.Current` static API'sine ihtiyaç doğdu.
+
+**Mevcut durum:** `LexCalculus.Infrastructure.csproj` artık `Hangfire.Core`
+NuGet paketine bağımlı. Faz 1 mimarisinde Hangfire sadece `Web` ve `Jobs`
+katmanlarındaydı (`README.md` "Background Jobs: Hangfire" kısmı `Jobs`
+projesini ima ediyordu).
+
+**İdeal çözüm:** `IHangfireSummaryProvider` arayüzü `Core`'a tanımla.
+Implementation `Web` veya `Jobs`'a yerleştir (Hangfire zaten orada).
+`DashboardSummaryService` bu arayüzü inject etsin, `JobStorage.Current`
+çağrısını bilmesin.
+
+**Önerilen zaman:** Faz 4'te yapısal refactor yapılırsa veya bir başka
+servisin Hangfire'a Infrastructure'dan erişme ihtiyacı doğarsa. Şu an
+maliyet/değer dengesi düşük: tek bir static çağrı için adapter pattern
+overkill.
+
+---
+
+## 2. Seeder soft-delete restore mantığı (Bulgu 1, Adım 3.2 E2E)
+
+**Bağlam:** Adım 3.2 Parça 3 E2E cache invalidation testinde keşfedildi.
+Admin paneli soft-delete yapabildiği için, kanonik bir seed satırı
+(örn. kıdem tavanı 2024-01-01) yanlışlıkla silinirse `CalculatorParameterSeeder`
+restart sonrası restore edemiyor.
+
+**Mevcut durum:** Seeder'ın `AnyAsync` pre-check'i global query filter'a
+uyduğu için soft-deleted satırı görmüyor → `INSERT` deniyor → `(ToolSlug, Key,
+EffectiveDate)` unique constraint patlıyor → uygulama boot fail.
+
+**İdeal çözüm (B yolu, Esat onayı 28.04):** Seeder pre-check
+`IgnoreQueryFilters()` kullansın. Eğer kanonik satır soft-deleted bulunursa
+`IsDeleted=false` yaparak restore etsin. Admin'in eklediği yeni (seed'de
+olmayan) satırlar etkilenmez.
+
+**Önerilen zaman:** Adım 3.9 (Faz 3 final temizlik). Bu kavramsal değişiklik:
+seeder bundan sonra "satır yoksa ekle" değil, "kanonik satır mevcut formdaysa
+garanti et" olacak.
+
+---
+
+## 3. EF Core migration default değer dikkati
+
+**Bağlam:** Adım 3.3 Parça 4a — `ApplicationUser.NotificationsEmailEnabled`
+alanı eklendi. C# initializer'da `= true` olmasına rağmen EF Core migration
+otomatik olarak `defaultValue: false` üretti. Mevcut kullanıcılar için
+backfill yapılmadı; manuel SQL UPDATE ile düzeltildi.
+
+**Mevcut durum:** Sapma manuel düzeltildi (commit 5ac5bb3). Ama bu, gelecek
+migration'lar için sessiz bir tuzak: yeni nullable olmayan default değerli
+alan eklerken her zaman migration dosyasını gözden geçirmek gerekiyor.
+
+**İdeal çözüm:** İki seçenek:
+1. Her migration'da Up() metodunu manuel inceleme alışkanlığı (insan-süreci)
+2. Custom MigrationOperationGenerator yazmak — entity property'sindeki
+   initializer değerini DB default'una otomatik çevirir (kod-süreci)
+
+Şu an seçenek 1 yeterli. Faz 3 boyunca 3 migration var, hepsi gözden geçirildi.
+
+**Önerilen zaman:** Eğer Faz 4'te 5+ yeni migration olur ve aynı sorun 2 kez
+daha çıkarsa, seçenek 2'ye geç. Şimdilik bu dosyada uyarı olarak kal.
+
+---
+
+## 4. Hangfire Dashboard authorization: 401 vs 403
+
+**Bağlam:** Adım 3.3 Parça 1/6 (Hangfire dashboard auth). Anonim kullanıcılar
+`/admin/hangfire`'a girerken `IDashboardAuthorizationFilter.Authorize` false
+döndürüyor → Hangfire 401 atıyor.
+
+**Mevcut durum:** Anonim → 401 (Unauthorized). Beklentimiz cookie auth'un
+`/Identity/Account/Login`'e redirect etmesiydi (302). Hangfire kendi auth
+katmanı sebebiyle bunu yapmıyor.
+
+**Ek senaryo:** Authenticated non-admin user (örn. Adım 3.6'da kurulacak
+"Avukat" rolü) bu endpoint'i denerse muhtemelen yine 401 alacak — doğrusu
+403 (Forbidden) olmalıydı.
+
+**İdeal çözüm:** `AdminDashboardAuthorizationFilter`'ı genişlet:
+- User authenticated değilse → 401 (mevcut davranış doğru)
+- User authenticated ama Admin değilse → 403 (yeni)
+
+Hangfire'ın filter API'si bunu doğal desteklemiyor; muhtemelen middleware
+tarafında pre-check + Hangfire dashboard'a girmeden önce manuel redirect
+gerekiyor.
+
+**Önerilen zaman:** Adım 3.6 (Rol Yönetimi) — gerçek senaryo (Avukat rolünde
+kullanıcı dashboard'a girmeye kalkar) o zaman test edilebilir hale gelecek.
+Şimdi sadece Admin rolü olduğu için bu sorun teorik.
+
+---
+
+## Bu dosya nasıl güncellenir?
+
+Yeni bir tech debt maddesi ortaya çıktığında:
+1. Bu dosyaya 4 başlıklı format ile ekle (Bağlam → Mevcut → İdeal → Zaman)
+2. Commit mesajında "docs(tech-debt): X eklendi" formatı kullan
+3. Faz sonu retrospektifte ödün düş — "henüz mi, şimdi mi"
+
+Çözülen maddeler için: silmek yerine "ÇÖZÜLDÜ (commit hash, tarih)"
+notu ekle ve dosyanın altına taşı. Tarihçe değerli.
