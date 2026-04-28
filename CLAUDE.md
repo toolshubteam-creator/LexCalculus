@@ -1,0 +1,39 @@
+# Lex Calculus — Claude Code Bağlam Notları
+
+Bu dosya yeni bir konuşma açıldığında Claude Code'un proje üzerinde
+çalışırken bilmesi gereken kalıcı kuralları içerir.
+
+## Tech debt defteri
+
+Yeni bir mimari karar verdiğimizde, bilinçli bir sapma yaptığımızda,
+veya "şimdi yeterli ama bir gün dokunulmalı" niteliğinde bir kararla
+karşılaştığımızda → mutlaka `docs/tech-debt.md` dosyasına 4-başlıklı
+format ile bir madde ekle:
+
+1. **Bağlam:** Hangi adımda, hangi koşulda ortaya çıktı
+2. **Mevcut durum:** Ne yapıldı (geçici çözüm)
+3. **İdeal çözüm:** Doğrusu nasıl olmalıydı
+4. **Önerilen zaman:** Ne zaman dokunulması mantıklı
+
+Faz sonlarında bu defter gözden geçirilir, çözülenler "ÇÖZÜLDÜ" notuyla
+arşive taşınır.
+
+## Operasyon notları
+
+`docs/operations.md` runbook ve operasyonel detayları içerir
+(cache invalidation, Hangfire dashboard, e-posta provider). Yeni
+operasyonel bilgi (örn. yeni cron job, yeni external service) bu
+dosyaya yazılır.
+
+## Geliştirme standartları (kısa hatırlatma)
+
+Detay için README.md'ye bakın. Özet:
+
+- **Inline `style="..."` yasak.** Tüm CSS `wwwroot/css/` altında BEM ile.
+- **EF Core migration:** Yeni nullable olmayan default değerli alan
+  eklerken üretilen migration dosyasının `defaultValue` kısmını
+  manuel kontrol et (geçmiş bir tuzak — bkz. tech-debt.md madde 3).
+- **E-posta şablonları istisna:** `Views/Emails/` altındaki .cshtml
+  dosyalarında inline style ZORUNLU (e-mail clients external CSS
+  strip eder).
+- **Test:** Her yeni servis için en az 1 happy path + 1 edge case test.

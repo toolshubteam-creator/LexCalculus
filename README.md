@@ -69,6 +69,17 @@ ASP.NET Core MVC (.NET 10), 5 katmanlı solution:
 - `docs/data-freshness.md` — Parametre güncellik tablosu
 - `docs/phase-3-roadmap.md` — Faz 3 plan (admin paneli, Hangfire, bildirim sistemi)
 
+## Önemli Dokümanlar
+
+| Dosya | İçerik |
+|---|---|
+| `CLAUDE.md` | Claude Code için kalıcı bağlam ve kurallar |
+| `docs/operations.md` | Operasyon runbook (cache, Hangfire, e-posta) |
+| `docs/tech-debt.md` | Bilinçli ertelenen mimari kararlar |
+
+Yeni bir mimari sapma yapıldığında `docs/tech-debt.md`'ye 4-başlıklı
+format ile not düşün. Faz sonlarında bu defter gözden geçirilir.
+
 ## Kurulum
 
 ```bash
