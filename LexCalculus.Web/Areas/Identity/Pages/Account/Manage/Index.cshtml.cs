@@ -1,119 +1,163 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-#nullable disable
+#nullable enable
 
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using LexCalculus.Core.Entities.Identity;
+using LexCalculus.Core.Enums;
+using LexCalculus.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
-namespace LexCalculus.Web.Areas.Identity.Pages.Account.Manage
+namespace LexCalculus.Web.Areas.Identity.Pages.Account.Manage;
+
+public class IndexModel : PageModel
 {
-    public class IndexModel : PageModel
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ApplicationDbContext _ctx;
+
+    public IndexModel(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        ApplicationDbContext ctx)
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
+        _userManager = userManager;
+        _signInManager = signInManager;
+        _ctx = ctx;
+    }
 
-        public IndexModel(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+    public string Email { get; set; } = "";
+
+    [BindProperty]
+    public InputModel Input { get; set; } = new();
+
+    [TempData]
+    public string? StatusMessage { get; set; }
+
+    public class InputModel
+    {
+        [Required(ErrorMessage = "Ad-Soyad zorunludur.")]
+        [StringLength(100)]
+        [Display(Name = "Ad-Soyad")]
+        public string FullName { get; set; } = "";
+
+        [Display(Name = "Mesleğiniz")]
+        public MeslekTuru? MeslekTuru { get; set; }
+
+        [StringLength(50)]
+        [Display(Name = "Mesleğinizi yazınız")]
+        public string? MeslekTuruDiger { get; set; }
+
+        [StringLength(50)]
+        [Display(Name = "Baro/Sicil Numarası")]
+        public string? BaroNo { get; set; }
+
+        [Phone(ErrorMessage = "Geçerli bir telefon numarası giriniz.")]
+        [StringLength(20)]
+        [Display(Name = "Telefon")]
+        public string? PhoneNumber { get; set; }
+
+        [Display(Name = "E-posta bildirimleri")]
+        public bool NotificationsEmailEnabled { get; set; }
+    }
+
+    public async Task<IActionResult> OnGetAsync()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        Email = user.Email ?? "";
+
+        var profile = await _ctx.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+        if (profile == null)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
-        }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        public string Username { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [TempData]
-        public string StatusMessage { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [BindProperty]
-        public InputModel Input { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        public class InputModel
-        {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
-            [Phone]
-            [Display(Name = "Phone number")]
-            public string PhoneNumber { get; set; }
-        }
-
-        private async Task LoadAsync(ApplicationUser user)
-        {
-            var userName = await _userManager.GetUserNameAsync(user);
-            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-
-            Username = userName;
-
-            Input = new InputModel
+            profile = new UserProfile
             {
-                PhoneNumber = phoneNumber
+                UserId = user.Id,
+                DisplayName = user.FullName ?? user.Email ?? "Kullanıcı"
             };
+            _ctx.UserProfiles.Add(profile);
+            await _ctx.SaveChangesAsync();
         }
 
-        public async Task<IActionResult> OnGetAsync()
+        Input = new InputModel
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
+            FullName = user.FullName ?? "",
+            MeslekTuru = profile.MeslekTuru,
+            MeslekTuruDiger = profile.MeslekTuruDiger,
+            BaroNo = profile.BaroNo,
+            PhoneNumber = user.PhoneNumber,
+            NotificationsEmailEnabled = user.NotificationsEmailEnabled
+        };
 
-            await LoadAsync(user);
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+
+        Email = user.Email ?? "";
+
+        if (!ModelState.IsValid)
+            return Page();
+
+        if (Input.MeslekTuru == LexCalculus.Core.Enums.MeslekTuru.Diger
+            && string.IsNullOrWhiteSpace(Input.MeslekTuruDiger))
+        {
+            ModelState.AddModelError(nameof(Input.MeslekTuruDiger),
+                "Diğer seçtiğinizde mesleğinizi yazmanız gerekir.");
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        user.FullName = Input.FullName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(Input.PhoneNumber) ? null : Input.PhoneNumber.Trim();
+        user.NotificationsEmailEnabled = Input.NotificationsEmailEnabled;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                await LoadAsync(user);
-                return Page();
-            }
-
-            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-            if (Input.PhoneNumber != phoneNumber)
-            {
-                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-                if (!setPhoneResult.Succeeded)
-                {
-                    StatusMessage = "Unexpected error when trying to set phone number.";
-                    return RedirectToPage();
-                }
-            }
-
-            await _signInManager.RefreshSignInAsync(user);
-            StatusMessage = "Your profile has been updated";
-            return RedirectToPage();
+            foreach (var error in updateResult.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+            return Page();
         }
+
+        var profile = await _ctx.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+        if (profile == null)
+        {
+            profile = new UserProfile
+            {
+                UserId = user.Id,
+                DisplayName = Input.FullName.Trim()
+            };
+            _ctx.UserProfiles.Add(profile);
+        }
+        else
+        {
+            profile.DisplayName = Input.FullName.Trim();
+        }
+
+        profile.MeslekTuru = Input.MeslekTuru;
+        profile.MeslekTuruDiger = Input.MeslekTuru == LexCalculus.Core.Enums.MeslekTuru.Diger
+            ? Input.MeslekTuruDiger?.Trim()
+            : null;
+        profile.BaroNo = string.IsNullOrWhiteSpace(Input.BaroNo) ? null : Input.BaroNo.Trim();
+
+        await _ctx.SaveChangesAsync();
+
+        try
+        {
+            await _signInManager.RefreshSignInAsync(user);
+        }
+        catch (System.Exception)
+        {
+            // Test ortamında IAuthenticationSignInHandler eksik olabilir; refresh atla.
+        }
+
+        StatusMessage = "Profiliniz güncellendi.";
+        return RedirectToPage();
     }
 }

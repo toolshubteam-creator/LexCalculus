@@ -32,10 +32,14 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
         if (!Request.Headers.TryGetValue("X-Test-User", out var userName))
             return Task.FromResult(AuthenticateResult.NoResult());
 
+        var nameIdentifier = Request.Headers.TryGetValue("X-Test-UserId", out var uid)
+            ? uid.ToString()
+            : "1";
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.Name, userName.ToString()),
-            new(ClaimTypes.NameIdentifier, "1")
+            new(ClaimTypes.NameIdentifier, nameIdentifier)
         };
 
         if (Request.Headers.TryGetValue("X-Test-Roles", out var roles))
