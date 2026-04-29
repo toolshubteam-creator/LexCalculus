@@ -122,6 +122,13 @@ yapılır, mahkemede sorun çıkar.
 
 ### Adım 3.7 — Organization Multi-Tenant Altyapı
 
+> **Vizyon notu (29 Nisan 2026):** Sistem ücretsiz, hedef kitle tüm
+> vatandaşlar. Plan kavramı (Free/Pro/Enterprise) yok. Multi-tenant
+> özelliği hukuk bürosu ekipleri (5 avukat ortak çalışma) senaryosu
+> için kalıcı; bireysel kullanıcılar TenantId nullable pattern ile
+> etkilenmez. Detaylı yol haritası docs/'a Adım 3.9'da kalıcı
+> eklenecek.
+
 - Organizations tablosu (hukuk bürosu, baro, vs.)
 - UserOrganizations many-to-many (kullanıcı birden çok org'a üye olabilir)
 - CalculationHistory.OrganizationId nullable FK ekle
