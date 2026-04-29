@@ -206,6 +206,9 @@ try
     builder.Services.AddScoped<ILifeTableAdminService, LifeTableAdminService>();
     builder.Services.AddScoped<ILifeTableCsvParser, LifeTableCsvParser>();
 
+    // Admin: kullanıcı yönetimi (Faz 3.6)
+    builder.Services.AddScoped<IUserAdminService, UserAdminService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {

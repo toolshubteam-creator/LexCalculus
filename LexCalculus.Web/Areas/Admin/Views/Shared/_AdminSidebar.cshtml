@@ -23,6 +23,10 @@
        asp-area="Admin" asp-controller="Hesaplar" asp-action="Index">
         <span class="admin-nav-link__label">Hesap Geçmişi</span>
     </a>
+    <a class="admin-nav-link @(currentController == "Users" ? "admin-nav-link--active" : "")"
+       asp-area="Admin" asp-controller="Users" asp-action="Index">
+        <span class="admin-nav-link__label">Kullanıcılar</span>
+    </a>
     <a class="admin-nav-link"
        href="/admin/hangfire"
        target="_blank"

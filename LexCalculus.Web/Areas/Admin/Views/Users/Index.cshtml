@@ -1,0 +1,129 @@
+@model LexCalculus.Web.Areas.Admin.Models.Users.UserListPageViewModel
+@{
+    string RelativeOrAbsolute(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff.TotalDays < 7) return diff.TotalDays < 1
+            ? $"{(int)diff.TotalHours} saat önce"
+            : $"{(int)diff.TotalDays} gün önce";
+        return utc.ToLocalTime().ToString("dd.MM.yyyy");
+    }
+}
+
+<div class="admin-page">
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">Kullanıcılar</h1>
+            <p class="admin-page__subtitle">
+                @Model.Result.TotalCount toplam kullanıcı
+                @if (Model.Filter.HasAnyFilter)
+                {
+                    <span class="admin-page__filter-note">· filtre aktif</span>
+                }
+            </p>
+        </div>
+    </header>
+
+    <form method="get" class="param-filter">
+        <div class="param-filter__row">
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-role">Rol</label>
+                <select id="filter-role" name="Role" class="param-filter__input">
+                    <option value="">Hepsi</option>
+                    <option value="Admin" selected="@(Model.Filter.Role == "Admin")">Admin</option>
+                    <option value="Editor" selected="@(Model.Filter.Role == "Editor")">Editor</option>
+                    <option value="Kullanici" selected="@(Model.Filter.Role == "Kullanici")">Kullanıcı</option>
+                </select>
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-isActive">Durum</label>
+                <select id="filter-isActive" name="IsActive" class="param-filter__input">
+                    <option value="">Hepsi</option>
+                    <option value="true" selected="@(Model.Filter.IsActive == true)">Aktif</option>
+                    <option value="false" selected="@(Model.Filter.IsActive == false)">Pasif</option>
+                </select>
+            </div>
+            <div class="param-filter__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Filtrele</button>
+                <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">Temizle</a>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Result.Items.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Filtreye uyan kullanıcı bulunamadı.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>E-posta</th>
+                        <th>Ad-Soyad</th>
+                        <th>Meslek</th>
+                        <th>Rol</th>
+                        <th>Durum</th>
+                        <th>Son Giriş</th>
+                        <th>Kayıt</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in Model.Result.Items)
+                    {
+                        <tr class="param-table__row @(!u.IsActive ? "param-table__row--inactive" : "")">
+                            <td><code class="param-table__slug">@u.Email</code></td>
+                            <td>@(u.FullName ?? "—")</td>
+                            <td>@(u.MeslekTuruLabel ?? "—")</td>
+                            <td>
+                                @if (u.RoleName != null)
+                                {
+                                    <span class="param-badge param-badge--@(u.RoleName.ToLowerInvariant())">@u.RoleName</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--archived">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (u.IsActive)
+                                {
+                                    <span class="param-badge param-badge--active">Aktif</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--archived">Pasif</span>
+                                }
+                            </td>
+                            <td>@(u.LastLoginAt.HasValue ? RelativeOrAbsolute(u.LastLoginAt.Value) : "—")</td>
+                            <td>@RelativeOrAbsolute(u.CreatedAt)</td>
+                            <td class="param-table__actions">
+                                @* Detay linki Parça 4/4'te aktive olacak *@
+                                <a class="admin-link admin-link--disabled" title="Parça 4/4'te aktive olacak">Detay</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Result.TotalPages > 1)
+        {
+            <nav class="hesap-pagination">
+                @if (Model.Result.HasPrevious)
+                {
+                    <a href="@Url.Action("Index", new { Role = Model.Filter.Role, IsActive = Model.Filter.IsActive, page = Model.Result.Page - 1 })">← Önceki</a>
+                }
+                <span class="hesap-pagination__info">Sayfa @Model.Result.Page / @Model.Result.TotalPages · @Model.Result.TotalCount toplam</span>
+                @if (Model.Result.HasNext)
+                {
+                    <a href="@Url.Action("Index", new { Role = Model.Filter.Role, IsActive = Model.Filter.IsActive, page = Model.Result.Page + 1 })">Sonraki →</a>
+                }
+            </nav>
+        }
+    }
+</div>

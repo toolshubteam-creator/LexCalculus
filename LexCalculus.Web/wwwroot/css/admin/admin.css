@@ -960,3 +960,21 @@ button { font: inherit; }
     margin: 0 0 10px 0;
 }
 .admin-form-help__text:last-child { margin-bottom: 0; }
+
+/* ─────────── Rol badge'leri (Faz 3.6) ─────────── */
+.param-badge--admin {
+    background: var(--burgundy);
+    color: var(--parchment);
+}
+.param-badge--editor {
+    background: var(--gold);
+    color: var(--ink);
+}
+.param-badge--kullanici {
+    background: rgba(184, 146, 74, 0.12);
+    color: var(--ink);
+    border: 1px solid var(--gold-pale);
+}
+.param-table__row--inactive {
+    opacity: .55;
+}

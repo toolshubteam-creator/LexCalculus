@@ -54,9 +54,8 @@
         </a>
 
         @* Widget 3: Kullanıcı Özeti *@
-        <a class="dashboard-card dashboard-card--info dashboard-card--soon"
-           href="@(Model.Users?.DashboardLink ?? "#")"
-           title="Detay sayfası Adım 3.6'da aktive olacak">
+        <a class="dashboard-card dashboard-card--info"
+           href="@(Model.Users?.DashboardLink ?? Url.Action("Index", "Users", new { area = "Admin" }))">
             <div class="dashboard-card__caption">Kullanıcılar</div>
             @if (Model.Users == null)
             {

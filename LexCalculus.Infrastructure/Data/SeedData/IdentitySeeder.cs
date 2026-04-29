@@ -7,9 +7,10 @@ using Microsoft.Extensions.Logging;
 namespace LexCalculus.Infrastructure.Data.SeedData;
 
 /// <summary>
-/// Seeds the four built-in roles (Admin, Editor, Premium, Free) and the
+/// Seeds the three built-in roles (Admin, Editor, Kullanici) and the
 /// initial Admin user from configuration. Idempotent — safe to run on
 /// every startup.
+/// Faz 3.6: Premium/Free rolleri kaldırıldı; default rol Kullanici.
 /// </summary>
 public static class IdentitySeeder
 {
@@ -20,10 +21,9 @@ public static class IdentitySeeder
     {
         var roles = new[]
         {
-            new { Name = nameof(UserRole.Admin),   Description = "Full administrative access — system, content, users." },
-            new { Name = nameof(UserRole.Editor),  Description = "Content management — pages, posts, media, comments moderation." },
-            new { Name = nameof(UserRole.Premium), Description = "Premium tier user — extended calculation history, parameter alerts." },
-            new { Name = nameof(UserRole.Free),    Description = "Default tier — basic calculations and content access." }
+            new { Name = nameof(UserRole.Admin),     Description = "Full administrative access — system, content, users." },
+            new { Name = nameof(UserRole.Editor),    Description = "Content management — pages, posts, media, comments moderation." },
+            new { Name = nameof(UserRole.Kullanici), Description = "Standart kullanıcı — hesaplayıcılara erişim, kişisel hesap geçmişi." }
         };
 
         foreach (var role in roles)
