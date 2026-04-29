@@ -8,6 +8,7 @@ using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Notifications;
 using LexCalculus.Infrastructure.Data;
+using LexCalculus.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -191,8 +192,10 @@ public sealed class DataFreshnessCheckJob
         var staleSlugs = staleLatest.Select(p => p.ToolSlug).Distinct().ToHashSet();
         var hasGlobalStale = staleSlugs.Contains("*");
 
+        // Background job: tüm kullanıcıların geçmişini taramak gerek (tenant bypass).
         IQueryable<CalculationHistory> historyQuery = _ctx.Set<CalculationHistory>()
-            .Where(h => h.CreatedAt > historyWindow);
+            .AsAdminQuery()
+            .Where(h => !h.IsDeleted && h.CreatedAt > historyWindow);
 
         if (!hasGlobalStale)
         {

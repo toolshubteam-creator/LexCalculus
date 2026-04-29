@@ -8,6 +8,7 @@ using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Notifications;
 using LexCalculus.Infrastructure.Data;
+using LexCalculus.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -91,7 +92,10 @@ public sealed class DashboardSummaryService : IDashboardSummaryService
     private async Task<CalculationActivitySummary> GetActivityAsync(CancellationToken ct)
     {
         var since = DateTime.UtcNow.AddDays(-7);
-        var query = _ctx.Set<CalculationHistory>().Where(h => h.CreatedAt > since);
+        // Admin dashboard analytics: tüm tenant'ların aktivitesini gör (Faz 3.7).
+        var query = _ctx.Set<CalculationHistory>()
+            .AsAdminQuery()
+            .Where(h => !h.IsDeleted && h.CreatedAt > since);
 
         var totalCount = await query.CountAsync(ct);
 

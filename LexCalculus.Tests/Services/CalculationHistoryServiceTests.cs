@@ -53,7 +53,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Logged_In_Kullanici_Loglanir()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = TestDbContextFactory.Create(actAsUserId: 123);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         await svc.LogAsync(
@@ -102,7 +102,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Birden_Fazla_Log_Sirayla()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = TestDbContextFactory.Create(actAsUserId: 123);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         for (int i = 0; i < 5; i++)
@@ -130,7 +130,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Soft_Delete_Filter_Calisir()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = TestDbContextFactory.Create(actAsUserId: 123);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         await svc.LogAsync(

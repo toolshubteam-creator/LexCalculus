@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using LexCalculus.Core.Entities.Common;
+using LexCalculus.Core.Entities.Identity;
 
 namespace LexCalculus.Core.Entities;
 
@@ -77,4 +78,13 @@ public sealed class CalculationHistory : BaseEntity
     /// </summary>
     [MaxLength(100)]
     public string? CaseReference { get; set; }
+
+    /// <summary>
+    /// Faz 3.7: opt-in paylaşım için. Null = kişisel hesap (sadece sahibi görür).
+    /// Tenant.Id set edilirse hesap o tenant'ın tüm üyelerine görünür hale gelir
+    /// (global query filter ile zorlanır).
+    /// </summary>
+    public int? TenantId { get; set; }
+
+    public Tenant? Tenant { get; set; }
 }

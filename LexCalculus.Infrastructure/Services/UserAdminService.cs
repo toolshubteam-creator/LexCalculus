@@ -4,6 +4,7 @@ using LexCalculus.Core.Email.Models;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
+using LexCalculus.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -101,8 +102,10 @@ public sealed class UserAdminService : IUserAdminService
         var roles = await _userManager.GetRolesAsync(user);
         var roleName = roles.FirstOrDefault();
 
+        // Admin başka user'ın geçmişini görüyor — tenant filter bypass (Faz 3.7).
         var calculations = await _ctx.CalculationHistories
-            .Where(c => c.UserId == userId)
+            .AsAdminQuery()
+            .Where(c => !c.IsDeleted && c.UserId == userId)
             .OrderByDescending(c => c.CreatedAt)
             .Take(30)
             .Select(c => new UserCalculationItem(c.Id, c.ToolSlug, c.CreatedAt))

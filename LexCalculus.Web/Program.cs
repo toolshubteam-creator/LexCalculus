@@ -56,6 +56,13 @@ try
     // AuditInterceptor singleton; aynı instance tüm DbContext'lere enjekte edilir
     builder.Services.AddSingleton<AuditInterceptor>();
 
+    // Faz 3.7 — Multi-tenant altyapı
+    // HttpContextAccessor ve ITenantContext, AddDbContext'ten ÖNCE register
+    // edilmeli (DbContext constructor ITenantContext alır).
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<LexCalculus.Core.Services.ITenantContext,
+        LexCalculus.Infrastructure.Tenancy.HttpTenantContext>();
+
     var isTesting = builder.Configuration.GetValue<bool>("Testing");
     if (!isTesting)
     {
@@ -141,6 +148,12 @@ try
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
+
+    // Faz 3.7 — TenantId claim'i login sırasında ClaimsIdentity'ye ekle.
+    // Identity'nin default factory'sini ezer (AddIdentity'den SONRA register).
+    builder.Services.AddScoped<
+        Microsoft.AspNetCore.Identity.IUserClaimsPrincipalFactory<ApplicationUser>,
+        LexCalculus.Infrastructure.Identity.AppUserClaimsPrincipalFactory>();
 
     // -------------------------------------------------------------------------
     // HANGFIRE — background job processing (Phase 3.3)

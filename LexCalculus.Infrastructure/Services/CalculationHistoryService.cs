@@ -2,6 +2,7 @@ using System.Text.Json;
 using LexCalculus.Core.Entities;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
+using LexCalculus.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -144,7 +145,8 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 25;
 
-        var q = _ctx.Set<CalculationHistory>().AsQueryable();
+        // Admin sayfası: tenant filter bypass (Faz 3.7). Soft-delete koşulu elle.
+        var q = _ctx.Set<CalculationHistory>().AsAdminQuery().Where(h => !h.IsDeleted);
 
         if (!string.IsNullOrWhiteSpace(toolSlugFilter))
             q = q.Where(h => h.ToolSlug == toolSlugFilter);
@@ -168,6 +170,8 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
     public async Task<IReadOnlyList<int>> GetUsersWithHistoryAsync(CancellationToken ct = default)
     {
         return await _ctx.Set<CalculationHistory>()
+            .AsAdminQuery()
+            .Where(h => !h.IsDeleted)
             .Select(h => h.UserId)
             .Distinct()
             .OrderBy(id => id)
@@ -177,6 +181,8 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
     public async Task<CalculationHistory?> GetByIdForAdminAsync(int historyId, CancellationToken ct = default)
     {
         return await _ctx.Set<CalculationHistory>()
+            .AsAdminQuery()
+            .Where(h => !h.IsDeleted)
             .FirstOrDefaultAsync(h => h.Id == historyId, ct);
     }
 }

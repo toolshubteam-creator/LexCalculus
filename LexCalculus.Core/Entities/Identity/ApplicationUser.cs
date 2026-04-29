@@ -43,4 +43,12 @@ public class ApplicationUser : IdentityUser<int>
     /// kullanıcı bell icon'da yine görür, sadece e-posta engellenir.
     /// </summary>
     public bool NotificationsEmailEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Bağlı olduğu tenant (hukuk bürosu, baro, vs.) — opsiyonel.
+    /// Null = bireysel vatandaş kullanıcı (Faz 3.7 default'u).
+    /// </summary>
+    public int? TenantId { get; set; }
+
+    public Tenant? Tenant { get; set; }
 }
