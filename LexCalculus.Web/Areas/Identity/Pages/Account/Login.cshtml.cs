@@ -106,6 +106,19 @@ namespace LexCalculus.Web.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
+                // IsActive pre-check (Faz 3.6 Parça 2b-iii): pasif kullanıcı login olamaz.
+                // FindByEmailAsync user'ı bulamazsa null döner — pre-check geçer,
+                // PasswordSignInAsync zaten "Invalid login attempt" generic mesaj döner
+                // (kullanıcı varlığını user enumeration'a açmamak için).
+                var preUser = await _userManager.FindByEmailAsync(Input.Email);
+                if (preUser is not null && !preUser.IsActive)
+                {
+                    _logger.LogWarning("Pasif kullanıcı login denemesi: {Email}", Input.Email);
+                    ModelState.AddModelError(string.Empty,
+                        "Hesabınız askıya alınmış. Lütfen yöneticiyle iletişime geçin.");
+                    return Page();
+                }
+
                 // This doesn't count login failures towards account lockout
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
                 var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);

@@ -1,0 +1,30 @@
+@page
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = "E-posta Doğrulama";
+}
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">E-posta Doğrulama</h1>
+
+    @if (Model.IsSuccess)
+    {
+        <div class="form-section__message form-section__message--success" role="status">
+            <p><strong>E-posta adresiniz doğrulandı.</strong></p>
+            <p>Hesabınız aktif. Hoş geldiniz e-postanız gönderildi.</p>
+        </div>
+        <div class="form-section__cta">
+            <a asp-page="./Login">Giriş yap</a>
+        </div>
+    }
+    else
+    {
+        <div class="form-section__message form-section__message--error" role="alert">
+            <p><strong>Doğrulama başarısız.</strong></p>
+            <p>@Model.ErrorMessage</p>
+        </div>
+        <div class="form-section__cta">
+            <a asp-page="./Register">Yeniden kayıt ol</a>
+        </div>
+    }
+</div>

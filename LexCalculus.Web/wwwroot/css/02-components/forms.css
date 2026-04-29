@@ -164,3 +164,37 @@
 .is-hidden {
   display: none !important;
 }
+
+/* Identity flow mesaj blokları (ConfirmEmail, RegisterConfirmation, Lockout) */
+.form-section__message {
+  padding: var(--sp-4) var(--sp-5);
+  border-left: 3px solid;
+  background: var(--parchment);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+  margin-bottom: var(--sp-5);
+}
+.form-section__message p { margin: 0 0 8px 0; }
+.form-section__message p:last-child { margin-bottom: 0; }
+
+.form-section__message--success {
+  border-left-color: var(--gold);
+  background: #fdf9ee;
+}
+.form-section__message--error {
+  border-left-color: var(--burgundy);
+  background: #fbf3e3;
+}
+.form-section__message--info {
+  border-left-color: #4a7ba8;
+  background: #f0f5fa;
+}
+
+.form-section__message-note {
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: .75;
+  font-style: italic;
+}

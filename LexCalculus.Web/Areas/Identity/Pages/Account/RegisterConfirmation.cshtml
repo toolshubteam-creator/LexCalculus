@@ -1,0 +1,24 @@
+@page
+@model RegisterConfirmationModel
+@{
+    ViewData["Title"] = "Kayıt Tamamlandı";
+}
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">Kayıt Tamamlandı</h1>
+
+    <div class="form-section__message form-section__message--info" role="status">
+        <p><strong>E-posta adresinize bir doğrulama bağlantısı gönderdik.</strong></p>
+        <p>
+            Lütfen <code>@Model.Email</code> adresinize gelen e-postadaki bağlantıya
+            tıklayarak hesabınızı aktifleştirin.
+        </p>
+        <p class="form-section__message-note">
+            <em>E-posta gelmedi mi? Spam klasörünüzü kontrol etmeyi unutmayın.</em>
+        </p>
+    </div>
+
+    <div class="form-section__cta">
+        <a asp-page="./Login">Giriş sayfasına dön</a>
+    </div>
+</div>
