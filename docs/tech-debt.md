@@ -105,6 +105,35 @@ kullanıcı dashboard'a girmeye kalkar) o zaman test edilebilir hale gelecek.
 
 ---
 
+## 5. Register `SignInAsync` defensive try/catch
+
+**Bağlam:** Adım 3.6 Parça 2b-ii — Register.cshtml.cs OnPostAsync sonunda
+`_signInManager.SignInAsync(user, isPersistent: false)` çağrısı try/catch
+ile sarıldı. Sebep: test ortamında TestAuthHandler `IAuthenticationSignInHandler`
+interface'ini implement etmediği için exception fırlatıyor; production'da
+gerçek cookie auth handler exception atmaz, ama bu defensive kod runtime
+hatalarını da sessizce yutar.
+
+**Mevcut durum:** try/catch ile exception swallow + log. Production'da
+bilinen bir runtime hatası yok, bu yüzden etkisi sıfır. Test'te akış
+tamamlanıyor.
+
+**İdeal çözüm:** İki yol var:
+1. TestAuthHandler'ı `IAuthenticationSignInHandler` implement edecek
+   şekilde genişlet (test fixture'a ait, production etkilenmez)
+2. try/catch'i kaldır, gerçek exception olursa kullanıcıya "Hesap
+   oluşturuldu, lütfen giriş yapın" mesajı gösterip Login sayfasına
+   yönlendir
+
+Yaklaşım 1 daha temiz (test ortamı production gibi davranır). Yaklaşım
+2 production resilience artırır.
+
+**Önerilen zaman:** Adım 3.9 (Faz 3 final temizlik). O noktada Parça 2b-iii
+ile Identity akışı tamamen oturmuş olur, yaklaşımı değerlendirmek için
+bağlam tam olur.
+
+---
+
 ## Bu dosya nasıl güncellenir?
 
 Yeni bir tech debt maddesi ortaya çıktığında:
