@@ -22,7 +22,12 @@ public class UserAdminServiceTests
     }
 
     private static UserAdminService CreateService(ApplicationDbContext ctx)
-        => new(ctx, MockUserManager(ctx));
+        => new(
+            ctx,
+            MockUserManager(ctx),
+            new Mock<LexCalculus.Core.Email.IEmailService>().Object,
+            new Mock<LexCalculus.Core.Email.IEmailTemplateRenderer>().Object,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<UserAdminService>.Instance);
 
     private static ApplicationUser MakeUser(int id, string email, bool isActive = true) =>
         new()

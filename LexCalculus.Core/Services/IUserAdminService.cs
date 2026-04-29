@@ -21,9 +21,28 @@ public sealed record UserListPage(
     public bool HasNext => Page < TotalPages;
 }
 
+public sealed record UserCalculationItem(
+    int Id,
+    string ToolSlug,
+    DateTime CreatedAt);
+
+public sealed record UserDetailViewModel(
+    int Id,
+    string Email,
+    string? FullName,
+    string? RoleName,
+    bool IsActive,
+    bool EmailConfirmed,
+    DateTime CreatedAt,
+    DateTime? LastLoginAt,
+    string? MeslekTuruLabel,
+    string? BaroNo,
+    string? PhoneNumber,
+    IReadOnlyList<UserCalculationItem> RecentCalculations);
+
 /// <summary>
-/// Admin paneli için kullanıcı yönetimi. Faz 3.6 Parça 1/4 — sadece liste.
-/// Detay + actions Parça 4/4'te eklenecek.
+/// Admin paneli için kullanıcı yönetimi. Faz 3.6 Parça 1/4 list,
+/// Parça 4/4 detay + actions.
 /// </summary>
 public interface IUserAdminService
 {
@@ -33,4 +52,12 @@ public interface IUserAdminService
         string? roleFilter = null,
         bool? isActiveFilter = null,
         CancellationToken ct = default);
+
+    Task<UserDetailViewModel?> GetUserDetailAsync(int userId, CancellationToken ct = default);
+
+    Task<bool> SetActiveAsync(int userId, bool active, CancellationToken ct = default);
+
+    Task<bool> ChangeRoleAsync(int userId, string newRoleName, CancellationToken ct = default);
+
+    Task<bool> SendPasswordResetEmailAsync(int userId, string siteUrl, CancellationToken ct = default);
 }

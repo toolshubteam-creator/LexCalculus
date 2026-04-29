@@ -1,0 +1,130 @@
+@model LexCalculus.Core.Services.UserDetailViewModel
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">@Model.Email</h1>
+            <p class="admin-page__subtitle">
+                @(Model.FullName ?? "—") ·
+                @if (Model.IsActive)
+                {
+                    <span class="param-badge param-badge--active">Aktif</span>
+                }
+                else
+                {
+                    <span class="param-badge param-badge--archived">Pasif</span>
+                }
+                @if (Model.RoleName != null)
+                {
+                    <span class="param-badge param-badge--@(Model.RoleName.ToLowerInvariant())">@Model.RoleName</span>
+                }
+            </p>
+        </div>
+    </header>
+
+    <div class="admin-detail-grid">
+        <section class="admin-card">
+            <h2 class="admin-card__title">Kullanıcı Bilgileri</h2>
+            <dl class="admin-detail">
+                <dt>E-posta</dt>
+                <dd><code>@Model.Email</code> @(Model.EmailConfirmed ? "✓ doğrulandı" : "(doğrulanmadı)")</dd>
+                <dt>Ad-Soyad</dt>
+                <dd>@(Model.FullName ?? "—")</dd>
+                <dt>Meslek</dt>
+                <dd>@(Model.MeslekTuruLabel ?? "—")</dd>
+                <dt>Baro/Sicil</dt>
+                <dd>@(Model.BaroNo ?? "—")</dd>
+                <dt>Telefon</dt>
+                <dd>@(Model.PhoneNumber ?? "—")</dd>
+                <dt>Kayıt</dt>
+                <dd>@Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+                <dt>Son Giriş</dt>
+                <dd>@(Model.LastLoginAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")</dd>
+            </dl>
+        </section>
+
+        <section class="admin-card">
+            <h2 class="admin-card__title">Eylemler</h2>
+
+            @* Aktif/Pasif toggle *@
+            <form method="post"
+                  asp-action="@(Model.IsActive ? "Pasiflestir" : "Aktiflestir")"
+                  asp-route-id="@Model.Id"
+                  class="admin-inline-form admin-inline-form--block"
+                  onsubmit="return confirm('@(Model.IsActive ? "Bu kullanıcıyı pasifleştirmek istediğinize emin misiniz? Aktif oturumları kapatılacak." : "Bu kullanıcıyı aktifleştirmek istediğinize emin misiniz?")');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="admin-btn admin-btn--@(Model.IsActive ? "danger" : "primary")">
+                    @(Model.IsActive ? "Pasifleştir" : "Aktifleştir")
+                </button>
+            </form>
+
+            @* Rol değiştir *@
+            <form method="post" asp-action="RolDegistir" asp-route-id="@Model.Id"
+                  class="admin-inline-form admin-inline-form--block"
+                  onsubmit="return confirm('Rolü değiştirmek istediğinize emin misiniz? Kullanıcının aktif oturumları kapatılacak.');">
+                @Html.AntiForgeryToken()
+                <label class="admin-form__label">Yeni rol</label>
+                <select name="yeniRol" class="admin-form__input">
+                    <option value="Admin" selected="@(Model.RoleName == "Admin")">Admin</option>
+                    <option value="Editor" selected="@(Model.RoleName == "Editor")">Editor</option>
+                    <option value="Kullanici" selected="@(Model.RoleName == "Kullanici")">Kullanıcı</option>
+                </select>
+                <button type="submit" class="admin-btn admin-btn--secondary">Rolü Güncelle</button>
+            </form>
+
+            @* Şifre reset *@
+            <form method="post" asp-action="SifreSifirla" asp-route-id="@Model.Id"
+                  class="admin-inline-form admin-inline-form--block"
+                  onsubmit="return confirm('Kullanıcıya şifre sıfırlama maili gönderilsin mi?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="admin-btn admin-btn--secondary">Şifre Sıfırlama Maili Gönder</button>
+            </form>
+        </section>
+    </div>
+
+    <header class="admin-page__sub-header">
+        <h2 class="admin-page__sub-title">Son 30 Hesaplama</h2>
+    </header>
+
+    @if (Model.RecentCalculations.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Bu kullanıcı henüz hesaplama yapmamış.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Hesaplayıcı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var calc in Model.RecentCalculations)
+                    {
+                        <tr class="param-table__row">
+                            <td>@calc.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            <td><code>@calc.ToolSlug</code></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <p class="admin-page__back">
+        <a class="admin-link" asp-action="Index">← Kullanıcı listesine dön</a>
+    </p>
+</div>

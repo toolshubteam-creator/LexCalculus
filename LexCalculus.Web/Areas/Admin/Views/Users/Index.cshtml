@@ -102,8 +102,7 @@
                             <td>@(u.LastLoginAt.HasValue ? RelativeOrAbsolute(u.LastLoginAt.Value) : "—")</td>
                             <td>@RelativeOrAbsolute(u.CreatedAt)</td>
                             <td class="param-table__actions">
-                                @* Detay linki Parça 4/4'te aktive olacak *@
-                                <a class="admin-link admin-link--disabled" title="Parça 4/4'te aktive olacak">Detay</a>
+                                <a class="admin-link" asp-action="Detail" asp-route-id="@u.Id">Detay</a>
                             </td>
                         </tr>
                     }

@@ -978,3 +978,84 @@ button { font: inherit; }
 .param-table__row--inactive {
     opacity: .55;
 }
+
+/* ─────────── Faz 3.6 Parça 4/4 — User Detay sayfası ─────────── */
+
+/* Detail iki sütunlu grid */
+.admin-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+    .admin-detail-grid { grid-template-columns: 1fr; }
+}
+
+/* Detail dl/dt/dd stil */
+.admin-detail {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 6px 16px;
+    margin: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+}
+.admin-detail dt {
+    font-weight: 600;
+    color: var(--ink);
+    opacity: 0.75;
+}
+.admin-detail dd {
+    margin: 0;
+    color: var(--ink);
+}
+
+/* Inline form block layout (eylemler kartı içinde butonları yığar) */
+.admin-inline-form--block {
+    display: block;
+    margin-bottom: 14px;
+}
+.admin-inline-form--block label {
+    display: block;
+    margin-bottom: 4px;
+}
+.admin-inline-form--block .admin-form__input {
+    display: block;
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+/* Danger button (pasifleştir için) */
+.admin-btn--danger {
+    background: var(--burgundy);
+    color: var(--parchment);
+    border-color: var(--burgundy);
+}
+.admin-btn--danger:hover {
+    background: #5a1a26;
+}
+
+/* Detay alt başlığı (Son 30 Hesaplama gibi) */
+.admin-page__sub-header {
+    margin-top: 32px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--gold-pale);
+}
+.admin-page__sub-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+}
+
+/* Geri dön linki */
+.admin-page__back {
+    margin-top: 24px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-meta);
+    letter-spacing: var(--tracking-wide);
+}
