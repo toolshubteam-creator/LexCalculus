@@ -67,3 +67,57 @@ projede başka bir konumdaysa o). Bir Adım'ı planlamaya başlamadan ÖNCE:
 
 Bu kural, Adım 3.4 sonrası 3.5 planlama sırasında keşfedildi:
 "3.5 SEO olacak" demiştim, yol haritası 3.5'i LifeTable olarak yazıyordu.
+
+## Manuel HTTP testlerinde launch profile kullan
+
+`dotnet run --no-launch-profile --urls=http://localhost:XXXX`
+KULLANMA. Bu launchSettings.json'ı atlar ve farklı port + farklı
+environment kullanır. Tarayıcıdaki gerçek senaryo ile simetrik
+DEĞİLDİR.
+
+Doğru komut: `cd LexCalculus.Web && dotnet run` (sade).
+launchSettings.json default profilini kullanır — Visual Studio
+F5'in kullandığı port + environment ile aynı.
+
+Eğer farklı port gerekiyorsa launchSettings.json'a yeni bir profil
+EKLE, run-time `--urls` flag ile override etme.
+
+Bu kural, Adım 3.6 Parça 3/4 sonrası /profil tanı maratonunda
+keşfedildi: Claude Code 5099 portunda --no-launch-profile ile run
+ediyordu, kullanıcı tarayıcıda 7080'de gerçek server kullanıyordu —
+404 görünmesinin kök sebebi port + bind farklılığıydı.
+
+## Razor Pages routing değişikliği = manuel HTTP teyit
+
+ProfilePageTests gibi `WebApplicationFactory<Program>` tabanlı
+integration testler **in-memory TestServer** kullanır. Bu, gerçek
+Kestrel + port binding + middleware pipeline ile %100 simetrik
+DEĞİLDİR.
+
+Yeni Razor Page eklendiğinde veya `@page` direktifi değiştirildiğinde:
+
+1. Integration test yazılır (gerekli)
+2. `dotnet run` (launch profile ile, yukarıdaki kural) + tarayıcı veya
+   curl ile manuel HTTP doğrulama yapılır (gerekli)
+
+İkisi birden olmadan "sayfa çalışıyor" denmez. Adım 3.6 Parça 3/4
+deneyimi: integration test 4/4 yeşil ama Claude Code curl 404
+dönüyor görünmüştü. Sebep launch profile + port karışıklığıydı —
+ama bu durum integration test'in tek başına yetersiz olduğunu da
+gösterdi.
+
+## Windows'ta dotnet process kapatma
+
+`pkill -f "dotnet"` Windows'ta ÇALIŞMAZ (Linux/macOS komutu, sessizce
+başarısız olur).
+
+Doğru Windows komutu (Git Bash / cmd):
+
+- Tek process: `taskkill //PID <pid> //F`  (Git Bash double-slash)
+- Tüm dotnet: `taskkill //F //IM dotnet.exe`
+- PowerShell: `Stop-Process -Name "dotnet" -Force`
+
+Bu unutulduğunda zombie process'ler binary'yi (LexCalculus.Web.exe)
+kilitler, build hatası verir veya eski binary'ye curl gider, false
+test sonuçları çıkar. Adım 3.6 Parça 3/4 tanı maratonunda bu da
+karıştırıcı bir faktördü.
