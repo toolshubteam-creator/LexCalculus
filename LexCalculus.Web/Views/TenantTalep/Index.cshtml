@@ -1,0 +1,102 @@
+@model LexCalculus.Web.Models.TenantTalep.TenantTalepDurumVm
+@using LexCalculus.Core.Entities.Identity
+@{
+    string StatusLabel(TenantRequestStatus s) => s switch
+    {
+        TenantRequestStatus.Pending => "Beklemede",
+        TenantRequestStatus.Approved => "Onaylandı",
+        TenantRequestStatus.Rejected => "Reddedildi",
+        TenantRequestStatus.Cancelled => "İptal Edildi",
+        _ => s.ToString()
+    };
+
+    string StatusClass(TenantRequestStatus s) => s switch
+    {
+        TenantRequestStatus.Pending => "param-badge--current",
+        TenantRequestStatus.Approved => "param-badge--active",
+        TenantRequestStatus.Rejected => "param-badge--archived",
+        TenantRequestStatus.Cancelled => "param-badge--archived",
+        _ => "param-badge--archived"
+    };
+}
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">Hukuk Bürosu Talebim</h1>
+
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div class="form-section__message form-section__message--success" role="status">@successMsg</div>
+    }
+    @if (TempData["Error"] is string errorMsg)
+    {
+        <div class="form-section__message form-section__message--error" role="alert">@errorMsg</div>
+    }
+
+    @if (Model.UserAlreadyInTenant)
+    {
+        <div class="form-section__message form-section__message--info" role="status">
+            <p><strong>Zaten bir tenant'a bağlısınız.</strong></p>
+            <p>Yeni bir hukuk bürosu talebinde bulunamazsınız. Profil sayfanızdan tenant bilgilerinizi görebilirsiniz.</p>
+        </div>
+    }
+    else if (Model.ActiveRequest != null)
+    {
+        <div class="form-section__message form-section__message--info" role="status">
+            <p><strong>@Model.ActiveRequest.ProposedName</strong></p>
+            <p>Talebiniz <strong>@StatusLabel(Model.ActiveRequest.Status)</strong>. Admin onayını bekliyorsunuz.</p>
+            <p class="form-section__message-note">Talep tarihi: @Model.ActiveRequest.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+        </div>
+
+        <form method="post" asp-action="Iptal" asp-route-id="@Model.ActiveRequest.Id"
+              onsubmit="return confirm('Talebinizi iptal etmek istediğinize emin misiniz?');">
+            @Html.AntiForgeryToken()
+            <div class="form-section__actions">
+                <button type="submit" class="btn btn--ghost">Talebi İptal Et</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="form-section__message form-section__message--info" role="status">
+            <p>Şu anda aktif bir talebiniz yok. Bir hukuk bürosu açmak için yeni talep oluşturabilirsiniz.</p>
+        </div>
+        <div class="form-section__actions">
+            <a asp-action="Yeni" class="btn btn--primary">Yeni Talep Oluştur</a>
+        </div>
+    }
+
+    @if (Model.History.Count > 0)
+    {
+        <h2 class="form-section__title" style="font-size:18px;margin-top:32px;">Geçmiş Taleplerim</h2>
+        <table class="param-table">
+            <thead>
+                <tr>
+                    <th>Tarih</th>
+                    <th>İsim</th>
+                    <th>Durum</th>
+                    <th>Sonuç</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.History)
+                {
+                    <tr class="param-table__row">
+                        <td>@r.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                        <td>@r.ProposedName</td>
+                        <td><span class="param-badge @StatusClass(r.Status)">@StatusLabel(r.Status)</span></td>
+                        <td>
+                            @if (r.Status == TenantRequestStatus.Rejected && !string.IsNullOrEmpty(r.RejectionReason))
+                            {
+                                <span class="field-hint">@r.RejectionReason</span>
+                            }
+                            else if (r.Status == TenantRequestStatus.Approved)
+                            {
+                                <span class="field-hint">Tenant oluşturuldu (#@r.CreatedTenantId)</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

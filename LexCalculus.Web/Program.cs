@@ -225,6 +225,9 @@ try
     // Admin: tenant yönetimi (Faz 3.7 P2a/5)
     builder.Services.AddScoped<ITenantAdminService, TenantAdminService>();
 
+    // Tenant request akışı (Faz 3.7 P2b/5) — kullanıcı talebi + admin onay/red
+    builder.Services.AddScoped<ITenantRequestService, TenantRequestService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {

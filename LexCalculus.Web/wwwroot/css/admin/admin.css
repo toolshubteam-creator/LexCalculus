@@ -912,6 +912,19 @@ button { font: inherit; }
 }
 .admin-link--danger:hover { color: #5a1a26; }
 
+.admin-nav-link__badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: var(--burgundy);
+    color: var(--parchment);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
 /* ─────────── LifeTable CSV form ─────────── */
 .lifetable-csv-input {
     font-family: 'JetBrains Mono', monospace;

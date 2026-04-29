@@ -1,0 +1,55 @@
+@model LexCalculus.Web.Models.TenantTalep.TenantTalepCreateVm
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">Yeni Hukuk Bürosu Talebi</h1>
+
+    <p class="field-hint" style="margin-bottom:20px;">
+        Hukuk bürosu/baro tenant'ı talebinizi gönderin. Admin tarafından
+        incelendikten sonra onay/red sonucunu e-posta ile alacaksınız.
+        Onay durumunda tenant kurulur ve owner olarak siz atanırsınız.
+    </p>
+
+    <div asp-validation-summary="ModelOnly" class="form-section__message form-section__message--error"></div>
+
+    <form method="post" asp-action="Yeni">
+        @Html.AntiForgeryToken()
+
+        <div class="field">
+            <label asp-for="ProposedName" class="field__label field__label--required">
+                Hukuk bürosu adı <span class="required">*</span>
+            </label>
+            <input asp-for="ProposedName" class="field__input" maxlength="200" autocomplete="organization" />
+            <span asp-validation-for="ProposedName" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="ProposedSlug" class="field__label">Slug (opsiyonel)</label>
+            <input asp-for="ProposedSlug" class="field__input" maxlength="100" placeholder="boş bırakırsanız otomatik üretilir" />
+            <span asp-validation-for="ProposedSlug" class="field-hint">URL'de kullanılır. Sadece küçük harf, rakam ve tire.</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="BarSicilNo" class="field__label field__label--required">
+                Baro/Sicil No <span class="required">*</span>
+            </label>
+            <input asp-for="BarSicilNo" class="field__input" maxlength="50" placeholder="örn. 34/12345" />
+            <span asp-validation-for="BarSicilNo" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Description" class="field__label">Açıklama (opsiyonel)</label>
+            <textarea asp-for="Description" class="field__input" maxlength="1000" rows="4"
+                      placeholder="Admin'in incelerken yardımcı olabileceği ek bilgi"></textarea>
+            <span asp-validation-for="Description" class="field-hint"></span>
+        </div>
+
+        <div class="form-section__actions">
+            <button type="submit" class="btn btn--primary">Talebi Gönder</button>
+            <a asp-action="Index" class="btn btn--ghost">İptal</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

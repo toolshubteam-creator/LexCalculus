@@ -1,0 +1,33 @@
+@model LexCalculus.Core.Email.Models.TenantRequestApprovedModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = "Lex Calculus — Tenant Talebiniz Onaylandı";
+}
+
+<h1 style="margin:0 0 20px 0;font-family:Georgia,serif;font-size:24px;color:#0a1428;font-weight:normal;">
+  Tenant Talebiniz Onaylandı
+</h1>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.DisplayName,
+</p>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Tenant talebiniz <strong>@Model.TenantName</strong> adıyla onaylandı.
+  Owner olarak siz atandınız. Slug: <code>@Model.TenantSlug</code>.
+</p>
+
+<p style="margin:24px 0 8px 0;font-size:14px;line-height:1.6;color:#0a1428;opacity:0.85;">
+  Profil sayfanızdan tenant durumunuzu görebilirsiniz.
+</p>
+
+<div style="text-align:center;margin:28px 0;">
+  <a href="@Model.SiteUrl/profil"
+     style="display:inline-block;padding:14px 28px;background-color:#0a1428;color:#f4ede0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border:1px solid #b8924a;">
+    Profilime Git
+  </a>
+</div>
+
+<p style="margin:16px 0 0 0;font-family:Georgia,serif;font-size:15px;color:#0a1428;font-style:italic;">
+  İyi çalışmalar,<br/>Lex Calculus Ekibi
+</p>

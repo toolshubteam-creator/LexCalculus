@@ -1,0 +1,32 @@
+@model LexCalculus.Core.Email.Models.TenantRequestRejectedModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = "Lex Calculus — Tenant Talebiniz Reddedildi";
+}
+
+<h1 style="margin:0 0 20px 0;font-family:Georgia,serif;font-size:24px;color:#0a1428;font-weight:normal;">
+  Tenant Talebiniz Reddedildi
+</h1>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.DisplayName,
+</p>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  <strong>@Model.ProposedName</strong> isimli tenant talebiniz onaylanmadı.
+</p>
+
+<div style="border:1px solid #e8d9a8;border-left:4px solid #6b1f2e;padding:14px 18px;margin:20px 0;background-color:#fbf3e3;">
+  <p style="margin:0 0 6px 0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#6b1f2e;">
+    Gerekçe
+  </p>
+  <p style="margin:0;font-size:15px;line-height:1.6;color:#0a1428;">@Model.Reason</p>
+</div>
+
+<p style="margin:16px 0 0 0;font-size:14px;line-height:1.6;color:#0a1428;opacity:0.85;">
+  Eksiklikleri gidererek yeniden başvurabilirsiniz. Sorularınız için bu e-postaya yanıt verebilirsiniz.
+</p>
+
+<p style="margin:16px 0 0 0;font-family:Georgia,serif;font-size:15px;color:#0a1428;font-style:italic;">
+  İyi çalışmalar,<br/>Lex Calculus Ekibi
+</p>

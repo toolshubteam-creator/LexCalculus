@@ -1,0 +1,103 @@
+@model LexCalculus.Web.Areas.Admin.Models.TenantTalepleri.TenantTalepleriDetailVm
+@using LexCalculus.Core.Entities.Identity
+@{
+    var d = Model.Detail;
+    bool isPending = d.Status == TenantRequestStatus.Pending;
+}
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Talep #@d.Id</h1>
+        <p class="admin-page__subtitle">
+            <strong>@d.RequestedByUserName</strong> (@d.RequestedByEmail) ·
+            @d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            @switch (d.Status)
+            {
+                case TenantRequestStatus.Pending:
+                    <span class="param-badge param-badge--current">Beklemede</span>
+                    break;
+                case TenantRequestStatus.Approved:
+                    <span class="param-badge param-badge--active">Onaylandı</span>
+                    break;
+                case TenantRequestStatus.Rejected:
+                    <span class="param-badge param-badge--archived">Reddedildi</span>
+                    break;
+                case TenantRequestStatus.Cancelled:
+                    <span class="param-badge param-badge--archived">İptal</span>
+                    break;
+            }
+        </p>
+    </header>
+
+    <div asp-validation-summary="ModelOnly" class="admin-banner admin-banner--error"></div>
+
+    <div class="admin-detail-grid">
+        <section class="admin-card">
+            <h2 class="admin-card__title">Talep Bilgileri</h2>
+            <dl class="admin-detail">
+                <dt>Önerilen ad</dt><dd>@d.ProposedName</dd>
+                <dt>Önerilen slug</dt><dd>@(string.IsNullOrEmpty(d.ProposedSlug) ? "(otomatik)" : d.ProposedSlug)</dd>
+                <dt>Baro/Sicil</dt><dd><code>@d.BarSicilNo</code></dd>
+                <dt>Açıklama</dt><dd>@(d.Description ?? "—")</dd>
+                @if (d.ProcessedAt.HasValue)
+                {
+                    <dt>İşlem tarihi</dt><dd>@d.ProcessedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+                    <dt>İşleyen</dt><dd>@(d.ProcessedByUserName ?? "—")</dd>
+                }
+                @if (d.Status == TenantRequestStatus.Rejected && !string.IsNullOrEmpty(d.RejectionReason))
+                {
+                    <dt>Red gerekçesi</dt><dd>@d.RejectionReason</dd>
+                }
+                @if (d.Status == TenantRequestStatus.Approved && d.CreatedTenantId.HasValue)
+                {
+                    <dt>Oluşan tenant</dt>
+                    <dd>
+                        <a asp-controller="Tenants" asp-action="Detay" asp-route-id="@d.CreatedTenantId">#@d.CreatedTenantId — Detay</a>
+                    </dd>
+                }
+            </dl>
+        </section>
+
+        @if (isPending)
+        {
+            <section class="admin-card">
+                <h2 class="admin-card__title">Onayla</h2>
+                <form method="post" asp-action="Onayla" asp-route-id="@d.Id" class="admin-form">
+                    @Html.AntiForgeryToken()
+                    <div class="admin-form__field">
+                        <label class="admin-form__label" asp-for="Approve.FinalName">Final ad</label>
+                        <input class="admin-form__input" asp-for="Approve.FinalName" />
+                        <span asp-validation-for="Approve.FinalName" class="admin-form__error"></span>
+                    </div>
+                    <div class="admin-form__field">
+                        <label class="admin-form__label" asp-for="Approve.FinalSlug">Final slug (boş = oto)</label>
+                        <input class="admin-form__input" asp-for="Approve.FinalSlug" />
+                        <span asp-validation-for="Approve.FinalSlug" class="admin-form__error"></span>
+                    </div>
+                    <div class="admin-form__actions">
+                        <button type="submit" class="admin-btn admin-btn--primary">Onayla ve Tenant Kur</button>
+                    </div>
+                </form>
+
+                <h2 class="admin-card__title" style="margin-top:24px;">Reddet</h2>
+                <form method="post" asp-action="Reddet" asp-route-id="@d.Id" class="admin-form"
+                      onsubmit="return confirm('Bu talebi reddetmek istediğinize emin misiniz? Kullanıcıya gerekçe ile e-posta gönderilecek.');">
+                    @Html.AntiForgeryToken()
+                    <div class="admin-form__field">
+                        <label class="admin-form__label" asp-for="Reject.RejectionReason">Red gerekçesi</label>
+                        <textarea class="admin-form__input admin-form__input--area" asp-for="Reject.RejectionReason"
+                                  rows="3" maxlength="1000" placeholder="Kullanıcıya gönderilecek gerekçe"></textarea>
+                        <span asp-validation-for="Reject.RejectionReason" class="admin-form__error"></span>
+                    </div>
+                    <div class="admin-form__actions">
+                        <button type="submit" class="admin-btn admin-btn--danger">Reddet</button>
+                    </div>
+                </form>
+            </section>
+        }
+    </div>
+
+    <p class="admin-page__back">
+        <a class="admin-link" asp-action="Index">← Talep listesine dön</a>
+    </p>
+</div>

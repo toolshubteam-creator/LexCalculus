@@ -44,6 +44,14 @@
                         @await Component.InvokeAsync("NotificationBell")
                         <a class="header-meta__link" href="/hesaplarim">Hesaplarım</a>
                         <a class="header-meta__link" href="/profil">Profilim</a>
+                        @{
+                            var currentUser = await UserManager.GetUserAsync(User);
+                            var canRequestTenant = currentUser != null && !currentUser.TenantId.HasValue;
+                        }
+                        @if (canRequestTenant)
+                        {
+                            <a class="header-meta__link" href="/tenant-talep">Tenant Talebim</a>
+                        }
                         <form class="header-meta__logout" asp-area="Identity" asp-page="/Account/Logout" method="post">
                             <button type="submit" class="header-meta__logout-btn">Çıkış</button>
                         </form>

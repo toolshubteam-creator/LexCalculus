@@ -1,0 +1,91 @@
+@model LexCalculus.Web.Areas.Admin.Models.TenantTalepleri.TenantTalepleriListVm
+@using LexCalculus.Core.Entities.Identity
+@{
+    string StatusLabel(TenantRequestStatus s) => s switch
+    {
+        TenantRequestStatus.Pending => "Beklemede",
+        TenantRequestStatus.Approved => "Onaylandı",
+        TenantRequestStatus.Rejected => "Reddedildi",
+        TenantRequestStatus.Cancelled => "İptal",
+        _ => s.ToString()
+    };
+
+    string StatusClass(TenantRequestStatus s) => s switch
+    {
+        TenantRequestStatus.Pending => "param-badge--current",
+        TenantRequestStatus.Approved => "param-badge--active",
+        _ => "param-badge--archived"
+    };
+}
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Tenant Talepleri</h1>
+        <p class="admin-page__subtitle">@Model.Items.Count talep · filtre: @StatusLabel(Model.StatusFilter ?? TenantRequestStatus.Pending)</p>
+    </header>
+
+    <form method="get" class="param-filter">
+        <div class="param-filter__row">
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-status">Durum</label>
+                <select id="filter-status" name="status" class="param-filter__input">
+                    <option value="0" selected="@(Model.StatusFilter == TenantRequestStatus.Pending)">Beklemede</option>
+                    <option value="1" selected="@(Model.StatusFilter == TenantRequestStatus.Approved)">Onaylandı</option>
+                    <option value="2" selected="@(Model.StatusFilter == TenantRequestStatus.Rejected)">Reddedildi</option>
+                    <option value="3" selected="@(Model.StatusFilter == TenantRequestStatus.Cancelled)">İptal</option>
+                </select>
+            </div>
+            <div class="param-filter__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Filtrele</button>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Talep bulunamadı.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Talep tarihi</th>
+                        <th>Kullanıcı</th>
+                        <th>Önerilen ad</th>
+                        <th>Baro/Sicil</th>
+                        <th>Durum</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Items)
+                    {
+                        <tr class="param-table__row">
+                            <td>@r.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@r.RequestedByUserName</td>
+                            <td>@r.ProposedName</td>
+                            <td><code class="param-table__slug">@r.BarSicilNo</code></td>
+                            <td><span class="param-badge @StatusClass(r.Status)">@StatusLabel(r.Status)</span></td>
+                            <td class="param-table__actions">
+                                <a class="admin-link" asp-action="Detay" asp-route-id="@r.Id">Detay</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

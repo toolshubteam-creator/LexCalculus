@@ -31,6 +31,11 @@
        asp-area="Admin" asp-controller="Tenants" asp-action="Index">
         <span class="admin-nav-link__label">Hukuk Büroları</span>
     </a>
+    <a class="admin-nav-link @(currentController == "TenantTalepleri" ? "admin-nav-link--active" : "")"
+       asp-area="Admin" asp-controller="TenantTalepleri" asp-action="Index">
+        <span class="admin-nav-link__label">Tenant Talepleri</span>
+        @await Component.InvokeAsync("PendingTenantRequestsBadge")
+    </a>
     <a class="admin-nav-link"
        href="/admin/hangfire"
        target="_blank"

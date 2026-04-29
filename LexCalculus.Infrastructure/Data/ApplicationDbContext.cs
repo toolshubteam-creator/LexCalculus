@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<CalculationHistory> CalculationHistories => Set<CalculationHistory>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<TenantRequest> TenantRequests => Set<TenantRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -68,6 +69,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             e.HasOne(u => u.Tenant)
              .WithMany(t => t.Members)
              .HasForeignKey(u => u.TenantId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<TenantRequest>(e =>
+        {
+            e.HasIndex(r => r.Status);
+            e.HasIndex(r => r.RequestedByUserId);
+            e.HasIndex(r => r.CreatedAt);
+
+            e.HasOne(r => r.RequestedBy)
+             .WithMany()
+             .HasForeignKey(r => r.RequestedByUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(r => r.ProcessedBy)
+             .WithMany()
+             .HasForeignKey(r => r.ProcessedByUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(r => r.CreatedTenant)
+             .WithMany()
+             .HasForeignKey(r => r.CreatedTenantId)
              .OnDelete(DeleteBehavior.SetNull);
         });
 
