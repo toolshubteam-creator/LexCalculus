@@ -901,6 +901,16 @@ button { font: inherit; }
 }
 
 .admin-link--disabled { opacity: .5; }
+.admin-link--danger {
+    color: var(--burgundy);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+    text-decoration: underline;
+}
+.admin-link--danger:hover { color: #5a1a26; }
 
 /* ─────────── LifeTable CSV form ─────────── */
 .lifetable-csv-input {

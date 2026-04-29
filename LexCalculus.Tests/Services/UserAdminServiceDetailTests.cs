@@ -177,4 +177,44 @@ public class UserAdminServiceDetailTests
 
         ok.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task SetActiveAsync_DeactivatingOwnerOfActiveTenant_Throws()
+    {
+        await using var ctx = TestDbContextFactory.Create();
+
+        var owner = new ApplicationUser
+        {
+            Id = 1,
+            UserName = "owner@x.com",
+            NormalizedUserName = "OWNER@X.COM",
+            Email = "owner@x.com",
+            NormalizedEmail = "OWNER@X.COM",
+            FullName = "Owner",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        ctx.Users.Add(owner);
+
+        ctx.Tenants.Add(new Tenant
+        {
+            Id = 100,
+            Name = "Test Tenant",
+            Slug = "test-tenant",
+            OwnerUserId = 1,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        });
+        await ctx.SaveChangesAsync();
+
+        var umMock = MockUserManager(ctx);
+        umMock.Setup(x => x.FindByIdAsync("1")).ReturnsAsync(owner);
+        var svc = CreateService(ctx, umMock);
+
+        var act = () => svc.SetActiveAsync(1, active: false);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*owner*");
+    }
 }

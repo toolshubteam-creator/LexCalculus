@@ -1,0 +1,52 @@
+@model LexCalculus.Web.Areas.Admin.Models.Tenants.TenantEditVm
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Tenant Düzenle</h1>
+        <p class="admin-page__subtitle">
+            Owner değiştirilirse yeni owner otomatik olarak tenant'a üye yapılır.
+            Eski owner üyelikte kalır; çıkarmak istersen detay sayfasından kaldır.
+        </p>
+    </header>
+
+    <div asp-validation-summary="ModelOnly" class="admin-banner admin-banner--error"></div>
+
+    <div class="admin-form-layout">
+        <form method="post" asp-action="Duzenle" asp-route-id="@Model.Id" class="admin-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Name">Ad</label>
+                <input class="admin-form__input" asp-for="Name" />
+                <span asp-validation-for="Name" class="admin-form__error"></span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Slug">Slug</label>
+                <input class="admin-form__input" asp-for="Slug" />
+                <span asp-validation-for="Slug" class="admin-form__error"></span>
+                <span class="admin-form__hint">Sadece küçük harf, rakam ve tire.</span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="OwnerUserId">Owner</label>
+                <select class="admin-form__input" asp-for="OwnerUserId">
+                    @foreach (var u in Model.OwnerCandidates)
+                    {
+                        var label = !string.IsNullOrWhiteSpace(u.Email)
+                            ? $"{u.Email} ({u.UserName})"
+                            : u.UserName;
+                        <option value="@u.Id">@label</option>
+                    }
+                </select>
+                <span asp-validation-for="OwnerUserId" class="admin-form__error"></span>
+            </div>
+
+            <div class="admin-form__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Kaydet</button>
+                <a href="@Url.Action("Detay", new { id = Model.Id })" class="admin-btn admin-btn--secondary">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>

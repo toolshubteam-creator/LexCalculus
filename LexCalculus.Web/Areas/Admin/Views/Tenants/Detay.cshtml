@@ -1,0 +1,146 @@
+@model LexCalculus.Web.Areas.Admin.Models.Tenants.TenantDetailVm
+@{
+    var d = Model.Detail;
+}
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">@d.Name</h1>
+            <p class="admin-page__subtitle">
+                <code>@d.Slug</code> ·
+                @if (d.IsDeleted)
+                {
+                    <span class="param-badge param-badge--archived">Silinmiş</span>
+                }
+                else
+                {
+                    <span class="param-badge param-badge--active">Aktif</span>
+                }
+            </p>
+        </div>
+        @if (!d.IsDeleted)
+        {
+            <a asp-action="Duzenle" asp-route-id="@d.Id" class="admin-btn admin-btn--secondary">Düzenle</a>
+        }
+    </header>
+
+    <div class="admin-detail-grid">
+        <section class="admin-card">
+            <h2 class="admin-card__title">Tenant Bilgileri</h2>
+            <dl class="admin-detail">
+                <dt>Ad</dt><dd>@d.Name</dd>
+                <dt>Slug</dt><dd><code>@d.Slug</code></dd>
+                <dt>Owner</dt><dd>@d.OwnerUserName</dd>
+                <dt>Üye sayısı</dt><dd>@d.Members.Count</dd>
+                <dt>Kayıt</dt><dd>@d.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+            </dl>
+        </section>
+
+        <section class="admin-card">
+            <h2 class="admin-card__title">Eylemler</h2>
+
+            @if (!d.IsDeleted)
+            {
+                <form method="post" asp-action="UyeEkle" asp-route-id="@d.Id"
+                      class="admin-inline-form admin-inline-form--block">
+                    @Html.AntiForgeryToken()
+                    <label class="admin-form__label">Yeni üye ekle</label>
+                    <select name="yeniUyeId" class="admin-form__input">
+                        <option value="">— Seçiniz —</option>
+                        @foreach (var u in Model.AvailableUsers)
+                        {
+                            <option value="@u.Id">@u.Email (@u.UserName)</option>
+                        }
+                    </select>
+                    <button type="submit" class="admin-btn admin-btn--secondary">Üye Ekle</button>
+                </form>
+
+                <form method="post" asp-action="Sil" asp-route-id="@d.Id"
+                      class="admin-inline-form admin-inline-form--block"
+                      onsubmit="return confirm('Bu tenant silinecek (soft-delete). Üyelerin TenantId'si null'a çevrilecek. Onaylıyor musunuz?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="admin-btn admin-btn--danger">Tenant Sil</button>
+                </form>
+            }
+            else
+            {
+                <p class="admin-card__body">Silinmiş tenant — eylem yok.</p>
+            }
+        </section>
+    </div>
+
+    <header class="admin-page__sub-header">
+        <h2 class="admin-page__sub-title">Üyeler (@d.Members.Count)</h2>
+    </header>
+
+    @if (d.Members.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Bu tenant'ta üye yok.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>E-posta</th>
+                        <th>UserName</th>
+                        <th>Rol</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in d.Members)
+                    {
+                        <tr class="param-table__row">
+                            <td><code class="param-table__slug">@m.Email</code></td>
+                            <td>@m.UserName</td>
+                            <td>
+                                @if (m.Id == d.OwnerUserId)
+                                {
+                                    <span class="param-badge param-badge--admin">Owner</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--kullanici">Üye</span>
+                                }
+                            </td>
+                            <td class="param-table__actions">
+                                @if (m.Id != d.OwnerUserId && !d.IsDeleted)
+                                {
+                                    <form method="post" asp-action="UyeCikar" asp-route-id="@d.Id"
+                                          class="admin-inline-form"
+                                          onsubmit="return confirm('Bu üyeyi tenant'tan çıkarmak istediğinize emin misiniz?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="uyeId" value="@m.Id" />
+                                        <button type="submit" class="admin-link admin-link--danger">Çıkar</button>
+                                    </form>
+                                }
+                                else if (m.Id == d.OwnerUserId)
+                                {
+                                    <span class="form-section__cta-disabled" title="Owner çıkarılamaz">Çıkarılamaz</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <p class="admin-page__back">
+        <a class="admin-link" asp-action="Index">← Tenant listesine dön</a>
+    </p>
+</div>

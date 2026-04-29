@@ -1,0 +1,97 @@
+@model LexCalculus.Web.Areas.Admin.Models.Tenants.TenantListVm
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">Hukuk Büroları</h1>
+            <p class="admin-page__subtitle">
+                @Model.Items.Count tenant
+                @if (Model.IncludeDeleted)
+                {
+                    <span class="admin-page__filter-note">· silinmişler dahil</span>
+                }
+            </p>
+        </div>
+        <a asp-action="Yeni" class="admin-btn admin-btn--primary">+ Yeni Tenant</a>
+    </header>
+
+    <form method="get" class="param-filter">
+        <div class="param-filter__row">
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-search">Ara</label>
+                <input id="filter-search" name="search" class="param-filter__input"
+                       value="@Model.Search" placeholder="ad veya slug" />
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label field__label--inline" for="filter-deleted">
+                    <input type="checkbox" id="filter-deleted" name="includeDeleted" value="true"
+                           @(Model.IncludeDeleted ? "checked" : "") />
+                    <span>Silinmişleri göster</span>
+                </label>
+            </div>
+            <div class="param-filter__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Filtrele</button>
+                <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">Temizle</a>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Tenant bulunamadı.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Ad</th>
+                        <th>Slug</th>
+                        <th>Owner</th>
+                        <th class="param-table__num">Üye</th>
+                        <th>Kayıt</th>
+                        <th>Durum</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Items)
+                    {
+                        <tr class="param-table__row @(t.IsDeleted ? "param-table__row--inactive" : "")">
+                            <td>@t.Name</td>
+                            <td><code class="param-table__slug">@t.Slug</code></td>
+                            <td>@t.OwnerUserName</td>
+                            <td class="param-table__num">@t.MemberCount</td>
+                            <td>@t.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                            <td>
+                                @if (t.IsDeleted)
+                                {
+                                    <span class="param-badge param-badge--archived">Silinmiş</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--active">Aktif</span>
+                                }
+                            </td>
+                            <td class="param-table__actions">
+                                <a class="admin-link" asp-action="Detay" asp-route-id="@t.Id">Detay</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

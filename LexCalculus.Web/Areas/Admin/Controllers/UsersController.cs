@@ -79,10 +79,19 @@ public sealed class UsersController : Controller
             return RedirectToAction(nameof(Detail), new { id });
         }
 
-        var ok = await _users.SetActiveAsync(id, active: false, ct);
-        TempData[ok ? "AdminSuccess" : "AdminError"] = ok
-            ? "✓ Kullanıcı pasifleştirildi. Aktif oturumları kapatıldı."
-            : "Pasifleştirme başarısız.";
+        // Service tarafı owner protection (Faz 3.7 P2a/5) InvalidOperationException atar —
+        // self-deactivate guard pattern'iyle uyumlu TempData mesajı.
+        try
+        {
+            var ok = await _users.SetActiveAsync(id, active: false, ct);
+            TempData[ok ? "AdminSuccess" : "AdminError"] = ok
+                ? "✓ Kullanıcı pasifleştirildi. Aktif oturumları kapatıldı."
+                : "Pasifleştirme başarısız.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["AdminError"] = ex.Message;
+        }
         return RedirectToAction(nameof(Detail), new { id });
     }
 

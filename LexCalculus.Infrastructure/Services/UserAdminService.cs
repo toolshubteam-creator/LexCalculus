@@ -131,6 +131,19 @@ public sealed class UserAdminService : IUserAdminService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null) return false;
 
+        // Owner protection (Faz 3.7 P2a/5): pasifleştirilen kullanıcı aktif tenant
+        // owner'ı ise orphan tenant kalmasın diye engelle.
+        if (!active)
+        {
+            var ownsActiveTenant = await _ctx.Tenants
+                .AsAdminQuery()
+                .AnyAsync(t => t.OwnerUserId == userId && !t.IsDeleted, ct);
+
+            if (ownsActiveTenant)
+                throw new InvalidOperationException(
+                    "Bu kullanıcı bir veya daha fazla tenant'ın owner'ı. Önce owner değiştirin veya tenant'ı silin.");
+        }
+
         user.IsActive = active;
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded) return false;
