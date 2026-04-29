@@ -224,9 +224,11 @@ try
         options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
     });
 
-    // No-op email sender — real implementation comes in Phase 5
-    builder.Services.AddSingleton<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
-        Microsoft.AspNetCore.Identity.UI.Services.NoOpEmailSender>();
+    // Identity IEmailSender → IEmailService köprüsü (Faz 3.6 Parça 2b-i)
+    // Önceki NoOpEmailSender DI'dan çıkarıldı; ihtiyaç olursa MS scaffold tipinin
+    // namespace'i Microsoft.AspNetCore.Identity.UI.Services'te kalmaya devam eder.
+    builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+        LexCalculus.Infrastructure.Identity.IdentityEmailSenderAdapter>();
 
     // -------------------------------------------------------------------------
     // COOKIE — HttpOnly, Secure, SameSite.Strict

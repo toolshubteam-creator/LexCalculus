@@ -1,0 +1,38 @@
+@model LexCalculus.Core.Email.Models.EmailConfirmationModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = "Lex Calculus — E-posta Doğrulama";
+}
+
+<h1 style="margin:0 0 20px 0;font-family:Georgia,serif;font-size:24px;color:#0a1428;font-weight:normal;">
+  E-posta Adresinizi Doğrulayın
+</h1>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.DisplayName,
+</p>
+
+<p style="margin:0 0 24px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Lex Calculus hesabınız için kaydolduğunuz için teşekkür ederiz. Hesabınızı
+  aktifleştirmek için aşağıdaki düğmeye tıklayarak e-posta adresinizi doğrulayın.
+</p>
+
+<div style="text-align:center;margin:28px 0;">
+  <a href="@Model.ConfirmationUrl"
+     style="display:inline-block;padding:14px 28px;background-color:#0a1428;color:#f4ede0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border:1px solid #b8924a;">
+    E-posta Adresimi Doğrula
+  </a>
+</div>
+
+<p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#0a1428;opacity:0.75;">
+  Düğme çalışmıyorsa, aşağıdaki bağlantıyı tarayıcınıza kopyalayabilirsiniz:
+</p>
+
+<p style="margin:0 0 24px 0;font-family:'Courier New',monospace;font-size:12px;line-height:1.5;color:#6b1f2e;word-break:break-all;background-color:#f4ede0;padding:10px 12px;border-radius:3px;">
+  @Model.ConfirmationUrl
+</p>
+
+<p style="margin:24px 0 8px 0;font-size:13px;color:#0a1428;opacity:0.7;font-style:italic;line-height:1.6;">
+  Bu kayıt isteği size ait değilse, bu e-postayı yok sayabilirsiniz. Hesap
+  açılmaz.
+</p>
