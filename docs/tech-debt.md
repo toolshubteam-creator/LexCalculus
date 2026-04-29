@@ -134,6 +134,48 @@ bağlam tam olur.
 
 ---
 
+## 6. ChangePassword sayfası scaffold edilmedi
+
+**Bağlam:** Adım 3.6 Parça 3/4 — profil sayfası `/profil`'de "Şifre
+değiştir" butonu yer aldı, ancak `Manage/ChangePassword.cshtml` Faz 1
+Identity scaffold'unda yoktu. Parça 3/4 kapsamı dışına çıkmamak için
+bu sayfa eklenmedi; profil sayfasında "Şifre değiştir" disabled
+placeholder olarak gösteriliyor.
+
+**Mevcut durum:** Kullanıcı şifresini değiştiremiyor. "Şifremi
+unuttum" ile reset linki üzerinden değiştirebiliyor (ForgotPassword
+mevcut), ama bu yetkilendirilmiş kullanıcının kendi şifresini
+değiştirmek için fazla dolaylı.
+
+**İdeal çözüm:** `dotnet aspnet-codegenerator identity` ile
+Manage/ChangePassword scaffold + Lex Calculus tema uygulaması. Yaklaşık
+1 saatlik mini-spec.
+
+**Önerilen zaman:** Adım 3.6 Parça 4/4 sonrası mini ek spec, veya
+Adım 3.9 (Faz 3 final temizlik). Faz 3 boyunca admin manuel şifre
+reset gönderebileceği için (Parça 4/4) acil değil.
+
+---
+
+## 7. Manage/_ManageNav.cshtml Bootstrap kalıntısı
+
+**Bağlam:** Adım 3.6 Parça 3/4 keşfi — Identity scaffold'undan gelen
+`_ManageNav.cshtml` dosyası Bootstrap `nav-pills` class'ları kullanıyor
+ve şu anda hiçbir sayfada include edilmiyor.
+
+**Mevcut durum:** Dosya repo'da var ama kullanılmıyor. Dead code +
+Bootstrap bağımlılığı sinyali.
+
+**İdeal çözüm:** Ya silinir (kullanılmadığına göre), ya da Lex
+Calculus tema diline çevrilir (`.admin-nav-link` benzeri pattern).
+Eğer Faz 4'te Manage altında çoklu sayfa olursa nav lazım olabilir.
+
+**Önerilen zaman:** Adım 3.9 (Faz 3 final temizlik). Şu an 0 etki
+ama tarama yapılırken "Bootstrap kullanıyoruz mu?" yanlış sinyali
+verir.
+
+---
+
 ## Bu dosya nasıl güncellenir?
 
 Yeni bir tech debt maddesi ortaya çıktığında:
