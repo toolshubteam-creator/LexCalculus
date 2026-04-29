@@ -1,4 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using LexCalculus.Core.Entities.Common;
+using LexCalculus.Core.Enums;
 
 namespace LexCalculus.Core.Entities.Identity;
 
@@ -27,10 +29,18 @@ public class UserProfile : BaseEntity
     public string? BaroNo { get; set; }
 
     /// <summary>
-    /// Professional title — Avukat, Stajyer Avukat, Hâkim, Bilirkişi, Akademisyen, etc.
-    /// Free-text for now; may become enum in future.
+    /// Kullanıcının mesleği (opsiyonel). null = belirtilmemiş.
+    /// Yetki belirlemez — istatistik ve hedefli bildirim için.
+    /// Faz 3.6 Parça 2a/4: önceki Title (free-text) yerini aldı.
     /// </summary>
-    public string? Title { get; set; }
+    public MeslekTuru? MeslekTuru { get; set; }
+
+    /// <summary>
+    /// MeslekTuru = Diger ise serbest metin açıklama (örn. "Hukuk Müşaviri").
+    /// MeslekTuru başka değer ise null olmalı.
+    /// </summary>
+    [MaxLength(50)]
+    public string? MeslekTuruDiger { get; set; }
 
     /// <summary>
     /// User-provided biography. Plain text, no HTML.

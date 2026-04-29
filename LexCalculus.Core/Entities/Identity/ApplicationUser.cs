@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-using LexCalculus.Core.Enums;
 using Microsoft.AspNetCore.Identity;
 
 namespace LexCalculus.Core.Entities.Identity;
@@ -45,25 +43,4 @@ public class ApplicationUser : IdentityUser<int>
     /// kullanıcı bell icon'da yine görür, sadece e-posta engellenir.
     /// </summary>
     public bool NotificationsEmailEnabled { get; set; } = true;
-
-    /// <summary>
-    /// Kullanıcının mesleği (opsiyonel). null = belirtilmemiş.
-    /// Yetki belirlemez — istatistik ve hedefli bildirim için.
-    /// </summary>
-    public MeslekTuru? MeslekTuru { get; set; }
-
-    /// <summary>
-    /// MeslekTuru = Diger ise serbest metin açıklama (örn. "Hukuk Müşaviri").
-    /// MeslekTuru başka değer ise null olmalı.
-    /// </summary>
-    [MaxLength(50)]
-    public string? MeslekTuruDiger { get; set; }
-
-    /// <summary>Avukat/Hakim/Savci/Bilirkisi gibi sicil/baro numarası (opsiyonel).</summary>
-    [MaxLength(30)]
-    public string? BaroSicilNo { get; set; }
-
-    /// <summary>Telefon numarası (opsiyonel).</summary>
-    [MaxLength(20)]
-    public string? Telefon { get; set; }
 }

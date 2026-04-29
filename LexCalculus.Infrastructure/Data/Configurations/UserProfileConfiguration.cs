@@ -17,7 +17,6 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
             .HasMaxLength(100);
 
         builder.Property(p => p.BaroNo).HasMaxLength(50);
-        builder.Property(p => p.Title).HasMaxLength(80);
         builder.Property(p => p.Bio).HasMaxLength(2000);
         builder.Property(p => p.AvatarUrl).HasMaxLength(500);
         builder.Property(p => p.City).HasMaxLength(80);

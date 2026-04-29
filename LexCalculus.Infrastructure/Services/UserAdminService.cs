@@ -43,6 +43,7 @@ public sealed class UserAdminService : IUserAdminService
 
         var totalCount = await q.CountAsync(ct);
         var users = await q
+            .Include(u => u.Profile)
             .OrderByDescending(u => u.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -61,16 +62,16 @@ public sealed class UserAdminService : IUserAdminService
 
         var items = users.Select(u =>
         {
-            string? meslekLabel = u.MeslekTuru switch
+            string? meslekLabel = u.Profile?.MeslekTuru switch
             {
                 Core.Enums.MeslekTuru.Avukat => "Avukat",
                 Core.Enums.MeslekTuru.Hakim => "Hâkim",
                 Core.Enums.MeslekTuru.Savci => "Savcı",
                 Core.Enums.MeslekTuru.Bilirkisi => "Bilirkişi",
                 Core.Enums.MeslekTuru.MaliMusavir => "Mali Müşavir",
-                Core.Enums.MeslekTuru.Diger => string.IsNullOrWhiteSpace(u.MeslekTuruDiger)
+                Core.Enums.MeslekTuru.Diger => string.IsNullOrWhiteSpace(u.Profile?.MeslekTuruDiger)
                     ? "Diğer"
-                    : $"Diğer: {u.MeslekTuruDiger}",
+                    : $"Diğer: {u.Profile.MeslekTuruDiger}",
                 _ => null
             };
 
