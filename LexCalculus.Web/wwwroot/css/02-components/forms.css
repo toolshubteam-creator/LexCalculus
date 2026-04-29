@@ -120,3 +120,47 @@
 .cocuk-list {
   margin-bottom: var(--sp-4);
 }
+
+/* Faz 3.6 — Identity formları (kayıt + giriş) için yardımcı sınıflar */
+
+/* Centered narrow form (kayıt + giriş gibi formlar için) */
+.form-section--narrow {
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Alt CTA bloğu (örn. "Zaten hesabınız var mı?") */
+.form-section__cta {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--gold-pale);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.85;
+}
+
+.form-section__cta a {
+  color: var(--burgundy);
+  text-decoration: none;
+}
+
+.form-section__cta a:hover {
+  color: var(--gold);
+}
+
+/* Inline label modifier (checkbox + metin yan yana) */
+.field__label--inline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* Conditional görünürlük utility (JS toggle için) */
+.is-hidden {
+  display: none !important;
+}
