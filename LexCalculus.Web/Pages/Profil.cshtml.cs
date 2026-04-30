@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Enums;
+using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Services;
 using LexCalculus.Core.Storage;
 using LexCalculus.Infrastructure.Data;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace LexCalculus.Web.Pages;
 
@@ -26,6 +28,7 @@ public class ProfilModel : PageModel
     private readonly IPublicProfileService _publicProfile;
     private readonly IMediaUploadService _mediaUpload;
     private readonly IMediaStorage _mediaStorage;
+    private readonly SeoSettings _seo;
     private readonly ILogger<ProfilModel> _logger;
 
     public ProfilModel(
@@ -35,6 +38,7 @@ public class ProfilModel : PageModel
         IPublicProfileService publicProfile,
         IMediaUploadService mediaUpload,
         IMediaStorage mediaStorage,
+        IOptions<SeoSettings> seoOptions,
         ILogger<ProfilModel> logger)
     {
         _userManager = userManager;
@@ -43,6 +47,7 @@ public class ProfilModel : PageModel
         _publicProfile = publicProfile;
         _mediaUpload = mediaUpload;
         _mediaStorage = mediaStorage;
+        _seo = seoOptions.Value ?? new SeoSettings();
         _logger = logger;
     }
 
@@ -57,6 +62,14 @@ public class ProfilModel : PageModel
     /// Mevcut avatarın public URL'i (varsa). View'da preview render etmek için.
     /// </summary>
     public string? CurrentAvatarUrl { get; set; }
+
+    /// <summary>
+    /// Kullanıcının public profil URL'i (read-only). PublicSlug null ise null —
+    /// view bilgi satırını koşullu render eder. SiteUrl varsa absolute, yoksa
+    /// relative. Faz 4.1 P3-fix tasarım kararı (slug değiştirilemez ama görünür,
+    /// LinkedIn pattern).
+    /// </summary>
+    public string? CurrentProfileUrl { get; set; }
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -134,6 +147,8 @@ public class ProfilModel : PageModel
             ? null
             : _mediaStorage.GetPublicUrl(profile.AvatarUrl);
 
+        CurrentProfileUrl = BuildProfileUrl(profile.PublicSlug);
+
         Input = new InputModel
         {
             FullName = user.FullName ?? "",
@@ -167,6 +182,8 @@ public class ProfilModel : PageModel
         CurrentAvatarUrl = string.IsNullOrEmpty(currentProfile?.AvatarUrl)
             ? null
             : _mediaStorage.GetPublicUrl(currentProfile.AvatarUrl);
+
+        CurrentProfileUrl = BuildProfileUrl(currentProfile?.PublicSlug);
 
         // Avatar yükleme — kullanıcı dosya seçmediyse sessiz atla, mevcut avatar korunur.
         if (Input.AvatarFile is { Length: > 0 })
@@ -270,5 +287,14 @@ public class ProfilModel : PageModel
 
         StatusMessage = "Profiliniz güncellendi.";
         return RedirectToPage();
+    }
+
+    private string? BuildProfileUrl(string? slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug)) return null;
+        var siteUrl = (_seo.SiteUrl ?? "").TrimEnd('/');
+        return string.IsNullOrEmpty(siteUrl)
+            ? $"/uye/{slug}"
+            : $"{siteUrl}/uye/{slug}";
     }
 }

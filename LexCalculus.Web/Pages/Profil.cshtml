@@ -103,6 +103,43 @@
             adresinden görebilir. Profil gizli kalsa bile bu bilgileri istediğiniz zaman doldurabilirsiniz.
         </p>
 
+        @* Faz 4.1 P3-fix — pasif profil bağlantısı (LinkedIn pattern) *@
+        @if (!string.IsNullOrEmpty(Model.CurrentProfileUrl))
+        {
+            <div class="profil-link@(Model.Input.IsPublicProfile ? "" : " profil-link--disabled")">
+                <span class="profil-link__label">Profil bağlantınız</span>
+                <div class="profil-link__row">
+                    @if (Model.Input.IsPublicProfile)
+                    {
+                        <a href="@Model.CurrentProfileUrl" target="_blank" rel="noopener"
+                           class="profil-link__url">@Model.CurrentProfileUrl</a>
+                    }
+                    else
+                    {
+                        <span class="profil-link__url profil-link__url--disabled">@Model.CurrentProfileUrl</span>
+                    }
+                    <button type="button" class="profil-link__copy"
+                            data-copy="@Model.CurrentProfileUrl"
+                            aria-label="Bağlantıyı kopyala">
+                        Kopyala
+                    </button>
+                </div>
+                @if (!Model.Input.IsPublicProfile)
+                {
+                    <small class="profil-link__hint">
+                        Profilinizi açtığınızda bu bağlantı erişilebilir olacak.
+                        Bağlantı sistem tarafından üretildi, değiştirilemez.
+                    </small>
+                }
+                else
+                {
+                    <small class="profil-link__hint">
+                        Bu bağlantı sistem tarafından üretildi, değiştirilemez.
+                    </small>
+                }
+            </div>
+        }
+
         <div class="field">
             <label class="field__label field__label--inline">
                 <input type="checkbox" asp-for="Input.IsPublicProfile" />
@@ -156,4 +193,5 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/register.js" asp-append-version="true"></script>
+    <script src="~/js/profil.js" asp-append-version="true"></script>
 }

@@ -83,6 +83,101 @@
   margin-top: 4px;
 }
 
+/* Profil bağlantısı bilgi kutusu — /profil sayfası (Faz 4.1 P3-fix).
+   Slug "kullanıcıdan gizli" karar verildi ama URL görünür kalmalı (paylaşım
+   için). IsPublicProfile=false iken görünüm soluk + tıklanmaz; aktif iken
+   yeni sekmede açılır. Inline style yok. */
+.profil-link {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--gold-pale, #d4c389);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+
+.profil-link--disabled {
+  opacity: 0.65;
+}
+
+.profil-link__label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.profil-link__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.profil-link__url {
+  flex: 1 1 auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  color: var(--ink);
+  word-break: break-all;
+  text-decoration: none;
+}
+
+.profil-link__url:hover {
+  text-decoration: underline;
+}
+
+.profil-link__url--disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.profil-link__url--disabled:hover {
+  text-decoration: none;
+}
+
+.profil-link__copy {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.profil-link__copy:hover {
+  opacity: 0.85;
+}
+
+.profil-link__copy[data-copied="true"] {
+  background: var(--gold, #c9a961);
+  border-color: var(--gold, #c9a961);
+}
+
+.profil-link__hint {
+  display: block;
+  font-size: var(--fs-hint);
+  color: var(--muted);
+  margin-top: var(--sp-2);
+  font-style: italic;
+}
+
+/* Clipboard fallback — ekran dışı textarea */
+.visually-hidden-textarea {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* Avatar yükleme preview — /profil sayfası (Faz 4.1 P2/3) */
 .avatar-preview {
   margin-bottom: var(--sp-3);
