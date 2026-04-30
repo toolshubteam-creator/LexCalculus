@@ -216,16 +216,7 @@ namespace LexCalculus.Web.Areas.Identity.Pages.Account
                     new { email = Input.Email, returnUrl });
             }
 
-            try
-            {
-                await _signInManager.SignInAsync(user, isPersistent: false);
-            }
-            catch (Exception ex)
-            {
-                // Test ortamında IAuthenticationSignInHandler eksik olabilir; auto sign-in'i atla.
-                _logger.LogWarning(ex, "Auto sign-in atlandı (kullanıcı oluştu, manuel login bekleniyor): {Email}",
-                    Input.Email);
-            }
+            await _signInManager.SignInAsync(user, isPersistent: false);
             return LocalRedirect(returnUrl);
         }
     }

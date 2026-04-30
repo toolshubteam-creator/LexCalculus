@@ -237,6 +237,16 @@
   color: var(--gold);
 }
 
+/* CTA bloğunda anchor link (Şifre değiştir gibi) */
+.form-section__cta-link {
+  color: var(--burgundy);
+  text-decoration: none;
+}
+.form-section__cta-link:hover {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
 /* CTA bloğunda yakında-aktif olacak link (disabled stil) */
 .form-section__cta-disabled {
   color: var(--ink);
@@ -379,4 +389,22 @@
 .tenant-leave__btn:hover {
   background: var(--burgundy);
   color: var(--parchment);
+}
+
+/* /tenant/yonet sayfası — Adım 3.9 P1/2 (tech-debt madde 8 cleanup) */
+.tenant-yonetim__meta {
+  margin-bottom: var(--sp-5);
+}
+
+.tenant-yonetim__section-title {
+  font-size: 18px;
+  margin-top: var(--sp-6);
+}
+
+.tenant-yonetim__section-title--wide {
+  margin-top: var(--sp-8);
+}
+
+.tenant-yonetim__inline-form {
+  display: inline;
 }

@@ -30,11 +30,11 @@
         <div class="form-section__message form-section__message--error" role="alert">@error</div>
     }
 
-    <p class="field-hint" style="margin-bottom:20px;">
+    <p class="field-hint tenant-yonetim__meta">
         Slug: <code>@Model.Tenant.Slug</code> · Üye sayısı: @Model.Tenant.Members.Count
     </p>
 
-    <h2 class="form-section__title" style="font-size:18px;margin-top:24px;">Üyeler</h2>
+    <h2 class="form-section__title tenant-yonetim__section-title">Üyeler</h2>
     <table class="param-table">
         <thead>
             <tr>
@@ -68,7 +68,7 @@
                             {
                                 <form method="post" asp-action="UyeCikar" asp-route-id="@m.Id"
                                       onsubmit="return confirm('Bu üyeyi çıkarmak istediğinize emin misiniz?');"
-                                      style="display:inline;">
+                                      class="tenant-yonetim__inline-form">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="form-section__cta-link-btn">Çıkar</button>
                                 </form>
@@ -82,7 +82,7 @@
 
     @if (Model.IsOwner)
     {
-        <h2 class="form-section__title" style="font-size:18px;margin-top:32px;">Yeni Davet</h2>
+        <h2 class="form-section__title tenant-yonetim__section-title tenant-yonetim__section-title--wide">Yeni Davet</h2>
         <form method="post" asp-action="Davet">
             @Html.AntiForgeryToken()
             <div class="field">
@@ -95,7 +95,7 @@
             </div>
         </form>
 
-        <h2 class="form-section__title" style="font-size:18px;margin-top:32px;">Davetler</h2>
+        <h2 class="form-section__title tenant-yonetim__section-title tenant-yonetim__section-title--wide">Davetler</h2>
         @if (Model.Invitations.Count == 0)
         {
             <p class="field-hint">Henüz hiç davet gönderilmedi.</p>
@@ -125,7 +125,7 @@
                                 {
                                     <form method="post" asp-action="DavetIptal" asp-route-id="@inv.Id"
                                           onsubmit="return confirm('Daveti iptal etmek istediğinize emin misiniz?');"
-                                          style="display:inline;">
+                                          class="tenant-yonetim__inline-form">
                                         @Html.AntiForgeryToken()
                                         <button type="submit" class="form-section__cta-link-btn">İptal Et</button>
                                     </form>

@@ -72,12 +72,29 @@ public static class CalculatorParameterSeeder
 
         foreach (var seed in seeds)
         {
-            var exists = await db.Set<FormulaParameter>().AnyAsync(p =>
-                p.ToolSlug == seed.ToolSlug && p.Key == seed.Key && p.EffectiveDate == seed.EffectiveDate, ct);
+            // Tech-debt madde 2: soft-delete bypass ile mevcut satırı sorgula.
+            // Admin paneli kanonik bir seed satırını yanlışlıkla soft-delete ederse
+            // global filter onu görmez → INSERT denenir → unique constraint patlar.
+            // Çözüm: IgnoreQueryFilters() ile satırı bul; varsa restore et, yoksa ekle.
+            var existing = await db.Set<FormulaParameter>()
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p =>
+                    p.ToolSlug == seed.ToolSlug && p.Key == seed.Key && p.EffectiveDate == seed.EffectiveDate, ct);
 
-            if (exists)
+            if (existing is not null)
             {
-                logger.LogDebug("Parameter already exists: {Slug}/{Key}@{Date:yyyy-MM-dd}", seed.ToolSlug, seed.Key, seed.EffectiveDate);
+                if (existing.IsDeleted)
+                {
+                    existing.IsDeleted = false;
+                    logger.LogWarning(
+                        "Kanonik seed satırı soft-deleted bulundu, restore ediliyor: {Slug}/{Key}@{Date:yyyy-MM-dd}",
+                        seed.ToolSlug, seed.Key, seed.EffectiveDate);
+                }
+                else
+                {
+                    logger.LogDebug("Parameter already exists: {Slug}/{Key}@{Date:yyyy-MM-dd}",
+                        seed.ToolSlug, seed.Key, seed.EffectiveDate);
+                }
                 continue;
             }
 

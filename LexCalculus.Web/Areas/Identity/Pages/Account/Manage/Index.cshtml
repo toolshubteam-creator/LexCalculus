@@ -81,7 +81,7 @@
     </form>
 
     <div class="form-section__cta">
-        <span class="form-section__cta-disabled" title="Şifre değiştirme sayfası yakında">Şifre değiştir</span>
+        <a asp-area="Identity" asp-page="/Account/Manage/ChangePassword" class="form-section__cta-link">Şifre değiştir</a>
         &nbsp;·&nbsp;
         <form method="post" asp-area="Identity" asp-page="/Account/Logout" class="form-section__cta-inline-form">
             <button type="submit" class="form-section__cta-link-btn">Çıkış yap</button>

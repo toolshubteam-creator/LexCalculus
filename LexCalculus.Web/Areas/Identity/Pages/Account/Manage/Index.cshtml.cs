@@ -148,14 +148,7 @@ public class IndexModel : PageModel
 
         await _ctx.SaveChangesAsync();
 
-        try
-        {
-            await _signInManager.RefreshSignInAsync(user);
-        }
-        catch (System.Exception)
-        {
-            // Test ortamında IAuthenticationSignInHandler eksik olabilir; refresh atla.
-        }
+        await _signInManager.RefreshSignInAsync(user);
 
         StatusMessage = "Profiliniz güncellendi.";
         return RedirectToPage();

@@ -32,7 +32,7 @@ overkill.
 
 ---
 
-## 2. Seeder soft-delete restore mantığı (Bulgu 1, Adım 3.2 E2E)
+## ✅ 2. Seeder soft-delete restore mantığı (Bulgu 1, Adım 3.2 E2E) — Kapatıldı (2026-04-30, Adım 3.9 P1/2)
 
 **Bağlam:** Adım 3.2 Parça 3 E2E cache invalidation testinde keşfedildi.
 Admin paneli soft-delete yapabildiği için, kanonik bir seed satırı
@@ -51,6 +51,11 @@ olmayan) satırlar etkilenmez.
 **Önerilen zaman:** Adım 3.9 (Faz 3 final temizlik). Bu kavramsal değişiklik:
 seeder bundan sonra "satır yoksa ekle" değil, "kanonik satır mevcut formdaysa
 garanti et" olacak.
+
+**Çözüm:** `CalculatorParameterSeeder.SeedAsync` artık `IgnoreQueryFilters()`
+ile mevcut satırı sorguluyor. Bulunursa: `IsDeleted=true` ise restore eder
+(IsDeleted=false), aksi halde skip. Bulunmazsa Insert eder. Boot fail
+riski ortadan kalktı. 2 yeni test eklendi (idempotent re-run, restore).
 
 ---
 
@@ -105,7 +110,7 @@ kullanıcı dashboard'a girmeye kalkar) o zaman test edilebilir hale gelecek.
 
 ---
 
-## 5. Register `SignInAsync` defensive try/catch
+## ✅ 5. Register `SignInAsync` defensive try/catch — Kapatıldı (2026-04-30, Adım 3.9 P1/2)
 
 **Bağlam:** Adım 3.6 Parça 2b-ii — Register.cshtml.cs OnPostAsync sonunda
 `_signInManager.SignInAsync(user, isPersistent: false)` çağrısı try/catch
@@ -132,9 +137,14 @@ Yaklaşım 1 daha temiz (test ortamı production gibi davranır). Yaklaşım
 ile Identity akışı tamamen oturmuş olur, yaklaşımı değerlendirmek için
 bağlam tam olur.
 
+**Çözüm:** Seçenek 1. `TestAuthHandler` artık `IAuthenticationSignInHandler`
+implement ediyor (`SignInAsync`/`SignOutAsync` no-op). Hem `Register.cshtml.cs`
+hem `Manage/Index.cshtml.cs` (RefreshSignInAsync) try/catch'leri kaldırıldı.
+Production kod sade; test ortamı production gibi davranıyor.
+
 ---
 
-## 6. ChangePassword sayfası scaffold edilmedi
+## ✅ 6. ChangePassword sayfası scaffold edilmedi — Kapatıldı (2026-04-30, Adım 3.9 P1/2)
 
 **Bağlam:** Adım 3.6 Parça 3/4 — profil sayfası `/profil`'de "Şifre
 değiştir" butonu yer aldı, ancak `Manage/ChangePassword.cshtml` Faz 1
@@ -155,9 +165,38 @@ Manage/ChangePassword scaffold + Lex Calculus tema uygulaması. Yaklaşık
 Adım 3.9 (Faz 3 final temizlik). Faz 3 boyunca admin manuel şifre
 reset gönderebileceği için (Parça 4/4) acil değil.
 
+**Çözüm:** `Manage/ChangePassword.cshtml(.cs)` Lex Calculus tema (form-section
++ field BEM) ile eklendi. `Manage/Index.cshtml`'deki disabled placeholder
+gerçek link oldu. 3 yeni test eklendi (GET 200, POST happy path, POST yanlış
+eski şifre validation).
+
 ---
 
-## 8. P3/5 — Views/TenantYonetim/Index.cshtml inline style ihlali
+## ✅ 7. Manage/_ManageNav.cshtml Bootstrap kalıntısı — Kapatıldı (2026-04-30, Adım 3.9 P1/2)
+
+**Bağlam:** Adım 3.6 Parça 3/4 keşfi — Identity scaffold'undan gelen
+`_ManageNav.cshtml` dosyası Bootstrap `nav-pills` class'ları kullanıyor
+ve şu anda hiçbir sayfada include edilmiyor.
+
+**Mevcut durum:** Dosya repo'da var ama kullanılmıyor. Dead code +
+Bootstrap bağımlılığı sinyali.
+
+**İdeal çözüm:** Ya silinir (kullanılmadığına göre), ya da Lex
+Calculus tema diline çevrilir (`.admin-nav-link` benzeri pattern).
+Eğer Faz 4'te Manage altında çoklu sayfa olursa nav lazım olabilir.
+
+**Önerilen zaman:** Adım 3.9 (Faz 3 final temizlik). Şu an 0 etki
+ama tarama yapılırken "Bootstrap kullanıyoruz mu?" yanlış sinyali
+verir.
+
+**Çözüm:** Dead code yolunu seçtik — `Manage/_ManageNav.cshtml` ve
+`Manage/ManageNavPages.cs` silindi. Manage sayfaları zaten standalone
+form-section pattern'i kullanıyordu, nav include'a ihtiyaç yok.
+Faz 4'te Manage altında çoklu sayfa gerekirse temadan sıfırdan eklenir.
+
+---
+
+## ✅ 8. Views/TenantYonetim/Index.cshtml inline style ihlali — Kapatıldı (2026-04-30, Adım 3.9 P1/2)
 
 **Bağlam:** Adım 3.7 P3/5 commit'inde TenantYonetim view'ı yazılırken
 hızlı çıktı için inline style'lar kullanıldı (`style="margin-bottom:20px"`,
@@ -175,9 +214,13 @@ benzer şekilde çevrilmeli.
 
 **Önerilen zaman:** Adım 3.9 cleanup turu. Tahmini iş 15 dakika.
 
+**Çözüm:** 6 inline style temizlendi. `forms.css`'e `tenant-yonetim__meta`,
+`tenant-yonetim__section-title` (+ `--wide` modifier), `tenant-yonetim__inline-form`
+BEM class'ları eklendi. View artık hiç inline style içermiyor.
+
 ---
 
-## 8. ActivityLog retention policy belirsiz (Adım 3.8 P1/2)
+## 9. ActivityLog retention policy belirsiz (Adım 3.8 P1/2)
 
 **Bağlam:** Adım 3.8 P1/2'de eklendi. ActivityLog tablosu KVKK kapsamında
 kişisel veri içeriyor: UserId, IpAddress, UserAgent, MetadataJson.
@@ -193,25 +236,6 @@ olan kayıtları sil.
 
 **Önerilen zaman:** Hukuki görüş + 1 saat job kodu. Adım 3.8 P2/2 sonrası
 veya Faz 4 başında.
-
----
-
-## 7. Manage/_ManageNav.cshtml Bootstrap kalıntısı
-
-**Bağlam:** Adım 3.6 Parça 3/4 keşfi — Identity scaffold'undan gelen
-`_ManageNav.cshtml` dosyası Bootstrap `nav-pills` class'ları kullanıyor
-ve şu anda hiçbir sayfada include edilmiyor.
-
-**Mevcut durum:** Dosya repo'da var ama kullanılmıyor. Dead code +
-Bootstrap bağımlılığı sinyali.
-
-**İdeal çözüm:** Ya silinir (kullanılmadığına göre), ya da Lex
-Calculus tema diline çevrilir (`.admin-nav-link` benzeri pattern).
-Eğer Faz 4'te Manage altında çoklu sayfa olursa nav lazım olabilir.
-
-**Önerilen zaman:** Adım 3.9 (Faz 3 final temizlik). Şu an 0 etki
-ama tarama yapılırken "Bootstrap kullanıyoruz mu?" yanlış sinyali
-verir.
 
 ---
 
