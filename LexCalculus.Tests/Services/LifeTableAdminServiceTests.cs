@@ -16,7 +16,7 @@ public class LifeTableAdminServiceTests
     {
         var calculatorSvc = new Mock<ILifeTableService>().Object;
         return new LifeTableAdminService(
-            ctx, calculatorSvc, NullLogger<LifeTableAdminService>.Instance);
+            ctx, calculatorSvc, new NullActivityLogService(), NullLogger<LifeTableAdminService>.Instance);
     }
 
     private static LifeTable MakeTable(string code, DateTime effective, bool isActive) =>

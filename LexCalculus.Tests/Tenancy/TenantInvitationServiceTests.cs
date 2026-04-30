@@ -54,7 +54,7 @@ public class TenantInvitationServiceTests
 
         var seoOptions = Options.Create(new SeoSettings { SiteUrl = TestSiteUrl });
         var svc = new TenantInvitationService(
-            ctx, emailMock.Object, rendererMock.Object, seoOptions,
+            ctx, emailMock.Object, rendererMock.Object, new NullActivityLogService(), seoOptions,
             NullLogger<TenantInvitationService>.Instance);
         return (ctx, svc, emailMock);
     }

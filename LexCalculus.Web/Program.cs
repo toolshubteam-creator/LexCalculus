@@ -231,6 +231,9 @@ try
     // Tenant invitation akışı (Faz 3.7 P3/5) — owner/admin → email davet
     builder.Services.AddScoped<ITenantInvitationService, TenantInvitationService>();
 
+    // ActivityLog — sistem geneli denetim (Faz 3.8 P1/2)
+    builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {

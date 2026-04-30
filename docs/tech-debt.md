@@ -177,6 +177,25 @@ benzer şekilde çevrilmeli.
 
 ---
 
+## 8. ActivityLog retention policy belirsiz (Adım 3.8 P1/2)
+
+**Bağlam:** Adım 3.8 P1/2'de eklendi. ActivityLog tablosu KVKK kapsamında
+kişisel veri içeriyor: UserId, IpAddress, UserAgent, MetadataJson.
+Şu anda sınırsız tutuluyor (silme yok).
+
+**Mevcut durum:** Yazılan tüm kayıtlar süresiz birikiyor. Tablo zamanla
+sürekli büyüyecek; KVKK bakış açısıyla "süresiz tutum" gerekçesiz.
+
+**İdeal çözüm:** Avukat/danışman görüşü alınıp net bir retention süresi
+belirlenmeli (yaygın aralık: 2-5 yıl). Karar sonrası Hangfire recurring
+job ile cron temizleme: günlük bir kez, `CreatedAt < (UtcNow - retention)`
+olan kayıtları sil.
+
+**Önerilen zaman:** Hukuki görüş + 1 saat job kodu. Adım 3.8 P2/2 sonrası
+veya Faz 4 başında.
+
+---
+
 ## 7. Manage/_ManageNav.cshtml Bootstrap kalıntısı
 
 **Bağlam:** Adım 3.6 Parça 3/4 keşfi — Identity scaffold'undan gelen

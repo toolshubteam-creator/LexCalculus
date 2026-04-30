@@ -16,7 +16,7 @@ public class FormulaParameterServiceTests
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
     private static FormulaParameterService CreateService(LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) =>
-        new FormulaParameterService(ctx, CreateInMemoryCache(), NullLogger<FormulaParameterService>.Instance);
+        new FormulaParameterService(ctx, CreateInMemoryCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
 
     [Fact]
     public async Task GetValueAsync_Returns_Null_When_No_Rows_Exist()

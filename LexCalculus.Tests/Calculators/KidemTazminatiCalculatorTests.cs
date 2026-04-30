@@ -25,7 +25,7 @@ public class KidemTazminatiCalculatorTests
             new FormulaParameter { ToolSlug = "*", Key = "damga-vergisi-orani", Value = 0.00759m, EffectiveDate = new DateTime(2020, 1, 1) }
         );
         ctx.SaveChanges();
-        var paramService = new FormulaParameterService(ctx, CreateCache(), NullLogger<FormulaParameterService>.Instance);
+        var paramService = new FormulaParameterService(ctx, CreateCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
         var calc = new KidemTazminatiCalculator(paramService);
         return (calc, ctx);
     }
@@ -155,7 +155,7 @@ public class KidemTazminatiCalculatorTests
             new FormulaParameter { ToolSlug = "*", Key = "damga-vergisi-orani", Value = 0.00759m, EffectiveDate = new DateTime(2020, 1, 1) }
         );
         await ctx.SaveChangesAsync();
-        var paramSvc = new FormulaParameterService(ctx, CreateCache(), NullLogger<FormulaParameterService>.Instance);
+        var paramSvc = new FormulaParameterService(ctx, CreateCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
         var calc = new KidemTazminatiCalculator(paramSvc);
 
         var input = new KidemTazminatiInput

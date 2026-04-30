@@ -50,9 +50,10 @@ public class TenantRequestServiceTests
                     .ReturnsAsync("<html></html>");
 
         var seoOptions = Options.Create(new SeoSettings { SiteUrl = TestSiteUrl });
-        var tenantAdmin = new TenantAdminService(ctx);
+        var activityLog = new NullActivityLogService();
+        var tenantAdmin = new TenantAdminService(ctx, activityLog);
         var svc = new TenantRequestService(
-            ctx, tenantAdmin, emailMock.Object, rendererMock.Object,
+            ctx, tenantAdmin, emailMock.Object, rendererMock.Object, activityLog,
             seoOptions, NullLogger<TenantRequestService>.Instance);
         return (ctx, svc, emailMock, rendererMock);
     }

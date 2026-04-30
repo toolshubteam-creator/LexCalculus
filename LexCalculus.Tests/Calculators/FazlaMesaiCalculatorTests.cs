@@ -24,7 +24,7 @@ public class FazlaMesaiCalculatorTests
             new FormulaParameter { ToolSlug = "ihbar-tazminati", Key = "gelir-vergisi-orani-basit", Value = 0.15m, EffectiveDate = new DateTime(2020, 1, 1) }
         );
         ctx.SaveChanges();
-        var paramSvc = new FormulaParameterService(ctx, CreateCache(), NullLogger<FormulaParameterService>.Instance);
+        var paramSvc = new FormulaParameterService(ctx, CreateCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
         return (new FazlaMesaiCalculator(paramSvc), ctx);
     }
 

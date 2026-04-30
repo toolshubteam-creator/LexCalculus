@@ -17,6 +17,7 @@ public sealed class TenantRequestService : ITenantRequestService
     private readonly ITenantAdminService _tenantAdmin;
     private readonly IEmailService _emailService;
     private readonly IEmailTemplateRenderer _emailRenderer;
+    private readonly IActivityLogService _activityLog;
     private readonly ILogger<TenantRequestService> _logger;
     private readonly string _siteUrl;
 
@@ -25,6 +26,7 @@ public sealed class TenantRequestService : ITenantRequestService
         ITenantAdminService tenantAdmin,
         IEmailService emailService,
         IEmailTemplateRenderer emailRenderer,
+        IActivityLogService activityLog,
         IOptions<SeoSettings> seoSettings,
         ILogger<TenantRequestService> logger)
     {
@@ -32,6 +34,7 @@ public sealed class TenantRequestService : ITenantRequestService
         _tenantAdmin = tenantAdmin;
         _emailService = emailService;
         _emailRenderer = emailRenderer;
+        _activityLog = activityLog;
         _siteUrl = seoSettings.Value.SiteUrl;
         _logger = logger;
     }
@@ -110,6 +113,14 @@ public sealed class TenantRequestService : ITenantRequestService
         r.Status = TenantRequestStatus.Cancelled;
         r.ProcessedAt = DateTime.UtcNow;
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "TenantRequest.Cancel",
+            entityType: nameof(TenantRequest),
+            entityId: r.Id,
+            description: $"Tenant talebi iptal edildi: {r.ProposedName}",
+            metadata: new { RequestId = r.Id },
+            ct: ct);
     }
 
     public async Task<List<TenantRequestListItemDto>> GetAllAsync(TenantRequestStatus? statusFilter, CancellationToken ct = default)
@@ -194,6 +205,15 @@ public sealed class TenantRequestService : ITenantRequestService
             .AsAdminQuery()
             .FirstAsync(t => t.Id == tenantId, ct);
 
+        await _activityLog.LogAsync(
+            action: "TenantRequest.Approve",
+            entityType: nameof(TenantRequest),
+            entityId: r.Id,
+            description: $"Tenant talebi onaylandı: {r.ProposedName} → '{createdTenant.Name}'",
+            metadata: new { RequestId = r.Id, CreatedTenantId = tenantId },
+            tenantId: tenantId,
+            ct: ct);
+
         await SendApprovalEmailAsync(user, createdTenant, ct);
     }
 
@@ -216,6 +236,14 @@ public sealed class TenantRequestService : ITenantRequestService
         r.ProcessedByUserId = adminUserId;
         r.RejectionReason = rejectionReason.Trim();
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "TenantRequest.Reject",
+            entityType: nameof(TenantRequest),
+            entityId: r.Id,
+            description: $"Tenant talebi reddedildi: {r.ProposedName}",
+            metadata: new { RequestId = r.Id, RejectionReason = r.RejectionReason },
+            ct: ct);
 
         if (r.RequestedBy != null)
             await SendRejectionEmailAsync(r.RequestedBy, r.ProposedName, rejectionReason, ct);

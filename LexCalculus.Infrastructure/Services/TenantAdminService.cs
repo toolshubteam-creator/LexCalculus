@@ -10,10 +10,12 @@ namespace LexCalculus.Infrastructure.Services;
 public sealed class TenantAdminService : ITenantAdminService
 {
     private readonly ApplicationDbContext _ctx;
+    private readonly IActivityLogService _activityLog;
 
-    public TenantAdminService(ApplicationDbContext ctx)
+    public TenantAdminService(ApplicationDbContext ctx, IActivityLogService activityLog)
     {
         _ctx = ctx;
+        _activityLog = activityLog;
     }
 
     public async Task<List<TenantListItemDto>> GetAllAsync(
@@ -114,6 +116,15 @@ public sealed class TenantAdminService : ITenantAdminService
         owner.TenantId = tenant.Id;
         await _ctx.SaveChangesAsync(ct);
 
+        await _activityLog.LogAsync(
+            action: "Tenant.Create",
+            entityType: nameof(Tenant),
+            entityId: tenant.Id,
+            description: $"Tenant '{tenant.Name}' oluşturuldu (slug: {tenant.Slug})",
+            metadata: new { tenant.Name, tenant.Slug, OwnerUserId = tenant.OwnerUserId },
+            tenantId: tenant.Id,
+            ct: ct);
+
         return tenant.Id;
     }
 
@@ -140,6 +151,10 @@ public sealed class TenantAdminService : ITenantAdminService
                 throw new InvalidOperationException("Slug already in use");
         }
 
+        var oldName = tenant.Name;
+        var oldSlug = tenant.Slug;
+        var oldOwnerId = tenant.OwnerUserId;
+
         tenant.Name = request.Name.Trim();
         tenant.Slug = newSlug;
 
@@ -159,6 +174,20 @@ public sealed class TenantAdminService : ITenantAdminService
         }
 
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "Tenant.Update",
+            entityType: nameof(Tenant),
+            entityId: tenant.Id,
+            description: $"Tenant '{tenant.Name}' güncellendi",
+            metadata: new
+            {
+                NameChanged = oldName != tenant.Name ? new { Old = oldName, New = tenant.Name } : null,
+                SlugChanged = oldSlug != tenant.Slug ? new { Old = oldSlug, New = tenant.Slug } : null,
+                OwnerChanged = oldOwnerId != tenant.OwnerUserId ? new { Old = oldOwnerId, New = tenant.OwnerUserId } : null
+            },
+            tenantId: tenant.Id,
+            ct: ct);
     }
 
     public async Task SoftDeleteAsync(int id, CancellationToken ct = default)
@@ -183,6 +212,15 @@ public sealed class TenantAdminService : ITenantAdminService
             m.TenantId = null;
 
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "Tenant.SoftDelete",
+            entityType: nameof(Tenant),
+            entityId: tenant.Id,
+            description: $"Tenant '{tenant.Name}' silindi (soft-delete, {members.Count} üye serbest bırakıldı)",
+            metadata: new { ReleasedMemberCount = members.Count },
+            tenantId: tenant.Id,
+            ct: ct);
     }
 
     public async Task AddMemberAsync(int tenantId, int userId, CancellationToken ct = default)
@@ -202,6 +240,15 @@ public sealed class TenantAdminService : ITenantAdminService
 
         user.TenantId = tenantId;
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "Tenant.UyeEkle",
+            entityType: nameof(Tenant),
+            entityId: tenantId,
+            description: $"'{tenant.Name}' tenant'ına üye eklendi: {user.Email ?? user.UserName}",
+            metadata: new { AddedUserId = userId },
+            tenantId: tenantId,
+            ct: ct);
     }
 
     public async Task RemoveMemberAsync(int tenantId, int userId, CancellationToken ct = default)
@@ -221,6 +268,15 @@ public sealed class TenantAdminService : ITenantAdminService
 
         user.TenantId = null;
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "Tenant.UyeCikar",
+            entityType: nameof(Tenant),
+            entityId: tenantId,
+            description: $"'{tenant.Name}' tenant'ından üye çıkarıldı: {user.Email ?? user.UserName}",
+            metadata: new { RemovedUserId = userId },
+            tenantId: tenantId,
+            ct: ct);
     }
 
     public async Task<List<UserOptionDto>> GetAvailableUsersAsync(CancellationToken ct = default)

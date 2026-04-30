@@ -11,15 +11,18 @@ public sealed class LifeTableAdminService : ILifeTableAdminService
 {
     private readonly ApplicationDbContext _ctx;
     private readonly ILifeTableService _calculatorSvc;
+    private readonly IActivityLogService _activityLog;
     private readonly ILogger<LifeTableAdminService> _logger;
 
     public LifeTableAdminService(
         ApplicationDbContext ctx,
         ILifeTableService calculatorSvc,
+        IActivityLogService activityLog,
         ILogger<LifeTableAdminService> logger)
     {
         _ctx = ctx;
         _calculatorSvc = calculatorSvc;
+        _activityLog = activityLog;
         _logger = logger;
     }
 
@@ -69,6 +72,14 @@ public sealed class LifeTableAdminService : ILifeTableAdminService
                 currentlyActive.Count, target.Id, target.Code);
 
             await TryInvalidateCacheAsync(ct);
+
+            await _activityLog.LogAsync(
+                action: "LifeTable.Activate",
+                entityType: nameof(LifeTable),
+                entityId: target.Id,
+                description: $"LifeTable aktif yapıldı: {target.Code} - {target.Name}",
+                metadata: new { target.Code, DeactivatedCount = currentlyActive.Count },
+                ct: ct);
         }
         catch
         {
@@ -137,6 +148,14 @@ public sealed class LifeTableAdminService : ILifeTableAdminService
         _ctx.Set<LifeTable>().Add(entity);
         await _ctx.SaveChangesAsync(ct);
 
+        await _activityLog.LogAsync(
+            action: "LifeTable.Create",
+            entityType: nameof(LifeTable),
+            entityId: entity.Id,
+            description: $"LifeTable oluşturuldu: {entity.Code} - {entity.Name} ({rows.Count} satır)",
+            metadata: new { entity.Code, entity.Name, EffectiveDate = entity.EffectiveDate, RowCount = rows.Count },
+            ct: ct);
+
         _logger.LogInformation(
             "LifeTable oluşturuldu: Id={Id} Code={Code} Rows={RowCount}",
             entity.Id, entity.Code, rows.Count);
@@ -158,6 +177,21 @@ public sealed class LifeTableAdminService : ILifeTableAdminService
         row.BekledigiYasam = newValue;
 
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "LifeTable.UpdateRow",
+            entityType: nameof(LifeTableRow),
+            entityId: rowId,
+            description: $"LifeTable satırı güncellendi: {row.LifeTable!.Code} Yaş={row.Yas} Cinsiyet={row.Cinsiyet}",
+            metadata: new
+            {
+                TableCode = row.LifeTable!.Code,
+                row.Yas,
+                Cinsiyet = row.Cinsiyet.ToString(),
+                OldValue = oldValue,
+                NewValue = newValue
+            },
+            ct: ct);
 
         _logger.LogInformation(
             "LifeTableRow güncellendi: Id={Id} TableCode={Code} Yas={Yas} Cinsiyet={Cinsiyet} {Old} → {New}",

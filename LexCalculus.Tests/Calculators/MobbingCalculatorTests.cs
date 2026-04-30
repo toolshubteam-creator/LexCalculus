@@ -18,7 +18,7 @@ public class MobbingCalculatorTests
     private static MobbingCalculator Build()
     {
         var ctx = TestDbContextFactory.Create();
-        var paramSvc = new FormulaParameterService(ctx, CreateCache(), NullLogger<FormulaParameterService>.Instance);
+        var paramSvc = new FormulaParameterService(ctx, CreateCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
         return new MobbingCalculator(paramSvc);
     }
 

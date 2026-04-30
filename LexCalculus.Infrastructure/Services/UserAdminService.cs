@@ -20,6 +20,7 @@ public sealed class UserAdminService : IUserAdminService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailService _emailService;
     private readonly IEmailTemplateRenderer _emailRenderer;
+    private readonly IActivityLogService _activityLog;
     private readonly ILogger<UserAdminService> _logger;
 
     public UserAdminService(
@@ -27,12 +28,14 @@ public sealed class UserAdminService : IUserAdminService
         UserManager<ApplicationUser> userManager,
         IEmailService emailService,
         IEmailTemplateRenderer emailRenderer,
+        IActivityLogService activityLog,
         ILogger<UserAdminService> logger)
     {
         _ctx = ctx;
         _userManager = userManager;
         _emailService = emailService;
         _emailRenderer = emailRenderer;
+        _activityLog = activityLog;
         _logger = logger;
     }
 
@@ -150,6 +153,17 @@ public sealed class UserAdminService : IUserAdminService
 
         // Aktif session'ı geçersiz kıl (cookie next request'te reddedilir)
         await _userManager.UpdateSecurityStampAsync(user);
+
+        await _activityLog.LogAsync(
+            action: active ? "User.Aktiflestir" : "User.Pasiflestir",
+            entityType: nameof(ApplicationUser),
+            entityId: userId,
+            description: active
+                ? $"Kullanıcı {user.Email ?? user.UserName} aktifleştirildi"
+                : $"Kullanıcı {user.Email ?? user.UserName} pasifleştirildi",
+            tenantId: user.TenantId,
+            ct: ct);
+
         return true;
     }
 
@@ -161,6 +175,7 @@ public sealed class UserAdminService : IUserAdminService
         if (user == null) return false;
 
         var currentRoles = await _userManager.GetRolesAsync(user);
+        var oldRole = currentRoles.FirstOrDefault();
         if (currentRoles.Any())
         {
             var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
@@ -171,6 +186,16 @@ public sealed class UserAdminService : IUserAdminService
         if (!addResult.Succeeded) return false;
 
         await _userManager.UpdateSecurityStampAsync(user);
+
+        await _activityLog.LogAsync(
+            action: "User.RolDegistir",
+            entityType: nameof(ApplicationUser),
+            entityId: userId,
+            description: $"Kullanıcı {user.Email ?? user.UserName} rolü değiştirildi",
+            metadata: new { OldRole = oldRole, NewRole = newRoleName },
+            tenantId: user.TenantId,
+            ct: ct);
+
         return true;
     }
 
@@ -201,7 +226,18 @@ public sealed class UserAdminService : IUserAdminService
                 Subject: "Lex Calculus — Şifre Sıfırlama",
                 HtmlBody: html);
 
-            return await _emailService.SendAsync(message, ct);
+            var sent = await _emailService.SendAsync(message, ct);
+            if (sent)
+            {
+                await _activityLog.LogAsync(
+                    action: "User.SifreSifirlamaMaili",
+                    entityType: nameof(ApplicationUser),
+                    entityId: userId,
+                    description: $"Şifre sıfırlama maili gönderildi: {user.Email}",
+                    tenantId: user.TenantId,
+                    ct: ct);
+            }
+            return sent;
         }
         catch (Exception ex)
         {

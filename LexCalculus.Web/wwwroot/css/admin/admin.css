@@ -1082,3 +1082,18 @@ button { font: inherit; }
     font-size: var(--fs-meta);
     letter-spacing: var(--tracking-wide);
 }
+
+/* ActivityLog: Metadata JSON bloğu (Faz 3.8 P1/2) */
+.activity-log__metadata {
+    margin: 0;
+    padding: 12px;
+    background: var(--parchment, #f7f1e1);
+    border: 1px solid var(--gold-pale, #d4c389);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+}

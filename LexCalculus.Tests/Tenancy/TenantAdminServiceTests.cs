@@ -32,7 +32,7 @@ public class TenantAdminServiceTests
     private static (ApplicationDbContext ctx, TenantAdminService svc) Setup()
     {
         var ctx = TestDbContextFactory.Create();
-        var svc = new TenantAdminService(ctx);
+        var svc = new TenantAdminService(ctx, new NullActivityLogService());
         return (ctx, svc);
     }
 

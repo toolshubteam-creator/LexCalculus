@@ -1,6 +1,7 @@
 using System.Text.Json;
 using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Interfaces;
+using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -18,15 +19,18 @@ public sealed class FormulaParameterService : IFormulaParameterService
 
     private readonly ApplicationDbContext _db;
     private readonly IDistributedCache _cache;
+    private readonly IActivityLogService _activityLog;
     private readonly ILogger<FormulaParameterService> _logger;
 
     public FormulaParameterService(
         ApplicationDbContext db,
         IDistributedCache cache,
+        IActivityLogService activityLog,
         ILogger<FormulaParameterService> logger)
     {
         _db = db ?? throw new ArgumentNullException(nameof(db));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        _activityLog = activityLog ?? throw new ArgumentNullException(nameof(activityLog));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -107,6 +111,19 @@ public sealed class FormulaParameterService : IFormulaParameterService
 
         await InvalidateAsync(parameter.ToolSlug, parameter.Key, ct);
 
+        await _activityLog.LogAsync(
+            action: "FormulaParameter.Create",
+            entityType: nameof(FormulaParameter),
+            entityId: parameter.Id,
+            description: $"Yeni parametre: {parameter.ToolSlug}/{parameter.Key} = {parameter.Value} ({parameter.EffectiveDate:yyyy-MM-dd})",
+            metadata: new
+            {
+                parameter.ToolSlug, parameter.Key,
+                Value = parameter.Value,
+                EffectiveDate = parameter.EffectiveDate
+            },
+            ct: ct);
+
         _logger.LogInformation("Added parameter {ToolSlug}/{Key} effective {EffectiveDate}: {Value}",
             parameter.ToolSlug, parameter.Key, parameter.EffectiveDate, parameter.Value);
 
@@ -160,6 +177,7 @@ public sealed class FormulaParameterService : IFormulaParameterService
 
         var oldToolSlug = existing.ToolSlug;
         var oldKey = existing.Key;
+        var oldValue = existing.Value;
 
         existing.ToolSlug = parameter.ToolSlug;
         existing.Key = parameter.Key;
@@ -179,6 +197,14 @@ public sealed class FormulaParameterService : IFormulaParameterService
         {
             await InvalidateAsync(oldToolSlug, oldKey, ct);
         }
+
+        await _activityLog.LogAsync(
+            action: "FormulaParameter.Update",
+            entityType: nameof(FormulaParameter),
+            entityId: existing.Id,
+            description: $"Parametre güncellendi: {existing.ToolSlug}/{existing.Key} = {existing.Value}",
+            metadata: new { OldValue = oldValue, NewValue = existing.Value, existing.ToolSlug, existing.Key },
+            ct: ct);
 
         _logger.LogInformation(
             "Updated parameter id={Id} {ToolSlug}/{Key} by user {UserId}",
@@ -208,6 +234,14 @@ public sealed class FormulaParameterService : IFormulaParameterService
         await _db.SaveChangesAsync(ct);
 
         await InvalidateAsync(existing.ToolSlug, existing.Key, ct);
+
+        await _activityLog.LogAsync(
+            action: "FormulaParameter.Delete",
+            entityType: nameof(FormulaParameter),
+            entityId: existing.Id,
+            description: $"Parametre silindi: {existing.ToolSlug}/{existing.Key}",
+            metadata: new { existing.ToolSlug, existing.Key },
+            ct: ct);
 
         _logger.LogInformation(
             "Soft-deleted parameter id={Id} {ToolSlug}/{Key} by user {UserId}",

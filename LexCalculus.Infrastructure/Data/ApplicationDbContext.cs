@@ -36,6 +36,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantRequest> TenantRequests => Set<TenantRequest>();
     public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
+    public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -117,6 +118,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             e.HasOne(r => r.CreatedTenant)
              .WithMany()
              .HasForeignKey(r => r.CreatedTenantId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ActivityLog>(e =>
+        {
+            e.HasIndex(a => a.CreatedAt);
+            e.HasIndex(a => a.UserId);
+            e.HasIndex(a => a.Action);
+            e.HasIndex(a => new { a.EntityType, a.EntityId });
+            e.HasIndex(a => a.TenantId);
+
+            e.HasOne(a => a.User)
+             .WithMany()
+             .HasForeignKey(a => a.UserId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasOne(a => a.Tenant)
+             .WithMany()
+             .HasForeignKey(a => a.TenantId)
              .OnDelete(DeleteBehavior.SetNull);
         });
 

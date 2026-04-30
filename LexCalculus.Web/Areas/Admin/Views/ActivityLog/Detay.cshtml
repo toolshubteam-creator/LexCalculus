@@ -1,0 +1,91 @@
+@model LexCalculus.Core.Services.ActivityLogDetailDto
+@{
+    string FormatJson(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "—";
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(raw);
+            return System.Text.Json.JsonSerializer.Serialize(doc.RootElement,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return raw;
+        }
+    }
+}
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Activity Log #@Model.Id</h1>
+        <p class="admin-page__subtitle">
+            <code>@Model.Action</code> · @Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")
+        </p>
+    </header>
+
+    <div class="admin-detail-grid">
+        <section class="admin-card">
+            <h2 class="admin-card__title">Kayıt Bilgileri</h2>
+            <dl class="admin-detail">
+                <dt>Tarih (yerel)</dt>
+                <dd>@Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</dd>
+
+                <dt>Tarih (UTC)</dt>
+                <dd>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                <dt>Kullanıcı</dt>
+                <dd>@(Model.UserName ?? "Sistem")@(Model.UserId.HasValue ? $" (Id: {Model.UserId})" : "")</dd>
+
+                <dt>Action</dt>
+                <dd><code>@Model.Action</code></dd>
+
+                <dt>Açıklama</dt>
+                <dd>@(Model.Description ?? "—")</dd>
+
+                <dt>Entity</dt>
+                <dd>
+                    @if (string.IsNullOrEmpty(Model.EntityType))
+                    {
+                        <span>—</span>
+                    }
+                    else
+                    {
+                        <span>@Model.EntityType</span>
+                        @if (Model.EntityId.HasValue)
+                        {
+                            <span> #@Model.EntityId</span>
+                        }
+                    }
+                </dd>
+
+                <dt>Tenant</dt>
+                <dd>
+                    @if (Model.TenantId.HasValue)
+                    {
+                        <span>@(Model.TenantName ?? "(silinmiş)") (Id: @Model.TenantId)</span>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </dd>
+
+                <dt>IP</dt>
+                <dd>@(Model.IpAddress ?? "—")</dd>
+
+                <dt>User-Agent</dt>
+                <dd>@(Model.UserAgent ?? "—")</dd>
+            </dl>
+        </section>
+
+        <section class="admin-card">
+            <h2 class="admin-card__title">Metadata</h2>
+            <pre class="activity-log__metadata">@FormatJson(Model.MetadataJson)</pre>
+        </section>
+    </div>
+
+    <p class="admin-page__back">
+        <a class="admin-link" asp-action="Index">← Listeye dön</a>
+    </p>
+</div>

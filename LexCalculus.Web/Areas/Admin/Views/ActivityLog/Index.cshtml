@@ -1,0 +1,121 @@
+@model LexCalculus.Web.Areas.Admin.Models.ActivityLog.ActivityLogListVm
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Activity Log</h1>
+        <p class="admin-page__subtitle">
+            @Model.Result.TotalCount kayıt
+            @if (Model.Result.TotalPages > 1)
+            {
+                <span> · sayfa @Model.Result.Page / @Model.Result.TotalPages</span>
+            }
+        </p>
+    </header>
+
+    <form method="get" class="param-filter">
+        <div class="param-filter__row">
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-from">Başlangıç</label>
+                <input id="filter-from" name="FromDate" type="datetime-local" class="param-filter__input"
+                       value="@(Model.Filter.FromDate?.ToString("yyyy-MM-ddTHH:mm"))" />
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-to">Bitiş</label>
+                <input id="filter-to" name="ToDate" type="datetime-local" class="param-filter__input"
+                       value="@(Model.Filter.ToDate?.ToString("yyyy-MM-ddTHH:mm"))" />
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-user">Kullanıcı (email/ad)</label>
+                <input id="filter-user" name="UserSearch" class="param-filter__input"
+                       value="@Model.Filter.UserSearch" placeholder="örn: ali@@" />
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-action">Action</label>
+                <select id="filter-action" name="Action" class="param-filter__input">
+                    <option value="">— tümü —</option>
+                    @foreach (var a in Model.AvailableActions)
+                    {
+                        <option value="@a" selected="@(Model.Filter.Action == a)">@a</option>
+                    }
+                </select>
+            </div>
+            <div class="param-filter__field">
+                <label class="param-filter__label" for="filter-tenant">Tenant</label>
+                <select id="filter-tenant" name="TenantId" class="param-filter__input">
+                    <option value="">— tümü —</option>
+                    @foreach (var t in Model.AvailableTenants)
+                    {
+                        <option value="@t.Id" selected="@(Model.Filter.TenantId == t.Id)">@t.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="param-filter__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Filtrele</button>
+                <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">Temizle</a>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Result.Items.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Kayıt bulunamadı.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Kullanıcı</th>
+                        <th>Action</th>
+                        <th>Açıklama</th>
+                        <th>Tenant</th>
+                        <th class="param-table__actions">Detay</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Result.Items)
+                    {
+                        <tr class="param-table__row">
+                            <td>@r.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</td>
+                            <td>@(r.UserName ?? "Sistem")</td>
+                            <td><code class="param-table__slug">@r.Action</code></td>
+                            <td>@r.Description</td>
+                            <td>@(r.TenantName ?? "—")</td>
+                            <td class="param-table__actions">
+                                <a class="admin-link" asp-action="Detay" asp-route-id="@r.Id">Aç</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.Result.TotalPages > 1)
+        {
+            <nav class="hesap-pagination" aria-label="Sayfalar">
+                @if (Model.Result.HasPrevious)
+                {
+                    <a href="@Url.Action("Index", new { Model.Filter.FromDate, Model.Filter.ToDate, Model.Filter.UserSearch, Model.Filter.Action, Model.Filter.TenantId, page = Model.Result.Page - 1 })">← Önceki</a>
+                }
+                <span class="hesap-pagination__info">Sayfa @Model.Result.Page / @Model.Result.TotalPages · @Model.Result.TotalCount toplam</span>
+                @if (Model.Result.HasNext)
+                {
+                    <a href="@Url.Action("Index", new { Model.Filter.FromDate, Model.Filter.ToDate, Model.Filter.UserSearch, Model.Filter.Action, Model.Filter.TenantId, page = Model.Result.Page + 1 })">Sonraki →</a>
+                }
+            </nav>
+        }
+    }
+</div>

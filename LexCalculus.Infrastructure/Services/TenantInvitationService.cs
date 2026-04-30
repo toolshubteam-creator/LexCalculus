@@ -18,6 +18,7 @@ public sealed class TenantInvitationService : ITenantInvitationService
     private readonly ApplicationDbContext _ctx;
     private readonly IEmailService _emailService;
     private readonly IEmailTemplateRenderer _emailRenderer;
+    private readonly IActivityLogService _activityLog;
     private readonly ILogger<TenantInvitationService> _logger;
     private readonly string _siteUrl;
 
@@ -25,12 +26,14 @@ public sealed class TenantInvitationService : ITenantInvitationService
         ApplicationDbContext ctx,
         IEmailService emailService,
         IEmailTemplateRenderer emailRenderer,
+        IActivityLogService activityLog,
         IOptions<SeoSettings> seoSettings,
         ILogger<TenantInvitationService> logger)
     {
         _ctx = ctx;
         _emailService = emailService;
         _emailRenderer = emailRenderer;
+        _activityLog = activityLog;
         _siteUrl = seoSettings.Value.SiteUrl;
         _logger = logger;
     }
@@ -95,6 +98,15 @@ public sealed class TenantInvitationService : ITenantInvitationService
         _ctx.TenantInvitations.Add(invitation);
         await _ctx.SaveChangesAsync(ct);
 
+        await _activityLog.LogAsync(
+            action: "TenantInvitation.Create",
+            entityType: nameof(TenantInvitation),
+            entityId: invitation.Id,
+            description: $"Davet gönderildi: {invitation.Email} → '{tenant.Name}'",
+            metadata: new { Email = invitation.Email, TenantId = tenantId },
+            tenantId: tenantId,
+            ct: ct);
+
         await SendInvitationEmailAsync(tenant, inviter, invitation, ct);
 
         return invitation.Id;
@@ -116,6 +128,15 @@ public sealed class TenantInvitationService : ITenantInvitationService
 
         invitation.Status = TenantInvitationStatus.Cancelled;
         await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "TenantInvitation.Cancel",
+            entityType: nameof(TenantInvitation),
+            entityId: invitation.Id,
+            description: $"Davet iptal edildi: {invitation.Email}",
+            metadata: new { InvitationId = invitation.Id, TenantId = invitation.TenantId },
+            tenantId: invitation.TenantId,
+            ct: ct);
     }
 
     public async Task<InvitationLookupResult> LookupByTokenAsync(string token, CancellationToken ct = default)
@@ -177,6 +198,15 @@ public sealed class TenantInvitationService : ITenantInvitationService
             throw new InvalidOperationException("Zaten bir tenant'a bağlısınız.");
 
         await ApplyAcceptanceAsync(lookup.InvitationId!.Value, userId, ct);
+
+        await _activityLog.LogAsync(
+            action: "TenantInvitation.Accept",
+            entityType: nameof(TenantInvitation),
+            entityId: lookup.InvitationId!.Value,
+            description: $"Davet kabul edildi: {lookup.Email} → '{lookup.TenantName}'",
+            metadata: new { InvitationId = lookup.InvitationId, TenantId = lookup.TenantId },
+            tenantId: lookup.TenantId,
+            ct: ct);
     }
 
     public async Task AcceptForNewUserAsync(string token, int newUserId, CancellationToken ct = default)
@@ -197,6 +227,15 @@ public sealed class TenantInvitationService : ITenantInvitationService
             throw new InvalidOperationException("Email davet ile eşleşmiyor.");
 
         await ApplyAcceptanceAsync(lookup.InvitationId!.Value, newUserId, ct);
+
+        await _activityLog.LogAsync(
+            action: "TenantInvitation.AcceptForNewUser",
+            entityType: nameof(TenantInvitation),
+            entityId: lookup.InvitationId!.Value,
+            description: $"Yeni kullanıcı davet ile kayıt oldu: {lookup.Email} → '{lookup.TenantName}'",
+            metadata: new { InvitationId = lookup.InvitationId, TenantId = lookup.TenantId, NewUserId = newUserId },
+            tenantId: lookup.TenantId,
+            ct: ct);
     }
 
     private async Task ApplyAcceptanceAsync(int invitationId, int userId, CancellationToken ct)

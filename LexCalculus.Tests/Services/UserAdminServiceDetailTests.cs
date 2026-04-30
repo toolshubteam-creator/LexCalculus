@@ -33,7 +33,7 @@ public class UserAdminServiceDetailTests
         var um = umMock?.Object ?? MockUserManager(ctx).Object;
         var email = emailMock?.Object ?? new Mock<IEmailService>().Object;
         var renderer = rendererMock?.Object ?? new Mock<IEmailTemplateRenderer>().Object;
-        return new UserAdminService(ctx, um, email, renderer, NullLogger<UserAdminService>.Instance);
+        return new UserAdminService(ctx, um, email, renderer, new NullActivityLogService(), NullLogger<UserAdminService>.Instance);
     }
 
     [Fact]

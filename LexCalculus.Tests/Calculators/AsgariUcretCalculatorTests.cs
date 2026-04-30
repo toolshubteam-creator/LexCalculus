@@ -26,7 +26,7 @@ public class AsgariUcretCalculatorTests
             new FormulaParameter { ToolSlug = "*", Key = "yasal-faiz-orani-yillik", Value = 0.18m, EffectiveDate = new DateTime(2020, 1, 1) }
         );
         ctx.SaveChanges();
-        var paramSvc = new FormulaParameterService(ctx, CreateCache(), NullLogger<FormulaParameterService>.Instance);
+        var paramSvc = new FormulaParameterService(ctx, CreateCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
         return (new AsgariUcretCalculator(paramSvc), ctx);
     }
 
