@@ -1,0 +1,154 @@
+@page "/baglantilarim"
+@model LexCalculus.Web.Pages.BaglantilarimModel
+@{
+    ViewData["Title"] = "Bağlantılarım";
+    ViewData["NoIndex"] = true;
+}
+
+<section class="baglantilarim">
+    <header class="baglantilarim__header">
+        <h1 class="baglantilarim__title">Bağlantılarım</h1>
+    </header>
+
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div class="form-section__message form-section__message--success" role="status">@successMsg</div>
+    }
+    @if (TempData["Error"] is string errorMsg)
+    {
+        <div class="form-section__message form-section__message--error" role="alert">@errorMsg</div>
+    }
+
+    <nav class="baglantilarim__tabs" aria-label="Bağlantı sekmeleri">
+        <a href="?tab=aktif"
+           class="baglantilarim__tab@(Model.ActiveTab == "aktif" ? " baglantilarim__tab--active" : "")">
+            Aktif <span class="baglantilarim__tab-count">@Model.ActiveCount</span>
+        </a>
+        <a href="?tab=bekleyen"
+           class="baglantilarim__tab@(Model.ActiveTab == "bekleyen" ? " baglantilarim__tab--active" : "")">
+            Bekleyen <span class="baglantilarim__tab-count">@Model.PendingCount</span>
+        </a>
+        <a href="?tab=gonderdiklerim"
+           class="baglantilarim__tab@(Model.ActiveTab == "gonderdiklerim" ? " baglantilarim__tab--active" : "")">
+            Gönderdiklerim <span class="baglantilarim__tab-count">@Model.SentCount</span>
+        </a>
+    </nav>
+
+    <div class="baglantilarim__content">
+        @if (Model.Connections.Count == 0)
+        {
+            <p class="baglantilarim__empty">
+                @switch (Model.ActiveTab)
+                {
+                    case "bekleyen":
+                        <text>Henüz bekleyen bir istek yok.</text>
+                        break;
+                    case "gonderdiklerim":
+                        <text>Gönderdiğiniz aktif istek yok.</text>
+                        break;
+                    default:
+                        <text>Henüz bir bağlantınız yok. Diğer kullanıcıların profillerini ziyaret ederek bağlantı kurabilirsiniz.</text>
+                        break;
+                }
+            </p>
+        }
+        else
+        {
+            <ul class="kullanici-kart-list">
+                @foreach (var conn in Model.Connections)
+                {
+                    var other = Model.GetOtherUser(conn);
+                    var avatarUrl = Model.GetAvatarUrl(other);
+                    var displayName = !string.IsNullOrWhiteSpace(other.Profile?.DisplayName)
+                        ? other.Profile.DisplayName
+                        : (other.UserName ?? "Kullanıcı");
+                    var slug = other.Profile?.PublicSlug;
+                    var meslek = LexCalculus.Web.Pages.BaglantilarimModel.FormatMeslek(
+                        other.Profile?.MeslekTuru, other.Profile?.MeslekTuruDiger);
+
+                    <li class="kullanici-kart">
+                        <div class="kullanici-kart__avatar-wrap">
+                            @if (!string.IsNullOrEmpty(avatarUrl))
+                            {
+                                <img src="@avatarUrl" alt="@displayName" class="kullanici-kart__avatar" />
+                            }
+                            else
+                            {
+                                <div class="kullanici-kart__avatar kullanici-kart__avatar--placeholder"
+                                     aria-label="@displayName">
+                                    @(displayName.Length > 0
+                                        ? displayName.Substring(0, 1).ToUpperInvariant()
+                                        : "?")
+                                </div>
+                            }
+                        </div>
+
+                        <div class="kullanici-kart__info">
+                            @if (!string.IsNullOrEmpty(slug))
+                            {
+                                <a href="/uye/@slug" class="kullanici-kart__name">@displayName</a>
+                            }
+                            else
+                            {
+                                <span class="kullanici-kart__name">@displayName</span>
+                            }
+
+                            <div class="kullanici-kart__meta-row">
+                                @if (!string.IsNullOrEmpty(meslek))
+                                {
+                                    <span class="kullanici-kart__meta">@meslek</span>
+                                }
+                                @if (!string.IsNullOrEmpty(other.Profile?.City))
+                                {
+                                    <span class="kullanici-kart__meta">@other.Profile.City</span>
+                                }
+                            </div>
+
+                            <span class="kullanici-kart__date">
+                                @if (Model.ActiveTab == "aktif")
+                                {
+                                    <text>Bağlandı: @(conn.RespondedAt?.ToLocalTime().ToString("d MMMM yyyy") ?? "-")</text>
+                                }
+                                else
+                                {
+                                    <text>Gönderildi: @conn.CreatedAt.ToLocalTime().ToString("d MMMM yyyy")</text>
+                                }
+                            </span>
+                        </div>
+
+                        <div class="kullanici-kart__actions">
+                            @switch (Model.ActiveTab)
+                            {
+                                case "aktif":
+                                    <form method="post" asp-page-handler="Remove" class="kullanici-kart__action-form">
+                                        <input type="hidden" name="id" value="@conn.Id" />
+                                        <button type="submit" class="btn btn--ghost"
+                                                onclick="return confirm('Bağlantıyı kaldırmak istediğinizden emin misiniz?')">
+                                            Kaldır
+                                        </button>
+                                    </form>
+                                    break;
+                                case "bekleyen":
+                                    <form method="post" asp-page-handler="Accept" class="kullanici-kart__action-form">
+                                        <input type="hidden" name="id" value="@conn.Id" />
+                                        <button type="submit" class="btn btn--primary">Kabul Et</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="Reject" class="kullanici-kart__action-form">
+                                        <input type="hidden" name="id" value="@conn.Id" />
+                                        <button type="submit" class="btn btn--ghost">Reddet</button>
+                                    </form>
+                                    break;
+                                case "gonderdiklerim":
+                                    <form method="post" asp-page-handler="Cancel" class="kullanici-kart__action-form">
+                                        <input type="hidden" name="id" value="@conn.Id" />
+                                        <button type="submit" class="btn btn--ghost">İptal Et</button>
+                                    </form>
+                                    break;
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</section>

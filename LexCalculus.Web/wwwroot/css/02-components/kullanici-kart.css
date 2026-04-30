@@ -1,0 +1,112 @@
+/* Reusable kullanıcı kartı — /baglantilarim, ileride public profil bağlantı
+   listesi (P3) ve UGC yazar kartlarında (Dalga B) tekrar kullanılır.
+   Faz 4.2 P2/3 — charter §3.2. Inline style yok. */
+
+.kullanici-kart-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.kullanici-kart {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--parchment);
+  border: 1px solid var(--gold-pale);
+  border-radius: 4px;
+}
+
+.kullanici-kart__avatar-wrap {
+  flex: 0 0 auto;
+}
+
+.kullanici-kart__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--gold-pale);
+  display: block;
+}
+
+.kullanici-kart__avatar--placeholder {
+  background: var(--ink);
+  color: var(--parchment);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.kullanici-kart__info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.kullanici-kart__name {
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: -0.005em;
+}
+
+.kullanici-kart__name:hover {
+  text-decoration: underline;
+}
+
+.kullanici-kart__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.kullanici-kart__meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  letter-spacing: var(--tracking-wide);
+}
+
+.kullanici-kart__date {
+  font-size: var(--fs-hint);
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.kullanici-kart__actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.kullanici-kart__action-form {
+  display: inline;
+  margin: 0;
+}
+
+/* Mobile: kart dikey */
+@media (max-width: 640px) {
+  .kullanici-kart {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .kullanici-kart__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
