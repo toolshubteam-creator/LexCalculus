@@ -155,10 +155,21 @@ Detay: `docs/phase-3-roadmap.md`.
 - Madde 4: Hangfire 401/403 (düşük öncelik, teorik)
 - Madde 9: ActivityLog retention policy (KVKK/hukuk dış bağımlılık)
 
-## Sonraki: Faz 4
+## Faz 4 — Sosyal Platform (Devam Ediyor)
 
-Sosyal platform (kullanıcılar arası bağlantı, mesajlaşma, üye profilleri).
-Vizyon netleşince roadmap yazılacak.
+**Başlangıç:** 30 Nisan 2026
+**Tahmini süre:** ~14 hafta (3 dalga, 14 alt adım)
+**Charter:** [docs/phase-4-charter.md](./docs/phase-4-charter.md)
+**Roadmap:** [docs/phase-4-roadmap.md](./docs/phase-4-roadmap.md)
+
+Sosyal katman: profil, bağlantı, engelleme, kullanıcı içerik üretimi
+(makale + yorum + beğeni + şikayet + moderasyon), real-time mesajlaşma.
+
+Vizyon ilkeleri:
+- Plansız (ücretsiz, herkes)
+- Vatandaş 1. sınıf vatandaş
+- Tenant ↔ sosyal bağımsız
+- Default gizli, opt-in açık
 
 ---
 

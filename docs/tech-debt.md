@@ -248,3 +248,18 @@ Yeni bir tech debt maddesi ortaya çıktığında:
 
 Çözülen maddeler için: silmek yerine "ÇÖZÜLDÜ (commit hash, tarih)"
 notu ekle ve dosyanın altına taşı. Tarihçe değerli.
+
+---
+
+## Faz 4 Başlangıç Notu (30 Nisan 2026)
+
+Faz 4 sırasında ortaya çıkması beklenen yeni tech-debt adayları (charter §7):
+
+- **SignalR Redis backplane** — multi-instance scale-out ihtiyacı doğunca
+- **Azure Blob storage geçişi** — yerel disk → cloud (görseller hacmi büyüyünce)
+- **Mesaj retention policy** — KVKK kapsamında, avukat görüşü gerekir
+- **Görsel CDN** — yerel servis yetersiz kalınca (Cloudflare R2, Bunny vb.)
+- **Elasticsearch full-text search** — DB `LIKE` yetersiz kalınca (post/comment arama)
+- **Hreflang (TR/EN multi-locale)** — uluslararası görünürlük gerektiğinde
+
+Bu maddeler Faz 4 boyunca eklenir, kapatılmazsa Faz 5'e devredilir.
