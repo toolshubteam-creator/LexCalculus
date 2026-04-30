@@ -1,8 +1,6 @@
-using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Storage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace LexCalculus.Infrastructure.Storage;
 
@@ -14,16 +12,13 @@ namespace LexCalculus.Infrastructure.Storage;
 public sealed class LocalDiskMediaStorage : IMediaStorage
 {
     private readonly IWebHostEnvironment _env;
-    private readonly SeoSettings _seo;
     private readonly ILogger<LocalDiskMediaStorage> _logger;
 
     public LocalDiskMediaStorage(
         IWebHostEnvironment env,
-        IOptions<SeoSettings> seoOptions,
         ILogger<LocalDiskMediaStorage> logger)
     {
         _env = env;
-        _seo = seoOptions.Value ?? new SeoSettings();
         _logger = logger;
     }
 
@@ -77,10 +72,11 @@ public sealed class LocalDiskMediaStorage : IMediaStorage
     {
         if (string.IsNullOrWhiteSpace(relativePath)) return string.Empty;
 
+        // Faz 4.1 P2/3 fix: her ortamda relative URL döndür — browser
+        // current origin'i kullanır, dev (localhost) ve prod (lexcalculus.com)
+        // sorunsuz çalışır. JSON-LD/sitemap/og:image gibi absolute URL gerektiren
+        // yerler için ayrı bir GetAbsoluteUrl helper'ı (P3/3'te) eklenir.
         var clean = relativePath.Replace('\\', '/').TrimStart('/');
-        var siteUrl = _seo.SiteUrl;
-        if (string.IsNullOrWhiteSpace(siteUrl)) return "/" + clean;
-
-        return $"{siteUrl.TrimEnd('/')}/{clean}";
+        return "/" + clean;
     }
 }

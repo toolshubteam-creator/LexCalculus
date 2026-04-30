@@ -15,7 +15,13 @@
         </div>
     }
 
-    <div asp-validation-summary="All" class="form-section__message form-section__message--error"></div>
+    @* Faz 4.1 P2/3 fix: ModelState valid iken bordo border'lı boş div render
+       edilmemeli. Hata varsa summary "All" hem field-level hem model-level
+       error'ları gösterir. *@
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="form-section__message form-section__message--error"></div>
+    }
 
     <form method="post" id="profile-form" enctype="multipart/form-data">
         <div class="field">

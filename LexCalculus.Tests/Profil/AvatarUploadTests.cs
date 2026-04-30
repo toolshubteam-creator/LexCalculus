@@ -2,8 +2,6 @@ using System.Text;
 using FluentAssertions;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
-using LexCalculus.Core.Models.Seo;
-using LexCalculus.Core.Services;
 using LexCalculus.Core.Storage;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Services;
@@ -13,7 +11,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
@@ -42,8 +39,7 @@ public class AvatarUploadTests : IDisposable
     {
         var ctx = TestDbContextFactory.Create();
         var env = new TestWebHostEnvironment(_tempRoot);
-        var seo = Options.Create(new SeoSettings { SiteUrl = "" });
-        var storage = new LocalDiskMediaStorage(env, seo, NullLogger<LocalDiskMediaStorage>.Instance);
+        var storage = new LocalDiskMediaStorage(env, NullLogger<LocalDiskMediaStorage>.Instance);
         var svc = new MediaUploadService(
             ctx, storage, new NullActivityLogService(),
             NullLogger<MediaUploadService>.Instance);

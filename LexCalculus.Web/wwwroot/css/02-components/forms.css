@@ -97,10 +97,32 @@
 }
 
 .field__input--file {
-  /* file input'ı diğer input'larla görsel olarak hizala — bazı browser'larda
-     varsayılan padding/border eksik kalır. */
+  /* file input'ı diğer input'larla görsel olarak hizala. Native "Dosya Seç"
+     button'ı ::file-selector-button ile tema renkleriyle override edilir
+     (btn--primary palette). Faz 4.1 P2/3 fix-2. */
   padding: var(--sp-2);
   background: rgba(255, 255, 255, 0.4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  cursor: pointer;
+}
+
+.field__input--file::file-selector-button {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: 6px 14px;
+  margin-right: var(--sp-3);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  transition: opacity 0.15s ease;
+}
+
+.field__input--file::file-selector-button:hover {
+  opacity: 0.85;
 }
 
 /* Checkbox label — input next to text */
