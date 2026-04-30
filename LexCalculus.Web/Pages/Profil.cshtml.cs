@@ -159,7 +159,7 @@ public class ProfilModel : PageModel
         if (Input.MeslekTuru == LexCalculus.Core.Enums.MeslekTuru.Diger
             && string.IsNullOrWhiteSpace(Input.MeslekTuruDiger))
         {
-            ModelState.AddModelError(nameof(Input.MeslekTuruDiger),
+            ModelState.AddModelError("Input.MeslekTuruDiger",
                 "Diğer seçtiğinizde mesleğinizi yazmanız gerekir.");
             return Page();
         }
@@ -219,7 +219,11 @@ public class ProfilModel : PageModel
                 {
                     if (await _publicProfile.IsSlugTakenAsync(sanitizedInput, user.Id, ct))
                     {
-                        ModelState.AddModelError(nameof(Input.PublicSlug),
+                        // Razor Pages binder PublicSlug field'ını "Input.PublicSlug" anahtarıyla
+                        // bağlar; asp-validation-for="Input.PublicSlug" tag helper bu key'i arar.
+                        // nameof(Input.PublicSlug) sadece "PublicSlug" döndürür, prefix uyumsuzluğu
+                        // nedeniyle field-altı span boş kalırdı (Faz 4.1 P1/3 fix-2).
+                        ModelState.AddModelError("Input.PublicSlug",
                             "Bu profil URL'i başka bir kullanıcı tarafından kullanılıyor.");
                         return Page();
                     }
@@ -244,7 +248,7 @@ public class ProfilModel : PageModel
             {
                 if (await _publicProfile.IsSlugTakenAsync(sanitizedInput, user.Id, ct))
                 {
-                    ModelState.AddModelError(nameof(Input.PublicSlug),
+                    ModelState.AddModelError("Input.PublicSlug",
                         "Bu profil URL'i başka bir kullanıcı tarafından kullanılıyor.");
                     return Page();
                 }

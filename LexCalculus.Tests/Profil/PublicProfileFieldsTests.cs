@@ -225,10 +225,14 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
                 new FormUrlEncodedContent(BaseForm(token, "Second User",
                     isPublic: true, publicSlug: "rezerv-slug")));
 
-            // Page() döner — 200 + validation summary'de hata
+            // Page() döner — 200 + hem validation summary hem field-altı span'da hata
             response.StatusCode.Should().Be(HttpStatusCode.OK);
             var body = await response.Content.ReadAsStringAsync();
             body.Should().Contain("kullan");
+            // Faz 4.1 P1/3 fix-2: field-level error key "Input.PublicSlug" olduğunda
+            // asp-validation-for="Input.PublicSlug" tag helper field-validation-error
+            // class'lı bir span render eder. Bu, key'in doğru bağlandığının kanıtı.
+            body.Should().Contain("field-validation-error");
 
             // Second'in slug'ı atanmamalı
             using var scope2 = _factory.Services.CreateScope();
