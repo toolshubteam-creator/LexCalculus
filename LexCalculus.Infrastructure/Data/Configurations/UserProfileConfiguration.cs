@@ -38,5 +38,16 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         builder.HasIndex(p => p.BaroNo)
             .IsUnique()
             .HasFilter("[BaroNo] IS NOT NULL");
+
+        // Faz 4.1 P1/3 — public profile alanları
+        builder.Property(p => p.PublicSlug).HasMaxLength(100);
+
+        // Filtered unique: NULL slug birden fazla profilde olabilir, dolu olanlar unique.
+        builder.HasIndex(p => p.PublicSlug)
+            .IsUnique()
+            .HasFilter("[PublicSlug] IS NOT NULL");
+
+        // ShowTenant default 0 — migration'da DB defaultValueSql olarak da yaz.
+        builder.Property(p => p.ShowTenant).HasDefaultValueSql("0");
     }
 }

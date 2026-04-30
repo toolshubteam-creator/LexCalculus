@@ -235,6 +235,9 @@ try
     // ActivityLog — sistem geneli denetim (Faz 3.8 P1/2)
     builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 
+    // Public profile (Faz 4.1) — slug üretimi + ileride avatar/public sayfa
+    builder.Services.AddScoped<IPublicProfileService, PublicProfileService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {

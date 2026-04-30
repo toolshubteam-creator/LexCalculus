@@ -75,6 +75,58 @@
             </span>
         </div>
 
+        @* Faz 4.1 P1/3 — Kamuya Açık Profil bölümü *@
+        <h2 class="form-section__title form-section__title--sub">Kamuya Açık Profil</h2>
+        <p class="field-hint">
+            Profilinizi kamuya açtığınızda diğer kullanıcılar sizi <code>/uye/{slug}</code>
+            adresinden görebilir. Profil gizli kalsa bile bu bilgileri istediğiniz zaman doldurabilirsiniz.
+        </p>
+
+        <div class="field">
+            <label class="field__label field__label--inline">
+                <input type="checkbox" asp-for="Input.IsPublicProfile" />
+                <span>Profilim kamuya açık</span>
+            </label>
+            <span class="field-hint">
+                Açtığınızda profiliniz arama motorlarında görünebilir ve <code>/uye/...</code> URL'inden erişilebilir.
+            </span>
+        </div>
+
+        @if (Model.HasTenant)
+        {
+            <div class="field">
+                <label class="field__label field__label--inline">
+                    <input type="checkbox" asp-for="Input.ShowTenant" />
+                    <span>Hukuk büromu profilimde göster</span>
+                </label>
+                <span class="field-hint">
+                    Profil kamuya açıksa hukuk büronuzun adı profil sayfasında görünür.
+                </span>
+            </div>
+        }
+
+        <div class="field">
+            <label asp-for="Input.PublicSlug" class="field__label">Profil URL kısayolu</label>
+            <input asp-for="Input.PublicSlug" class="field__input" maxlength="100" placeholder="ornek-isim" />
+            <span asp-validation-for="Input.PublicSlug" class="field-hint"></span>
+            <span class="field-hint">
+                Boş bırakırsanız adınızdan otomatik oluşturulur. Sadece küçük harf, rakam ve tire içerebilir.
+            </span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.City" class="field__label">Şehir</label>
+            <input asp-for="Input.City" class="field__input" maxlength="80" placeholder="İstanbul" />
+            <span asp-validation-for="Input.City" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Bio" class="field__label">Hakkınızda</label>
+            <textarea asp-for="Input.Bio" class="field__input" rows="4" maxlength="2000"></textarea>
+            <span asp-validation-for="Input.Bio" class="field-hint"></span>
+            <span class="field-hint">En fazla 2000 karakter. HTML kabul edilmez.</span>
+        </div>
+
         <div class="form-section__actions">
             <button type="submit" class="btn btn--primary">Kaydet</button>
         </div>

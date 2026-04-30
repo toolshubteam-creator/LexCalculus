@@ -66,6 +66,22 @@ public class UserProfile : BaseEntity
     public bool IsPublicProfile { get; set; }
 
     /// <summary>
+    /// URL-safe public slug for /uye/{slug} — only meaningful when IsPublicProfile=true.
+    /// Filtered unique index (NULL allowed for users who never opened public profile).
+    /// Preserved when IsPublicProfile is toggled off so the user keeps their URL on re-enable.
+    /// Faz 4.1 P1/3.
+    /// </summary>
+    [MaxLength(100)]
+    public string? PublicSlug { get; set; }
+
+    /// <summary>
+    /// If true and the user has a TenantId, public profile shows the tenant name.
+    /// Always treated as false when TenantId is null (defansif: tenant'sız kullanıcılar
+    /// için DB'ye true yazılmaz). Faz 4.1 P1/3, charter Karar 1.
+    /// </summary>
+    public bool ShowTenant { get; set; }
+
+    /// <summary>
     /// Navigation property — the ApplicationUser this profile belongs to.
     /// </summary>
     public ApplicationUser? User { get; set; }
