@@ -83,15 +83,16 @@
   margin-top: 4px;
 }
 
-/* Profil bağlantısı bilgi kutusu — /profil sayfası (Faz 4.1 P3-fix).
+/* Profil bağlantısı bilgi kutusu — /profil sayfası (Faz 4.1 P3-fix sweep).
    Slug "kullanıcıdan gizli" karar verildi ama URL görünür kalmalı (paylaşım
    için). IsPublicProfile=false iken görünüm soluk + tıklanmaz; aktif iken
    yeni sekmede açılır. Inline style yok. */
 .profil-link {
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid var(--gold-pale, #d4c389);
-  padding: var(--sp-3) var(--sp-4);
-  margin-bottom: var(--sp-5);
+  background: var(--parchment);
+  border: 1px solid var(--gold-pale, #e8d9a8);
+  border-radius: 4px;
+  padding: var(--sp-4) var(--sp-5);
+  margin-bottom: var(--sp-6);
 }
 
 .profil-link--disabled {
@@ -100,12 +101,13 @@
 
 .profil-link__label {
   display: block;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-size: var(--fs-meta);
+  font-weight: 600;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: var(--sp-2);
 }
 
 .profil-link__row {
@@ -117,14 +119,17 @@
 
 .profil-link__url {
   flex: 1 1 auto;
-  font-family: var(--font-mono);
-  font-size: var(--fs-meta);
+  /* min-width: 0 flex item içinde long-text overflow çözer (word-break ile
+     birlikte). Olmadan flex item içeriği shrink etmez ve butonu dışarı iter. */
+  min-width: 0;
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
+  font-size: 13px;
   color: var(--ink);
   word-break: break-all;
   text-decoration: none;
 }
 
-.profil-link__url:hover {
+.profil-link__url:not(.profil-link__url--disabled):hover {
   text-decoration: underline;
 }
 
@@ -133,19 +138,19 @@
   cursor: default;
 }
 
-.profil-link__url--disabled:hover {
-  text-decoration: none;
-}
-
 .profil-link__copy {
+  flex: 0 0 auto;
   background: var(--ink);
   color: var(--parchment);
   border: 1px solid var(--ink);
-  padding: 6px 14px;
-  font-family: var(--font-mono);
+  border-radius: 2px;
+  padding: 8px 16px;
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
   font-size: var(--fs-meta);
+  font-weight: 600;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
   transition: opacity 0.15s ease, background 0.15s ease;
 }
@@ -155,16 +160,17 @@
 }
 
 .profil-link__copy[data-copied="true"] {
-  background: var(--gold, #c9a961);
-  border-color: var(--gold, #c9a961);
+  background: var(--gold, #b8924a);
+  border-color: var(--gold, #b8924a);
 }
 
 .profil-link__hint {
   display: block;
   font-size: var(--fs-hint);
   color: var(--muted);
-  margin-top: var(--sp-2);
+  margin-top: var(--sp-3);
   font-style: italic;
+  line-height: 1.5;
 }
 
 /* Clipboard fallback — ekran dışı textarea */
