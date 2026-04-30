@@ -127,15 +127,6 @@
         }
 
         <div class="field">
-            <label asp-for="Input.PublicSlug" class="field__label">Profil URL kısayolu</label>
-            <input asp-for="Input.PublicSlug" class="field__input" maxlength="100" placeholder="ornek-isim" />
-            <span asp-validation-for="Input.PublicSlug" class="field-hint"></span>
-            <span class="field-hint">
-                Boş bırakırsanız adınızdan otomatik oluşturulur. Sadece küçük harf, rakam ve tire içerebilir.
-            </span>
-        </div>
-
-        <div class="field">
             <label asp-for="Input.City" class="field__label">Şehir</label>
             <input asp-for="Input.City" class="field__input" maxlength="80" placeholder="İstanbul" />
             <span asp-validation-for="Input.City" class="field-hint"></span>

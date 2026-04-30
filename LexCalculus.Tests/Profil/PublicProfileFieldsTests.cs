@@ -74,40 +74,6 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
         return user;
     }
 
-    private async Task<int> SeedTenantAsync(string slug = "test-tenant")
-    {
-        using var scope = _factory.Services.CreateScope();
-        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var existing = await ctx.Tenants.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(t => t.Slug == slug);
-        if (existing is not null) return existing.Id;
-
-        // Sahte owner
-        var owner = new ApplicationUser
-        {
-            UserName = $"owner-{slug}@x.com",
-            Email = $"owner-{slug}@x.com",
-            FullName = "Tenant Owner",
-            CreatedAt = DateTime.UtcNow,
-            IsActive = true,
-            EmailConfirmed = true,
-            SecurityStamp = Guid.NewGuid().ToString()
-        };
-        ctx.Users.Add(owner);
-        await ctx.SaveChangesAsync();
-
-        var tenant = new Tenant
-        {
-            Name = "Test Tenant",
-            Slug = slug,
-            OwnerUserId = owner.Id,
-            CreatedAt = DateTime.UtcNow
-        };
-        ctx.Tenants.Add(tenant);
-        await ctx.SaveChangesAsync();
-        return tenant.Id;
-    }
-
     private async Task RemoveUserIfExistsAsync(string email)
     {
         using var scope = _factory.Services.CreateScope();
@@ -127,7 +93,6 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
         string token, string fullName,
         bool isPublic = false,
         bool showTenant = false,
-        string? publicSlug = null,
         string? bio = null,
         string? city = null)
     {
@@ -138,14 +103,13 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
         };
         if (isPublic) form.Add(new("Input.IsPublicProfile", "true"));
         if (showTenant) form.Add(new("Input.ShowTenant", "true"));
-        if (publicSlug is not null) form.Add(new("Input.PublicSlug", publicSlug));
         if (bio is not null) form.Add(new("Input.Bio", bio));
         if (city is not null) form.Add(new("Input.City", city));
         return form;
     }
 
     [Fact]
-    public async Task OnPost_SetsIsPublicProfile_TogglePersists()
+    public async Task OnPost_SetsIsPublicProfile_TogglePersistsAndKeepsBioCity()
     {
         var user = await CreateUserAsync("pp-toggle@example.com", "Toggle Tester");
         try
@@ -172,78 +136,31 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
     }
 
     [Fact]
-    public async Task OnPost_GeneratesSlugWhenEmpty_AndProfileIsPublic()
+    public async Task OnPost_DefensiveFallback_GeneratesSlugWhenProfileSlugIsNull()
     {
-        var user = await CreateUserAsync("pp-autoslug@example.com", "Otomatik Sluglu Avukat");
+        // Eski kayıt simülasyonu — PublicSlug null bir profile, kullanıcı IsPublicProfile=true
+        // post yapınca defansif fallback DisplayName'den slug üretmeli.
+        var user = await CreateUserAsync("pp-fallback@example.com", "Fallback Avukat");
         try
         {
             var client = CreateAuthClient(user.Id, allowAutoRedirect: false);
             var token = await GetAntiforgeryTokenAsync(client, "/profil");
 
-            // PublicSlug verilmiyor, IsPublicProfile=true → otomatik üret
             var response = await client.PostAsync("/profil",
-                new FormUrlEncodedContent(BaseForm(token, "Otomatik Sluglu Avukat",
-                    isPublic: true)));
+                new FormUrlEncodedContent(BaseForm(token, "Fallback Avukat", isPublic: true)));
             ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect);
 
             using var scope = _factory.Services.CreateScope();
             var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var profile = await ctx.UserProfiles.AsNoTracking().FirstAsync(p => p.UserId == user.Id);
-            profile.IsPublicProfile.Should().BeTrue();
-            profile.PublicSlug.Should().NotBeNullOrEmpty();
+            profile.PublicSlug.Should().NotBeNullOrEmpty(
+                "OnPostAsync defansif fallback null slug için DisplayName tabanlı üretir");
             profile.PublicSlug.Should().MatchRegex("^[a-z0-9-]+$");
-            profile.PublicSlug.Should().Contain("otomatik");
+            profile.PublicSlug.Should().Contain("fallback");
         }
         finally
         {
-            await RemoveUserIfExistsAsync("pp-autoslug@example.com");
-        }
-    }
-
-    [Fact]
-    public async Task OnPost_RejectsConflictingSlug_FromAnotherUser()
-    {
-        // İlk kullanıcı slug'ı kapar
-        var first = await CreateUserAsync("pp-first@example.com", "First User");
-        var second = await CreateUserAsync("pp-second@example.com", "Second User");
-        try
-        {
-            // First public + slug
-            using (var scope = _factory.Services.CreateScope())
-            {
-                var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var p = await ctx.UserProfiles.FirstAsync(x => x.UserId == first.Id);
-                p.IsPublicProfile = true;
-                p.PublicSlug = "rezerv-slug";
-                await ctx.SaveChangesAsync();
-            }
-
-            // Second aynı slug'ı denesin
-            var client = CreateAuthClient(second.Id, allowAutoRedirect: false);
-            var token = await GetAntiforgeryTokenAsync(client, "/profil");
-            var response = await client.PostAsync("/profil",
-                new FormUrlEncodedContent(BaseForm(token, "Second User",
-                    isPublic: true, publicSlug: "rezerv-slug")));
-
-            // Page() döner — 200 + hem validation summary hem field-altı span'da hata
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var body = await response.Content.ReadAsStringAsync();
-            body.Should().Contain("kullan");
-            // Faz 4.1 P1/3 fix-2: field-level error key "Input.PublicSlug" olduğunda
-            // asp-validation-for="Input.PublicSlug" tag helper field-validation-error
-            // class'lı bir span render eder. Bu, key'in doğru bağlandığının kanıtı.
-            body.Should().Contain("field-validation-error");
-
-            // Second'in slug'ı atanmamalı
-            using var scope2 = _factory.Services.CreateScope();
-            var ctx2 = scope2.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var profile = await ctx2.UserProfiles.AsNoTracking().FirstAsync(p => p.UserId == second.Id);
-            profile.PublicSlug.Should().BeNull();
-        }
-        finally
-        {
-            await RemoveUserIfExistsAsync("pp-first@example.com");
-            await RemoveUserIfExistsAsync("pp-second@example.com");
+            await RemoveUserIfExistsAsync("pp-fallback@example.com");
         }
     }
 
@@ -267,11 +184,10 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
             var client = CreateAuthClient(user.Id, allowAutoRedirect: false);
             var token = await GetAntiforgeryTokenAsync(client, "/profil");
             var response = await client.PostAsync("/profil",
-                new FormUrlEncodedContent(BaseForm(token, "Preserve Tester",
-                    isPublic: false, publicSlug: "preserve-test")));
+                new FormUrlEncodedContent(BaseForm(token, "Preserve Tester", isPublic: false)));
             ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect);
 
-            // Slug korundu mu?
+            // Slug korundu mu? (OnPost slug'a dokunmaz, sadece null fallback yapar)
             using var scope2 = _factory.Services.CreateScope();
             var ctx2 = scope2.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var profile = await ctx2.UserProfiles.AsNoTracking().FirstAsync(p => p.UserId == user.Id);
@@ -281,34 +197,6 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
         finally
         {
             await RemoveUserIfExistsAsync("pp-preserve@example.com");
-        }
-    }
-
-    [Fact]
-    public async Task OnPost_SlugifiesUserInputWithTurkishCharsAndSpaces()
-    {
-        var user = await CreateUserAsync("pp-slugify@example.com", "Test User");
-        try
-        {
-            var client = CreateAuthClient(user.Id, allowAutoRedirect: false);
-            var token = await GetAntiforgeryTokenAsync(client, "/profil");
-
-            // Kullanıcı dostu input — büyük harf, Türkçe karakter, boşluk
-            var response = await client.PostAsync("/profil",
-                new FormUrlEncodedContent(BaseForm(token, "Test User",
-                    isPublic: true, publicSlug: "İstanbul Hukuk")));
-            ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect,
-                "regex artık server-side slugify ile yer değiştirdi, kullanıcı dostu input kabul edilir");
-
-            using var scope = _factory.Services.CreateScope();
-            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var profile = await ctx.UserProfiles.AsNoTracking().FirstAsync(p => p.UserId == user.Id);
-            profile.PublicSlug.Should().Be("istanbul-hukuk",
-                "SlugHelper Türkçe karakterleri normalize eder, boşluk → tire, lowercase");
-        }
-        finally
-        {
-            await RemoveUserIfExistsAsync("pp-slugify@example.com");
         }
     }
 

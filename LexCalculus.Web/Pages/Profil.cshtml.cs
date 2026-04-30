@@ -2,7 +2,6 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
-using LexCalculus.Core.Common;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Enums;
 using LexCalculus.Core.Services;
@@ -98,10 +97,6 @@ public class ProfilModel : PageModel
         [Display(Name = "Hukuk büromu profilimde göster")]
         public bool ShowTenant { get; set; }
 
-        [StringLength(100)]
-        [Display(Name = "Profil URL kısayolu")]
-        public string? PublicSlug { get; set; }
-
         [StringLength(2000)]
         [Display(Name = "Hakkınızda")]
         public string? Bio { get; set; }
@@ -149,7 +144,6 @@ public class ProfilModel : PageModel
             NotificationsEmailEnabled = user.NotificationsEmailEnabled,
             IsPublicProfile = profile.IsPublicProfile,
             ShowTenant = profile.ShowTenant && HasTenant,
-            PublicSlug = profile.PublicSlug,
             Bio = profile.Bio,
             City = profile.City
         };
@@ -259,56 +253,15 @@ public class ProfilModel : PageModel
         // ShowTenant defansif: kullanıcı tenant üyesi değilse her zaman false
         profile.ShowTenant = HasTenant && Input.ShowTenant;
 
-        // Slug yönetimi (Faz 4.1 P1/3 fix — server-side otomatik slugify):
-        // Kullanıcı girdisi her zaman SlugHelper üzerinden temizlenir; sert regex
-        // validation yerine kullanıcı dostu input (Türkçe karakter, büyük harf, boşluk)
-        // kabul edilir. Çakışma hâlâ kullanıcıya bildirilir (otomatik suffix kullanmıyoruz —
-        // kullanıcı kendi slug'ını seçmek isteyebilir).
-        var sanitizedInput = SlugHelper.Generate(Input.PublicSlug?.Trim());
-
-        if (Input.IsPublicProfile)
+        // Slug yönetimi (Faz 4.1 P2-fix — Yaklaşım 4 görünmez kimlik):
+        // Slug kayıt anında EnsureProfileExistsAsync ile üretilir, kullanıcı UI'da
+        // görmez/değiştirmez. Bu blok sadece eski kayıtlar için defansif fallback —
+        // mevcut PublicSlug null ise (P1/3 öncesinde oluşturulmuş profile) DisplayName
+        // tabanlı otomatik üret.
+        if (string.IsNullOrEmpty(profile.PublicSlug))
         {
-            if (!string.IsNullOrEmpty(sanitizedInput))
-            {
-                if (sanitizedInput != profile.PublicSlug)
-                {
-                    if (await _publicProfile.IsSlugTakenAsync(sanitizedInput, user.Id, ct))
-                    {
-                        // Razor Pages binder PublicSlug field'ını "Input.PublicSlug" anahtarıyla
-                        // bağlar; asp-validation-for="Input.PublicSlug" tag helper bu key'i arar.
-                        // nameof(Input.PublicSlug) sadece "PublicSlug" döndürür, prefix uyumsuzluğu
-                        // nedeniyle field-altı span boş kalırdı (Faz 4.1 P1/3 fix-2).
-                        ModelState.AddModelError("Input.PublicSlug",
-                            "Bu profil URL'i başka bir kullanıcı tarafından kullanılıyor.");
-                        return Page();
-                    }
-                    profile.PublicSlug = sanitizedInput;
-                }
-                // sanitize sonrası mevcut slug ile aynı → dokunma
-            }
-            else if (string.IsNullOrEmpty(profile.PublicSlug))
-            {
-                // İlk defa public açılıyor + kullanıcı slug yazmadı (veya yazdığı tamamen
-                // sembolden ibaretti) → DisplayName tabanlı otomatik üret.
-                profile.PublicSlug = await _publicProfile.GenerateUniquePublicSlugAsync(
-                    profile.DisplayName, user.Id, ct);
-            }
-            // else: kullanıcı boş bıraktı ve mevcut slug var → koru
-        }
-        else
-        {
-            // Profil gizli: slug korunur (re-enable için). Kullanıcı yeni bir şey yazdıysa
-            // (sanitized) güncelle, çakışma kontrolü yine yapılır.
-            if (!string.IsNullOrEmpty(sanitizedInput) && sanitizedInput != profile.PublicSlug)
-            {
-                if (await _publicProfile.IsSlugTakenAsync(sanitizedInput, user.Id, ct))
-                {
-                    ModelState.AddModelError("Input.PublicSlug",
-                        "Bu profil URL'i başka bir kullanıcı tarafından kullanılıyor.");
-                    return Page();
-                }
-                profile.PublicSlug = sanitizedInput;
-            }
+            profile.PublicSlug = await _publicProfile.GenerateUniquePublicSlugAsync(
+                profile.DisplayName, user.Id, ct);
         }
 
         await _ctx.SaveChangesAsync(ct);

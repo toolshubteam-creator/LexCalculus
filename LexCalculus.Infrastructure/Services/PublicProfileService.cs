@@ -1,4 +1,5 @@
 using LexCalculus.Core.Common;
+using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -56,5 +57,44 @@ public sealed class PublicProfileService : IPublicProfileService
             q = q.Where(p => p.UserId != excludeUserId.Value);
 
         return q.AnyAsync(ct);
+    }
+
+    public async Task<UserProfile> EnsureProfileExistsAsync(
+        int userId,
+        string displayName,
+        CancellationToken ct = default)
+    {
+        var profile = await _ctx.UserProfiles
+            .FirstOrDefaultAsync(p => p.UserId == userId, ct);
+
+        if (profile is not null)
+        {
+            // Var olan profile — slug eksikse tamamla (eski kayıtlar için
+            // geri uyumluluk; yeni kullanıcılarda zaten dolu olur).
+            if (string.IsNullOrEmpty(profile.PublicSlug))
+            {
+                profile.PublicSlug = await GenerateUniquePublicSlugAsync(
+                    string.IsNullOrWhiteSpace(profile.DisplayName) ? displayName : profile.DisplayName,
+                    userId, ct);
+                await _ctx.SaveChangesAsync(ct);
+            }
+            return profile;
+        }
+
+        // Profile yok — yeni oluştur, slug otomatik üret.
+        var newDisplayName = string.IsNullOrWhiteSpace(displayName) ? $"uye-{userId}" : displayName.Trim();
+        var slug = await GenerateUniquePublicSlugAsync(newDisplayName, userId, ct);
+
+        profile = new UserProfile
+        {
+            UserId = userId,
+            DisplayName = newDisplayName,
+            PublicSlug = slug,
+            IsPublicProfile = false,
+            ShowTenant = false
+        };
+        _ctx.UserProfiles.Add(profile);
+        await _ctx.SaveChangesAsync(ct);
+        return profile;
     }
 }

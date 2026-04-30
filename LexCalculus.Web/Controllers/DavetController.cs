@@ -13,15 +13,18 @@ public sealed class DavetController : Controller
     private readonly ITenantInvitationService _invitations;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly IPublicProfileService _publicProfile;
 
     public DavetController(
         ITenantInvitationService invitations,
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        IPublicProfileService publicProfile)
     {
         _invitations = invitations;
         _userManager = userManager;
         _signInManager = signInManager;
+        _publicProfile = publicProfile;
     }
 
     [HttpGet("{token}")]
@@ -151,6 +154,9 @@ public sealed class DavetController : Controller
         }
 
         await _userManager.AddToRoleAsync(newUser, "Kullanici");
+
+        // Faz 4.1 P2-fix (Yaklaşım 4): slug görünmez kimlik — kayıt anında üret.
+        await _publicProfile.EnsureProfileExistsAsync(newUser.Id, newUser.FullName ?? newUser.Email!, ct);
 
         try
         {

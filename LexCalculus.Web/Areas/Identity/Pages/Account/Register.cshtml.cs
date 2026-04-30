@@ -14,6 +14,7 @@ using LexCalculus.Core.Email;
 using LexCalculus.Core.Email.Models;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Enums;
+using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -32,6 +33,7 @@ namespace LexCalculus.Web.Areas.Identity.Pages.Account
         private readonly IEmailService _emailService;
         private readonly IEmailTemplateRenderer _emailRenderer;
         private readonly ApplicationDbContext _ctx;
+        private readonly IPublicProfileService _publicProfile;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
@@ -39,7 +41,8 @@ namespace LexCalculus.Web.Areas.Identity.Pages.Account
             ILogger<RegisterModel> logger,
             IEmailService emailService,
             IEmailTemplateRenderer emailRenderer,
-            ApplicationDbContext ctx)
+            ApplicationDbContext ctx,
+            IPublicProfileService publicProfile)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -47,6 +50,7 @@ namespace LexCalculus.Web.Areas.Identity.Pages.Account
             _emailService = emailService;
             _emailRenderer = emailRenderer;
             _ctx = ctx;
+            _publicProfile = publicProfile;
         }
 
         [BindProperty]
@@ -163,6 +167,11 @@ namespace LexCalculus.Web.Areas.Identity.Pages.Account
 
                 _ctx.UserProfiles.Add(profile);
                 await _ctx.SaveChangesAsync();
+
+                // Faz 4.1 P2-fix (Yaklaşım 4): slug görünmez kimlik —
+                // kayıt anında otomatik üretilir, kullanıcı UI'da görmez/değiştirmez.
+                await _publicProfile.EnsureProfileExistsAsync(
+                    user.Id, Input.FullName.Trim(), CancellationToken.None);
             }
             catch (Exception ex)
             {

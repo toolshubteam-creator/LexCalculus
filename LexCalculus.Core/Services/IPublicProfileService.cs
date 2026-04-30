@@ -1,8 +1,11 @@
+using LexCalculus.Core.Entities.Identity;
+
 namespace LexCalculus.Core.Services;
 
 /// <summary>
-/// Public profil yönetimi (Faz 4 — sosyal platform). Şu an sadece slug üretimi
-/// içeriyor; P2/3'te avatar yükleme, P3/3'te public sayfa render eklenecek.
+/// Public profil yönetimi (Faz 4 — sosyal platform). Şu an slug üretimi +
+/// profile guarantee; P2/3'te avatar yükleme MediaUploadService'e taşındı,
+/// P3/3'te /uye/{slug} render bağlanacak.
 /// </summary>
 public interface IPublicProfileService
 {
@@ -23,4 +26,16 @@ public interface IPublicProfileService
     /// excludeUserId verilirse o kullanıcının mevcut slug'ı false sayılır.
     /// </summary>
     Task<bool> IsSlugTakenAsync(string slug, int? excludeUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Idempotent — kullanıcının UserProfile satırı yoksa oluşturur, varsa
+    /// sadece PublicSlug null ise otomatik üretir. Identity Register ve
+    /// DavetController.Kayit kayıt anında çağırır. Faz 4.1 P2-fix tasarım kararı
+    /// (Yaklaşım 4): slug görünmez kimlik, kullanıcı UI'da görmez/değiştirmez.
+    /// </summary>
+    /// <returns>Profile (slug'ı garantili dolu).</returns>
+    Task<UserProfile> EnsureProfileExistsAsync(
+        int userId,
+        string displayName,
+        CancellationToken ct = default);
 }
