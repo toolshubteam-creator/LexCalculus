@@ -6,8 +6,10 @@ using LexCalculus.Core.Common;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Enums;
 using LexCalculus.Core.Services;
+using LexCalculus.Core.Storage;
 using LexCalculus.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -23,6 +25,8 @@ public class ProfilModel : PageModel
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ApplicationDbContext _ctx;
     private readonly IPublicProfileService _publicProfile;
+    private readonly IMediaUploadService _mediaUpload;
+    private readonly IMediaStorage _mediaStorage;
     private readonly ILogger<ProfilModel> _logger;
 
     public ProfilModel(
@@ -30,12 +34,16 @@ public class ProfilModel : PageModel
         SignInManager<ApplicationUser> signInManager,
         ApplicationDbContext ctx,
         IPublicProfileService publicProfile,
+        IMediaUploadService mediaUpload,
+        IMediaStorage mediaStorage,
         ILogger<ProfilModel> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _ctx = ctx;
         _publicProfile = publicProfile;
+        _mediaUpload = mediaUpload;
+        _mediaStorage = mediaStorage;
         _logger = logger;
     }
 
@@ -45,6 +53,11 @@ public class ProfilModel : PageModel
     /// View'da ShowTenant toggle'ını koşullu render etmek için.
     /// </summary>
     public bool HasTenant { get; set; }
+
+    /// <summary>
+    /// Mevcut avatarın public URL'i (varsa). View'da preview render etmek için.
+    /// </summary>
+    public string? CurrentAvatarUrl { get; set; }
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -96,6 +109,10 @@ public class ProfilModel : PageModel
         [StringLength(80)]
         [Display(Name = "Şehir")]
         public string? City { get; set; }
+
+        // Faz 4.1 P2/3 — avatar yükleme. ASP.NET binder boş file için null bırakır.
+        [Display(Name = "Profil Fotoğrafı")]
+        public IFormFile? AvatarFile { get; set; }
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -117,6 +134,10 @@ public class ProfilModel : PageModel
             _ctx.UserProfiles.Add(profile);
             await _ctx.SaveChangesAsync();
         }
+
+        CurrentAvatarUrl = string.IsNullOrEmpty(profile.AvatarUrl)
+            ? null
+            : _mediaStorage.GetPublicUrl(profile.AvatarUrl);
 
         Input = new InputModel
         {
@@ -143,6 +164,40 @@ public class ProfilModel : PageModel
 
         Email = user.Email ?? "";
         HasTenant = user.TenantId.HasValue;
+
+        // CurrentAvatarUrl Page() return path'lerinde view'da görünmesi için reload edilir
+        // (en sondaki SaveChanges sonrası reset edilebilir).
+        var currentProfile = await _ctx.UserProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == user.Id, ct);
+        CurrentAvatarUrl = string.IsNullOrEmpty(currentProfile?.AvatarUrl)
+            ? null
+            : _mediaStorage.GetPublicUrl(currentProfile.AvatarUrl);
+
+        // Avatar yükleme — kullanıcı dosya seçmediyse sessiz atla, mevcut avatar korunur.
+        if (Input.AvatarFile is { Length: > 0 })
+        {
+            await using var avatarStream = Input.AvatarFile.OpenReadStream();
+            var uploadResult = await _mediaUpload.UploadAvatarAsync(
+                user.Id,
+                avatarStream,
+                Input.AvatarFile.FileName,
+                Input.AvatarFile.ContentType,
+                Input.AvatarFile.Length,
+                ct);
+
+            if (!uploadResult.Success)
+            {
+                ModelState.AddModelError("Input.AvatarFile",
+                    uploadResult.ErrorMessage ?? "Avatar yüklenemedi.");
+                return Page();
+            }
+
+            // Başarılı yükleme — preview'i güncelle (Page() return olmasa da
+            // RedirectToPage() ileride OnGet'i çağıracağı için zaten yenilenir; ama
+            // defansif olarak eldeki referansı güncel tut).
+            CurrentAvatarUrl = _mediaStorage.GetPublicUrl(uploadResult.RelativePath!);
+        }
 
         if (!ModelState.IsValid)
         {

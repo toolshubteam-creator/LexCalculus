@@ -17,11 +17,26 @@
 
     <div asp-validation-summary="All" class="form-section__message form-section__message--error"></div>
 
-    <form method="post" id="profile-form">
+    <form method="post" id="profile-form" enctype="multipart/form-data">
         <div class="field">
             <label class="field__label">E-posta</label>
             <input class="field__input field__input--locked" value="@Model.Email" readonly />
             <span class="field-hint">E-posta adresinizi değiştirmek için yöneticiyle iletişime geçin.</span>
+        </div>
+
+        @* Faz 4.1 P2/3 — Avatar yükleme *@
+        <div class="field">
+            <label class="field__label" asp-for="Input.AvatarFile">Profil Fotoğrafı</label>
+            @if (!string.IsNullOrEmpty(Model.CurrentAvatarUrl))
+            {
+                <div class="avatar-preview">
+                    <img src="@Model.CurrentAvatarUrl" alt="Mevcut avatar" class="avatar-preview__image" />
+                </div>
+            }
+            <input asp-for="Input.AvatarFile" type="file" accept="image/jpeg,image/png,image/webp"
+                   class="field__input field__input--file" />
+            <span asp-validation-for="Input.AvatarFile" class="field-validation-error"></span>
+            <span class="field-hint">JPG, PNG veya WebP. Maksimum 5 MB. 256x256 olarak otomatik kırpılır.</span>
         </div>
 
         <div class="field">

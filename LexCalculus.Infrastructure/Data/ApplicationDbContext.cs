@@ -1,5 +1,6 @@
 using LexCalculus.Core.Entities;
 using LexCalculus.Core.Entities.Calculators;
+using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Notifications;
 using LexCalculus.Core.Services;
@@ -37,6 +38,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<TenantRequest> TenantRequests => Set<TenantRequest>();
     public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+    public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -119,6 +121,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
              .WithMany()
              .HasForeignKey(r => r.CreatedTenantId)
              .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<MediaFile>(e =>
+        {
+            e.HasIndex(m => m.UserId);
+            e.HasIndex(m => m.RelativePath).IsUnique();
+
+            e.HasOne(m => m.User)
+             .WithMany()
+             .HasForeignKey(m => m.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ActivityLog>(e =>

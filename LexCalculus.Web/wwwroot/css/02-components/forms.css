@@ -83,6 +83,26 @@
   margin-top: 4px;
 }
 
+/* Avatar yükleme preview — /profil sayfası (Faz 4.1 P2/3) */
+.avatar-preview {
+  margin-bottom: var(--sp-3);
+}
+
+.avatar-preview__image {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--gold-pale, #d4c389);
+}
+
+.field__input--file {
+  /* file input'ı diğer input'larla görsel olarak hizala — bazı browser'larda
+     varsayılan padding/border eksik kalır. */
+  padding: var(--sp-2);
+  background: rgba(255, 255, 255, 0.4);
+}
+
 /* Checkbox label — input next to text */
 .field__label--checkbox {
   display: flex;

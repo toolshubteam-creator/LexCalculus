@@ -238,6 +238,11 @@ try
     // Public profile (Faz 4.1) — slug üretimi + ileride avatar/public sayfa
     builder.Services.AddScoped<IPublicProfileService, PublicProfileService>();
 
+    // Media (Faz 4.1 P2/3) — yerel disk depolama + ImageSharp upload pipeline
+    builder.Services.AddScoped<LexCalculus.Core.Storage.IMediaStorage,
+        LexCalculus.Infrastructure.Storage.LocalDiskMediaStorage>();
+    builder.Services.AddScoped<IMediaUploadService, MediaUploadService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {
