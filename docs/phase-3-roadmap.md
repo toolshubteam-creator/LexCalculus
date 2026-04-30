@@ -173,12 +173,50 @@ yapılır, mahkemede sorun çıkar.
 
 ### Adım 3.8 — Aktivite Logu UI
 
+**Status:** ✅ Tamamlandı (2026-04-30)
+**Commit range:** `15a9f5e..44b0145`
+
 - ActivityLogs tablosu (Faz 1'de oluşturuldu, kullanılmıyor)
 - Admin panelinde tüm parametre değişiklikleri, kullanıcı login/logout, yetki değişiklikleri
 - Filter: kullanıcı, tarih, eylem türü
 - CSV export
 
 **Süre:** 2-3 gün
+
+#### Adım 3.8 — Kapanış Özeti (2026-04-30)
+
+2 parçada tamamlandı (P1, P2).
+
+**Commit zinciri:**
+- P1/2: `537877c` — ActivityLog entity + service + 16 entegrasyon + admin UI
+- P2/2: `44b0145` — ExpireInvitationsJob (Hangfire, günde 1 kez 03:00 Europe/Istanbul)
+
+**Metrikler:**
+- Test: 375 → 391 (+16)
+- Migration: 1 (AddActivityLog)
+- Hangfire recurring jobs: 1 yeni (expire-invitations)
+- Regresyon: 0
+
+**Mimari kararlar:**
+- Karar 1: Logging kapsamı orta — admin işlemleri + hassas değişiklikler (geniş değil)
+- Karar 3: Service-level manuel log (interceptor değil)
+- Karar 5: ActivityLog kendi audit'i yok (sonsuz döngü riski)
+- Karar 7: TenantRequest expiry yok (sadece davet expire edilir)
+- Karar 9: Multi-tenant query filter yok (admin only feature)
+- HttpContext null'da defansif (background job'larda crash yok)
+
+**Entegrasyon noktaları (16 toplam):**
+- UserAdmin: 4 (SetActive aktif/pasif, ChangeRole, SendPasswordReset)
+- TenantAdmin: 5 (Create, Update, SoftDelete, AddMember, RemoveMember)
+- TenantRequest: 3 (Approve, Reject, Cancel)
+- TenantInvitation: 4 (Create, Cancel, Accept, AcceptForNewUser)
+- FormulaParameter: 3 (Create, Update, Delete)
+- LifeTable: 3 (Create, Activate, UpdateRow)
+
+**Açık tech-debt:**
+- Madde 9: ActivityLog retention policy (KVKK) — avukat görüşü gerekiyor
+
+**Sonraki:** Adım 3.9 — Faz 3 final cleanup + tag (phase-3-complete).
 
 ### Adım 3.9 — Faz 3 Final
 
