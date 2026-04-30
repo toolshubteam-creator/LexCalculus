@@ -122,6 +122,9 @@ yapılır, mahkemede sorun çıkar.
 
 ### Adım 3.7 — Organization Multi-Tenant Altyapı
 
+**Status:** ✅ Tamamlandı (2026-04-30)
+**Commit range:** `e1c5429..a98a7fb`
+
 > **Vizyon notu (29 Nisan 2026):** Sistem ücretsiz, hedef kitle tüm
 > vatandaşlar. Plan kavramı (Free/Pro/Enterprise) yok. Multi-tenant
 > özelliği hukuk bürosu ekipleri (5 avukat ortak çalışma) senaryosu
@@ -136,6 +139,37 @@ yapılır, mahkemede sorun çıkar.
 - Org bazında kullanım istatistiği
 
 **Süre:** 5-7 gün
+
+#### Adım 3.7 — Kapanış Özeti (2026-04-30)
+
+5 parçada tamamlandı (P1, P2a, P2b, P3, P4).
+
+**Commit zinciri:**
+- P1/5: `3737bdb` — Tenant entity + global query filter + AsAdminQuery
+- P2a/5: `810eaa4` + `77d611a` hotfix — Tenant CRUD admin + SlugHelper + owner protection
+- P2b/5: `fc17324` + `26673cc` hotfix — TenantRequest akışı + SiteUrl SeoSettings
+- P3/5: `e0a9d31` — Davet sistemi + register integration
+- P4/5: `a98a7fb` — Tenant context UI + paylaşım toggle + scope filter
+
+**Metrikler:**
+- Test: 326 → 375 (+49)
+- LOC: ~5000 yeni
+- Migration: 4 (AddTenantFoundation, AddTenantRequest, AddTenantInvitation, snapshot updates)
+- Regresyon: 0
+
+**Mimari kararlar:**
+- Karar 1: Tek TenantId alanı (M2M değil)
+- Karar 2: Hesap geçmişi varsayılan özel, opt-in paylaşım
+- Karar 3: Tenant içi sadece owner + üye (granüler rol yok)
+- Karar 6: Paylaşılan hesap üye ayrılınca/tenant silinince TenantId korunur
+- ShareWithTenant Core/Input DTO'larına SIZDIRILMADI (controller seviyesi)
+
+**Vizyon uyumu:** Plan field eklenmedi. Bireysel vatandaş kullanıcılar tenant UI hiç görmez.
+
+**Açık tech-debt (Adım 3.9'a):**
+- Madde 8: P3/5 TenantYonetim/Index.cshtml inline style ihlali
+
+**Sonraki:** Adım 3.8 — Activity Log (audit trail) + expired davet/talep cleanup.
 
 ### Adım 3.8 — Aktivite Logu UI
 
