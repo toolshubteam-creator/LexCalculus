@@ -7,6 +7,12 @@ public sealed class TenantYonetimVm
 {
     public required TenantDetailDto Tenant { get; init; }
     public required IReadOnlyList<InvitationListItemDto> Invitations { get; init; }
+
+    /// <summary>
+    /// Mevcut kullanıcı bu tenant'ın owner'ı mı (üye yönetimi + davet UI'sı sadece owner için).
+    /// Owner-olmayan üye Index'e girebilir ama yalnızca "Tenant'tan Ayrıl" görür.
+    /// </summary>
+    public bool IsOwner { get; init; }
 }
 
 public sealed class TenantYonetimDavetVm

@@ -109,3 +109,27 @@
 /* Bell renkleri site header (koyu arkaplan) için override */
 .header-meta .notif-bell__btn { color: var(--gold-bright); }
 .header-meta .notif-bell__btn:hover { color: var(--parchment); }
+
+/* Tenant context göstergesi (header'da tenant adı + Owner/Üye etiketi) */
+.header-tenant-context {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 2px var(--sp-3);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--bg-overlay-gold);
+}
+
+.header-tenant-context__name {
+  font-weight: 600;
+  color: var(--parchment);
+  letter-spacing: var(--tracking-snug);
+}
+
+.header-tenant-context__role {
+  color: var(--gold-pale);
+  font-size: var(--fs-meta-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}

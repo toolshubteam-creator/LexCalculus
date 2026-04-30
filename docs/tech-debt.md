@@ -157,6 +157,26 @@ reset gönderebileceği için (Parça 4/4) acil değil.
 
 ---
 
+## 8. P3/5 — Views/TenantYonetim/Index.cshtml inline style ihlali
+
+**Bağlam:** Adım 3.7 P3/5 commit'inde TenantYonetim view'ı yazılırken
+hızlı çıktı için inline style'lar kullanıldı (`style="margin-bottom:20px"`,
+`style="font-size:18px"`, `style="display:inline"`). CLAUDE.md kuralı
+"Inline style yasak; tüm CSS wwwroot/css/ altında BEM ile" diyor.
+
+**Mevcut durum:** UI çalışıyor. Sadece konvansiyon ihlali; e-mail
+template istisnası değil.
+
+**İdeal çözüm:** Inline style'ları `forms.css` veya yeni bir
+`tenant-yonetim.css`'e taşı, BEM class adlarına çevir. P4/5'teki
+"Tenant'tan Ayrıl" butonu için kullanılan `.tenant-leave` ve
+`.tenant-leave__btn` BEM örnek olarak hazır — diğer inline'lar da
+benzer şekilde çevrilmeli.
+
+**Önerilen zaman:** Adım 3.9 cleanup turu. Tahmini iş 15 dakika.
+
+---
+
 ## 7. Manage/_ManageNav.cshtml Bootstrap kalıntısı
 
 **Bağlam:** Adım 3.6 Parça 3/4 keşfi — Identity scaffold'undan gelen

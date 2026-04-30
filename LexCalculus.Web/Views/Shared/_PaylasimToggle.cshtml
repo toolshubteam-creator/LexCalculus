@@ -1,0 +1,22 @@
+@model bool?
+@inject UserManager<LexCalculus.Core.Entities.Identity.ApplicationUser> UserManager
+
+@{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var hasTenant = currentUser?.TenantId.HasValue ?? false;
+}
+
+@if (hasTenant)
+{
+    <div class="paylasim-toggle">
+        <label class="paylasim-toggle__label">
+            <input type="checkbox" name="shareWithTenant" value="true"
+                   class="paylasim-toggle__checkbox"
+                   @(Model == true ? "checked=\"checked\"" : "") />
+            <span class="paylasim-toggle__text">Bu hesabı ekibimle paylaş</span>
+        </label>
+        <p class="paylasim-toggle__hint">
+            İşaretlerseniz tenant üyeleri bu hesabı görebilir.
+        </p>
+    </div>
+}

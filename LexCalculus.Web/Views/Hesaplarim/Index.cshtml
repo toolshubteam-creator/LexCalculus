@@ -54,6 +54,18 @@
                        value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))"
                        class="hesap-filter__input" />
             </div>
+            @if (Model.HasTenant)
+            {
+                <div class="hesap-filter__field">
+                    <label class="hesap-filter__label" for="filter-scope">Kapsam</label>
+                    <select id="filter-scope" name="Scope" class="hesap-filter__input">
+                        <option value="all" selected="@(Model.Filter.Scope == "all" || string.IsNullOrEmpty(Model.Filter.Scope))">Hepsi</option>
+                        <option value="mine" selected="@(Model.Filter.Scope == "mine")">Sadece Özel</option>
+                        <option value="shared-by-me" selected="@(Model.Filter.Scope == "shared-by-me")">Paylaştıklarım</option>
+                        <option value="team" selected="@(Model.Filter.Scope == "team")">Ekip Paylaşımları</option>
+                    </select>
+                </div>
+            }
             <div class="hesap-filter__actions">
                 <button type="submit" class="hesap-btn hesap-btn--primary">Filtrele</button>
                 <a href="@Url.Action("Index")" class="hesap-btn hesap-btn--secondary">Temizle</a>
@@ -83,7 +95,20 @@
             {
                 <li class="hesap-item">
                     <div class="hesap-item__main">
-                        <div class="hesap-item__title">@row.ToolTitle</div>
+                        <div class="hesap-item__title">
+                            @row.ToolTitle
+                            @if (row.IsShared)
+                            {
+                                if (row.IsMine)
+                                {
+                                    <span class="paylasim-rozet paylasim-rozet--mine" title="Bu hesabı ekibinizle paylaştınız">Sen paylaştın</span>
+                                }
+                                else
+                                {
+                                    <span class="paylasim-rozet" title="Ekipten paylaşılan hesap">@row.OwnerUserName paylaştı</span>
+                                }
+                            }
+                        </div>
                         <div class="hesap-item__meta">
                             <span class="hesap-item__category">@row.CategorySlug</span>
                             <span class="hesap-item__time">@RelativeTime(row.CreatedAt)</span>
@@ -111,7 +136,7 @@
             <nav class="hesap-pagination">
                 @if (Model.HasPrevious)
                 {
-                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, page = Model.Page - 1 })">← Önceki</a>
+                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, Scope = Model.Filter.Scope, page = Model.Page - 1 })">← Önceki</a>
                 }
                 else
                 {
@@ -120,7 +145,7 @@
                 <span class="hesap-pagination__info">Sayfa @Model.Page / @Model.TotalPages · @Model.TotalCount toplam</span>
                 @if (Model.HasNext)
                 {
-                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, page = Model.Page + 1 })">Sonraki →</a>
+                    <a href="@Url.Action("Index", new { ToolSlug = Model.Filter.ToolSlug, StartDate = Model.Filter.StartDate, EndDate = Model.Filter.EndDate, Scope = Model.Filter.Scope, page = Model.Page + 1 })">Sonraki →</a>
                 }
                 else
                 {

@@ -10,6 +10,9 @@ public sealed class HesaplarimListPageViewModel
     public int Page { get; init; }
     public int PageSize { get; init; }
 
+    /// <summary>Kullanıcı tenant üyesi mi — scope filter UI'sını koşullu render etmek için.</summary>
+    public bool HasTenant { get; init; }
+
     public int TotalPages => Math.Max(1, (int)Math.Ceiling((double)TotalCount / PageSize));
     public bool HasPrevious => Page > 1;
     public bool HasNext => Page < TotalPages;

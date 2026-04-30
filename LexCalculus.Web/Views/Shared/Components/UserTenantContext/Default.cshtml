@@ -1,0 +1,16 @@
+@model LexCalculus.Web.Models.Layout.UserTenantContextVm
+
+@if (Model.IsAuthenticated && Model.HasTenant)
+{
+    <span class="header-tenant-context">
+        <span class="header-tenant-context__name">@Model.TenantName</span>
+        <span class="header-tenant-context__role">
+            @(Model.IsOwner ? "Owner" : "Üye")
+        </span>
+    </span>
+    <a href="/tenant/yonet" class="header-meta__link">Tenant Yönetimi</a>
+}
+else if (Model.IsAuthenticated && !Model.HasTenant)
+{
+    <a href="/tenant-talep" class="header-meta__link">Tenant Talebim</a>
+}

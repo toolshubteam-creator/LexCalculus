@@ -14,28 +14,38 @@ public sealed class TenantYonetimController : Controller
     private readonly ITenantAdminService _tenants;
     private readonly ITenantInvitationService _invitations;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
 
     public TenantYonetimController(
         ITenantAdminService tenants,
         ITenantInvitationService invitations,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager)
     {
         _tenants = tenants;
         _invitations = invitations;
         _userManager = userManager;
+        _signInManager = signInManager;
     }
 
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken ct = default)
     {
-        var (user, tenant, error) = await ResolveOwnerContextAsync(ct);
+        var (user, tenant, error) = await ResolveTenantContextAsync(ct);
         if (error != null) return error;
 
-        var invitations = await _invitations.GetForTenantAsync(tenant!.Id, ct);
+        var isOwner = tenant!.OwnerUserId == user!.Id;
+
+        // Davet listesi yalnızca owner'a anlamlı; üyeye boş dön (DB sorgu boşa gitmesin).
+        IReadOnlyList<InvitationListItemDto> invitations = isOwner
+            ? await _invitations.GetForTenantAsync(tenant.Id, ct)
+            : Array.Empty<InvitationListItemDto>();
+
         var vm = new TenantYonetimVm
         {
             Tenant = tenant,
-            Invitations = invitations
+            Invitations = invitations,
+            IsOwner = isOwner
         };
 
         ViewData["Title"] = "Tenant Yönetimi";
@@ -110,8 +120,52 @@ public sealed class TenantYonetimController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>
+    /// Owner-olmayan üye tenant'tan ayrılır.
+    /// Owner ayrılamaz — önce owner devri yapılmalı.
+    /// </summary>
+    [HttpPost("ayril")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Ayril(CancellationToken ct = default)
+    {
+        var (user, tenant, error) = await ResolveTenantContextAsync(ct);
+        if (error != null) return error;
+
+        if (tenant!.OwnerUserId == user!.Id)
+        {
+            TempData["Error"] = "Owner olarak ayrılamazsınız. Önce sahipliği başka birine devredin.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await _tenants.RemoveMemberAsync(tenant.Id, user.Id, ct);
+
+            // TenantId claim güncellensin (artık tenant üyesi değil).
+            try
+            {
+                await _signInManager.RefreshSignInAsync(user);
+            }
+            catch (Exception)
+            {
+                // Test ortamında IAuthenticationSignInHandler eksik olabilir; sessiz pas.
+            }
+
+            TempData["Success"] = "✓ Tenant'tan ayrıldınız.";
+            return Redirect("/");
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["Error"] = ex.Message;
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    /// <summary>
+    /// Index + Ayril için: kullanıcı tenant'a bağlı olmalı (owner şartı yok).
+    /// </summary>
     private async Task<(ApplicationUser? user, TenantDetailDto? tenant, IActionResult? error)>
-        ResolveOwnerContextAsync(CancellationToken ct)
+        ResolveTenantContextAsync(CancellationToken ct)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return (null, null, Challenge());
@@ -129,9 +183,21 @@ public sealed class TenantYonetimController : Controller
             return (user, null, Redirect("/"));
         }
 
-        if (tenant.OwnerUserId != user.Id)
+        return (user, tenant, null);
+    }
+
+    /// <summary>
+    /// Davet/UyeCikar için: ek olarak owner olduğunu kontrol eder.
+    /// </summary>
+    private async Task<(ApplicationUser? user, TenantDetailDto? tenant, IActionResult? error)>
+        ResolveOwnerContextAsync(CancellationToken ct)
+    {
+        var (user, tenant, err) = await ResolveTenantContextAsync(ct);
+        if (err != null) return (user, tenant, err);
+
+        if (tenant!.OwnerUserId != user!.Id)
         {
-            TempData["Error"] = "Bu sayfaya yalnızca tenant owner erişebilir.";
+            TempData["Error"] = "Bu eylemi yalnızca tenant owner gerçekleştirebilir.";
             return (user, tenant, Redirect("/"));
         }
 

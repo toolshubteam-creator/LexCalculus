@@ -92,6 +92,8 @@
             <input asp-for="BayramSaati" class="field__input" type="number" step="1" min="0" placeholder="0" />
         </div>
 
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
         <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
     </form>
 

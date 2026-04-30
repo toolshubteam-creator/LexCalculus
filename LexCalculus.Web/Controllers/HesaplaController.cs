@@ -33,6 +33,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<KiraArtisiInput, KiraArtisiResult> _kiraArtisiCalculator;
     private readonly ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> _menfiTespitFaizCalculator;
     private readonly ICalculationHistoryService _historyService;
+    private readonly ITenantContext _tenantContext;
 
     public HesaplaController(
         ICalculatorRegistry registry,
@@ -53,9 +54,11 @@ public class HesaplaController : Controller
         ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult> akdiTemerrutCalculator,
         ICalculator<KiraArtisiInput, KiraArtisiResult> kiraArtisiCalculator,
         ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> menfiTespitFaizCalculator,
-        ICalculationHistoryService historyService)
+        ICalculationHistoryService historyService,
+        ITenantContext tenantContext)
     {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _tenantContext = tenantContext ?? throw new ArgumentNullException(nameof(tenantContext));
         _kidemCalculator = kidemCalculator ?? throw new ArgumentNullException(nameof(kidemCalculator));
         _ihbarCalculator = ihbarCalculator ?? throw new ArgumentNullException(nameof(ihbarCalculator));
         _yillikIzinCalculator = yillikIzinCalculator ?? throw new ArgumentNullException(nameof(yillikIzinCalculator));
@@ -82,6 +85,7 @@ public class HesaplaController : Controller
         TResult result,
         decimal? totalAmount,
         string? unit,
+        bool shareWithTenant,
         CancellationToken cancellationToken)
     {
         int? userId = null;
@@ -92,6 +96,12 @@ public class HesaplaController : Controller
                 userId = parsed;
         }
 
+        // Tenant'sız kullanıcılar paylaşamaz; UI checkbox'u zaten görünmüyor,
+        // gelse de defansif olarak null'a çekiyoruz.
+        int? tenantId = (shareWithTenant && _tenantContext.CurrentTenantId.HasValue)
+            ? _tenantContext.CurrentTenantId
+            : null;
+
         await _historyService.LogAsync(
             userId,
             meta.Category.ToShortName(),
@@ -101,6 +111,7 @@ public class HesaplaController : Controller
             result,
             totalAmount,
             unit,
+            tenantId,
             cancellationToken);
     }
 
@@ -257,7 +268,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/kidem-tazminati")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> KidemTazminati(KidemTazminatiInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> KidemTazminati(KidemTazminatiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "kidem-tazminati");
         if (meta is null) return NotFound();
@@ -289,7 +300,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -313,7 +324,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/ihbar-tazminati")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> IhbarTazminati(IhbarTazminatiInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> IhbarTazminati(IhbarTazminatiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "ihbar-tazminati");
         if (meta is null) return NotFound();
@@ -340,7 +351,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -364,7 +375,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/yillik-izin-ucreti")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> YillikIzin(YillikIzinInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> YillikIzin(YillikIzinInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "yillik-izin-ucreti");
         if (meta is null) return NotFound();
@@ -391,7 +402,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -415,7 +426,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/fazla-mesai")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> FazlaMesai(FazlaMesaiInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> FazlaMesai(FazlaMesaiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "fazla-mesai");
         if (meta is null) return NotFound();
@@ -441,7 +452,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -465,7 +476,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/ise-iade-tazminati")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> IseIade(IseIadeInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> IseIade(IseIadeInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "ise-iade-tazminati");
         if (meta is null) return NotFound();
@@ -491,7 +502,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -515,7 +526,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/asgari-ucret-kontrol")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AsgariUcret(AsgariUcretInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> AsgariUcret(AsgariUcretInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "asgari-ucret-kontrol");
         if (meta is null) return NotFound();
@@ -541,7 +552,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -565,7 +576,7 @@ public class HesaplaController : Controller
 
     [HttpPost("is-hukuku/mobbing-tazminati")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Mobbing(MobbingInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> Mobbing(MobbingInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.IsHukuku, "mobbing-tazminati");
         if (meta is null) return NotFound();
@@ -591,7 +602,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -615,7 +626,7 @@ public class HesaplaController : Controller
 
     [HttpPost("akturya/destekten-yoksun-kalma")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DestektenYoksunKalma(DesteKtenYoksunKalmaInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> DestektenYoksunKalma(DesteKtenYoksunKalmaInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "destekten-yoksun-kalma");
         if (meta is null) return NotFound();
@@ -641,7 +652,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -665,7 +676,7 @@ public class HesaplaController : Controller
 
     [HttpPost("akturya/maluliyet-tazminati")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Maluliyet(MaluliyetInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> Maluliyet(MaluliyetInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "maluliyet-tazminati");
         if (meta is null) return NotFound();
@@ -687,7 +698,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -711,7 +722,7 @@ public class HesaplaController : Controller
 
     [HttpPost("akturya/gecici-is-goremezlik")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> GeciciIsGoremezlik(GeciciIsGoremezlikInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> GeciciIsGoremezlik(GeciciIsGoremezlikInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "gecici-is-goremezlik");
         if (meta is null) return NotFound();
@@ -733,7 +744,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -757,7 +768,7 @@ public class HesaplaController : Controller
 
     [HttpPost("akturya/bakici-gideri")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> BakiciGideri(BakiciGideriInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> BakiciGideri(BakiciGideriInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "bakici-gideri");
         if (meta is null) return NotFound();
@@ -779,7 +790,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -803,7 +814,7 @@ public class HesaplaController : Controller
 
     [HttpPost("akturya/arac-deger-kaybi")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AracDegerKaybi(AracDegerKaybiInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> AracDegerKaybi(AracDegerKaybiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Akturya, "arac-deger-kaybi");
         if (meta is null) return NotFound();
@@ -825,7 +836,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -849,7 +860,7 @@ public class HesaplaController : Controller
 
     [HttpPost("faiz/yasal-faiz")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> YasalFaiz(YasalFaizInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> YasalFaiz(YasalFaizInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "yasal-faiz");
         if (meta is null) return NotFound();
@@ -871,7 +882,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -895,7 +906,7 @@ public class HesaplaController : Controller
 
     [HttpPost("faiz/ticari-temerrut-faizi")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> TicariTemerrutFaiz(TicariTemerrutFaizInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> TicariTemerrutFaiz(TicariTemerrutFaizInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "ticari-temerrut-faizi");
         if (meta is null) return NotFound();
@@ -917,7 +928,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -946,7 +957,7 @@ public class HesaplaController : Controller
 
     [HttpPost("faiz/akdi-temerrut-faizi")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AkdiTemerrutFaiz(AkdiTemerrutFaizInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> AkdiTemerrutFaiz(AkdiTemerrutFaizInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "akdi-temerrut-faizi");
         if (meta is null) return NotFound();
@@ -968,7 +979,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -997,7 +1008,7 @@ public class HesaplaController : Controller
 
     [HttpPost("faiz/kira-artisi")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> KiraArtisi(KiraArtisiInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> KiraArtisi(KiraArtisiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "kira-artisi");
         if (meta is null) return NotFound();
@@ -1019,7 +1030,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 
@@ -1049,7 +1060,7 @@ public class HesaplaController : Controller
 
     [HttpPost("faiz/menfi-tespit-faizi")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> MenfiTespitFaiz(MenfiTespitFaizInput input, CancellationToken cancellationToken)
+    public async Task<IActionResult> MenfiTespitFaiz(MenfiTespitFaizInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
         var meta = _registry.Find(CalculatorCategory.Faiz, "menfi-tespit-faizi");
         if (meta is null) return NotFound();
@@ -1071,7 +1082,7 @@ public class HesaplaController : Controller
         }
 
         ViewData["Result"] = result;
-        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, cancellationToken);
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
         return View(viewPath, input);
     }
 }

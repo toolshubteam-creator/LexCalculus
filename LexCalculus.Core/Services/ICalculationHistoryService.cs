@@ -21,11 +21,14 @@ public interface ICalculationHistoryService
         TResult result,
         decimal? totalAmount,
         string? unit,
+        int? tenantId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the user's calculation history with pagination + optional filters.
     /// Sorted by CreatedAt DESC.
+    /// scope: "all" (default) | "mine" | "shared-by-me" | "team"
+    /// — see CalculationHistoryService implementation for exact predicate.
     /// </summary>
     Task<CalculationHistoryPage> GetForUserAsync(
         int userId,
@@ -34,7 +37,23 @@ public interface ICalculationHistoryService
         string? toolSlugFilter = null,
         DateTime? startDateUtc = null,
         DateTime? endDateUtc = null,
+        string? scope = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// UserId → UserName eşlemesi (paylaşılan hesaplarda "kim paylaştı" göstermek için).
+    /// Soft-delete edilen kullanıcılar dahil — UserName istisna durumlar dışında stable.
+    /// </summary>
+    Task<IReadOnlyDictionary<int, string>> GetUserNamesAsync(
+        IReadOnlyCollection<int> userIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Tek bir hesabın paylaşım durumunu togglelar.
+    /// share=true ise CalculationHistory.TenantId = user.TenantId (varsa);
+    /// share=false ise null. Owner kontrolü yapılır (UserId == requestedByUserId).
+    /// </summary>
+    Task<bool> SetSharingAsync(
+        int historyId, int requestedByUserId, bool share, CancellationToken ct = default);
 
     /// <summary>
     /// Returns a single history entry. Verifies ownership: returns null if

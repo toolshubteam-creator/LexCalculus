@@ -35,6 +35,7 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
         TResult result,
         decimal? totalAmount,
         string? unit,
+        int? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         if (userId is null or <= 0)
@@ -62,15 +63,16 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
                 InputJson = inputJson,
                 OutputJson = outputJson,
                 TotalAmount = totalAmount,
-                Unit = unit
+                Unit = unit,
+                TenantId = tenantId
             };
 
             _ctx.Set<CalculationHistory>().Add(entry);
             await _ctx.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
-                "Calculation logged: user={User}, tool={Tool}, total={Total} {Unit}",
-                userId, toolSlug, totalAmount, unit);
+                "Calculation logged: user={User}, tool={Tool}, total={Total} {Unit}, tenant={Tenant}",
+                userId, toolSlug, totalAmount, unit, tenantId);
         }
         catch (Exception ex)
         {
@@ -88,6 +90,7 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
         string? toolSlugFilter = null,
         DateTime? startDateUtc = null,
         DateTime? endDateUtc = null,
+        string? scope = null,
         CancellationToken ct = default)
     {
         if (userId <= 0)
@@ -95,7 +98,17 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
         if (page < 1) page = 1;
         if (pageSize < 1 || pageSize > 100) pageSize = 25;
 
-        var q = _ctx.Set<CalculationHistory>().Where(h => h.UserId == userId);
+        // Tenant-aware query filter aktif: kullanıcı kendi privates + tenant team-shared görür.
+        // Burada sadece scope alt kümesi ile daraltıyoruz.
+        var q = _ctx.Set<CalculationHistory>().AsQueryable();
+
+        q = (scope ?? "all") switch
+        {
+            "mine"          => q.Where(h => h.UserId == userId && h.TenantId == null),
+            "shared-by-me"  => q.Where(h => h.UserId == userId && h.TenantId != null),
+            "team"          => q.Where(h => h.UserId != userId && h.TenantId != null),
+            _               => q   // "all" — query filter zaten doğru kapsamı veriyor
+        };
 
         if (!string.IsNullOrWhiteSpace(toolSlugFilter))
             q = q.Where(h => h.ToolSlug == toolSlugFilter);
@@ -112,6 +125,48 @@ public sealed class CalculationHistoryService : ICalculationHistoryService
             .ToListAsync(ct);
 
         return new CalculationHistoryPage(items, totalCount, page, pageSize);
+    }
+
+    public async Task<IReadOnlyDictionary<int, string>> GetUserNamesAsync(
+        IReadOnlyCollection<int> userIds, CancellationToken ct = default)
+    {
+        if (userIds.Count == 0)
+            return new Dictionary<int, string>();
+
+        // Admin sorgusu — tenant filter bypass; kullanıcılar farklı tenant'larda olabilir.
+        return await _ctx.Users
+            .AsAdminQuery()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.UserName ?? u.Email ?? $"#{u.Id}", ct);
+    }
+
+    public async Task<bool> SetSharingAsync(
+        int historyId, int requestedByUserId, bool share, CancellationToken ct = default)
+    {
+        if (requestedByUserId <= 0) return false;
+
+        // Kullanıcı sadece kendi hesabını togglelar — query filter user-scope.
+        var entry = await _ctx.Set<CalculationHistory>()
+            .FirstOrDefaultAsync(h => h.Id == historyId && h.UserId == requestedByUserId, ct);
+        if (entry == null) return false;
+
+        if (share)
+        {
+            var user = await _ctx.Users
+                .AsAdminQuery()
+                .Where(u => u.Id == requestedByUserId)
+                .Select(u => new { u.TenantId })
+                .FirstOrDefaultAsync(ct);
+            if (user?.TenantId == null) return false; // tenant'sız kullanıcı paylaşamaz
+            entry.TenantId = user.TenantId;
+        }
+        else
+        {
+            entry.TenantId = null;
+        }
+
+        await _ctx.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<CalculationHistory?> GetByIdForUserAsync(

@@ -95,6 +95,46 @@
         </section>
     }
 
+    @if (!isAdminView && Model.IsMine && Model.HasTenant)
+    {
+        <section class="paylasim-detail">
+            @if (TempData["Success"] is string okMsg)
+            {
+                <div class="paylasim-detail__hint">@okMsg</div>
+            }
+            @if (TempData["Error"] is string errMsg)
+            {
+                <div class="paylasim-detail__hint">@errMsg</div>
+            }
+
+            @if (Model.IsShared)
+            {
+                <h3 class="paylasim-detail__title">Bu hesap ekibinize paylaşıldı</h3>
+                <p class="paylasim-detail__hint">Ekibin diğer üyeleri bu hesabı görebilir.</p>
+                <form method="post" asp-action="PaylasimToggle" asp-route-id="@Model.Id"
+                      onsubmit="return confirm('Hesap ekibinizden kaldırılsın mı? Hesap kişisel olur.');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="share" value="false" />
+                    <button type="submit" class="paylasim-detail__btn paylasim-detail__btn--remove">
+                        Ekipten Kaldır
+                    </button>
+                </form>
+            }
+            else
+            {
+                <h3 class="paylasim-detail__title">Bu hesap kişisel</h3>
+                <p class="paylasim-detail__hint">Sadece siz görebilirsiniz. Ekibinize paylaşmak için aşağıdaki butona basın.</p>
+                <form method="post" asp-action="PaylasimToggle" asp-route-id="@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="share" value="true" />
+                    <button type="submit" class="paylasim-detail__btn">
+                        Ekibe Paylaş
+                    </button>
+                </form>
+            }
+        </section>
+    }
+
     <div class="hesap-detail__actions">
         @if (!isAdminView && !string.IsNullOrWhiteSpace(Model.RestoreUrl))
         {

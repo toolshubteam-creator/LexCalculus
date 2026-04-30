@@ -1,5 +1,4 @@
 @inject SignInManager<ApplicationUser> SignInManager
-@inject UserManager<ApplicationUser> UserManager
 @{
     var trCulture = new CultureInfo("tr-TR");
     var currentDate = DateTime.Now.ToString("dd MMMM yyyy", trCulture);
@@ -44,18 +43,7 @@
                         @await Component.InvokeAsync("NotificationBell")
                         <a class="header-meta__link" href="/hesaplarim">Hesaplarım</a>
                         <a class="header-meta__link" href="/profil">Profilim</a>
-                        @{
-                            var currentUser = await UserManager.GetUserAsync(User);
-                            var canRequestTenant = currentUser != null && !currentUser.TenantId.HasValue;
-                        }
-                        @if (canRequestTenant)
-                        {
-                            <a class="header-meta__link" href="/tenant-talep">Tenant Talebim</a>
-                        }
-                        @if (currentUser != null && currentUser.TenantId.HasValue)
-                        {
-                            <a class="header-meta__link" href="/tenant/yonet">Tenant Yönetimi</a>
-                        }
+                        @await Component.InvokeAsync("UserTenantContext")
                         <form class="header-meta__logout" asp-area="Identity" asp-page="/Account/Logout" method="post">
                             <button type="submit" class="header-meta__logout-btn">Çıkış</button>
                         </form>

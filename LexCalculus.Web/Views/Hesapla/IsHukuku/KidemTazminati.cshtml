@@ -86,6 +86,8 @@
             </label>
         </div>
 
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
         <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
     </form>
 

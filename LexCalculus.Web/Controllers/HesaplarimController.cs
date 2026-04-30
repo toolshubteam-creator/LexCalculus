@@ -38,6 +38,12 @@ public sealed class HesaplarimController : Controller
         var idStr = _userManager.GetUserId(User);
         if (!int.TryParse(idStr, out var userId)) return Forbid();
 
+        var user = await _userManager.FindByIdAsync(idStr!);
+        var hasTenant = user?.TenantId.HasValue ?? false;
+
+        // Bireysel kullanıcılar için scope anlamsız — "all"a sabitle.
+        var effectiveScope = hasTenant ? (filter.Scope ?? "all") : "all";
+
         const int pageSize = 25;
 
         var result = await _history.GetForUserAsync(
@@ -45,6 +51,7 @@ public sealed class HesaplarimController : Controller
             toolSlugFilter: string.IsNullOrWhiteSpace(filter.ToolSlug) ? null : filter.ToolSlug,
             startDateUtc: filter.StartDate?.ToUniversalTime(),
             endDateUtc: filter.EndDate?.ToUniversalTime(),
+            scope: effectiveScope,
             ct: ct);
 
         var usedSlugs = await _history.GetUsedToolSlugsForUserAsync(userId, ct);
@@ -54,6 +61,16 @@ public sealed class HesaplarimController : Controller
             .Select(s => (Slug: s, Title: titleMap.TryGetValue(s, out var t) ? t : s))
             .ToList();
 
+        // Paylaşılan satırlar için sahibi UserName lookup'ı (current user dışındakiler).
+        var ownerIds = result.Items
+            .Where(h => h.UserId != userId)
+            .Select(h => h.UserId)
+            .Distinct()
+            .ToList();
+        var nameMap = ownerIds.Count > 0
+            ? await _history.GetUserNamesAsync(ownerIds, ct)
+            : new Dictionary<int, string>();
+
         var rows = result.Items.Select(h => new HesaplarimRowViewModel
         {
             Id = h.Id,
@@ -62,9 +79,16 @@ public sealed class HesaplarimController : Controller
             ToolTitle = h.ToolTitle,
             CreatedAt = h.CreatedAt,
             TotalAmount = h.TotalAmount,
-            Unit = h.Unit
+            Unit = h.Unit,
+            OwnerUserId = h.UserId,
+            OwnerUserName = h.UserId == userId
+                ? null
+                : (nameMap.TryGetValue(h.UserId, out var n) ? n : $"#{h.UserId}"),
+            IsShared = h.TenantId.HasValue,
+            IsMine = h.UserId == userId
         }).ToList();
 
+        filter.Scope = effectiveScope;
         var vm = new HesaplarimListPageViewModel
         {
             Items = rows,
@@ -72,7 +96,8 @@ public sealed class HesaplarimController : Controller
             ToolOptions = options,
             TotalCount = result.TotalCount,
             Page = result.Page,
-            PageSize = result.PageSize
+            PageSize = result.PageSize,
+            HasTenant = hasTenant
         };
 
         ViewData["Title"] = "Hesaplarım";
@@ -88,6 +113,9 @@ public sealed class HesaplarimController : Controller
 
         var entry = await _history.GetByIdForUserAsync(id, userId, ct);
         if (entry == null) return NotFound();
+
+        var user = await _userManager.FindByIdAsync(idStr!);
+        var hasTenant = user?.TenantId.HasValue ?? false;
 
         var inputFields = JsonViewerHelper.ParseTopLevel(entry.InputJson);
         var outputFields = JsonViewerHelper.ParseTopLevel(entry.OutputJson);
@@ -105,11 +133,38 @@ public sealed class HesaplarimController : Controller
             InputFields = inputFields,
             OutputFields = outputFields,
             OutputJsonPretty = outputPretty,
-            RestoreUrl = $"/hesapla/{entry.CategorySlug}/{entry.ToolSlug}?restore={entry.Id}"
+            RestoreUrl = $"/hesapla/{entry.CategorySlug}/{entry.ToolSlug}?restore={entry.Id}",
+            IsMine = entry.UserId == userId,
+            HasTenant = hasTenant,
+            IsShared = entry.TenantId.HasValue
         };
 
         ViewData["Title"] = $"{entry.ToolTitle} — Hesap Detayı";
         ViewData["NoIndex"] = true;
         return View(vm);
+    }
+
+    /// <summary>
+    /// Hesabın paylaşım durumunu toggle et (post-hoc).
+    /// share=true → CalculationHistory.TenantId = currentUser.TenantId
+    /// share=false → null. Sadece sahibi togglelar.
+    /// </summary>
+    [HttpPost("{id:int}/paylasim")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PaylasimToggle(
+        int id, [FromForm] bool share, CancellationToken ct)
+    {
+        var idStr = _userManager.GetUserId(User);
+        if (!int.TryParse(idStr, out var userId)) return Forbid();
+
+        var ok = await _history.SetSharingAsync(id, userId, share, ct);
+        if (!ok)
+            TempData["Error"] = "Paylaşım güncellenemedi (hesap bulunamadı veya tenant üyesi değilsiniz).";
+        else
+            TempData["Success"] = share
+                ? "✓ Hesap ekibinize paylaşıldı."
+                : "✓ Hesap ekipten kaldırıldı.";
+
+        return RedirectToAction(nameof(Detail), new { id });
     }
 }

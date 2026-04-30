@@ -1,4 +1,5 @@
 using FluentAssertions;
+using LexCalculus.Core.Entities;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
@@ -157,5 +158,87 @@ public class TenantAdminServiceTests
 
         var users = await ctx.Users.AsAdminQuery().ToListAsync();
         users.Should().OnlyContain(u => u.TenantId == null);
+    }
+
+    /// <summary>
+    /// Karar 6 regresyonu: üye tenant'tan çıkarıldığında, o üyenin daha önce
+    /// paylaştığı (TenantId set) hesapların TenantId'si KORUNMALI; ekibin
+    /// diğer üyeleri o hesapları görmeye devam etmeli.
+    /// </summary>
+    [Fact]
+    public async Task RemoveMemberAsync_PreservesCalculationHistoryTenantId()
+    {
+        var (ctx, svc) = Setup();
+        ctx.Users.AddRange(
+            MakeUser(1, "owner@x.com"),
+            MakeUser(2, "member@x.com"));
+        await ctx.SaveChangesAsync();
+
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
+        await svc.AddMemberAsync(tenantId, 2);
+
+        // Üye, paylaşılmış bir hesap kayıt eder.
+        ctx.Set<CalculationHistory>().Add(new CalculationHistory
+        {
+            UserId = 2,
+            CategorySlug = "is-hukuku",
+            ToolSlug = "kidem-tazminati",
+            ToolTitle = "Kıdem Tazminatı",
+            InputJson = "{}",
+            OutputJson = "{}",
+            TenantId = tenantId
+        });
+        await ctx.SaveChangesAsync();
+
+        await svc.RemoveMemberAsync(tenantId, 2);
+
+        var member = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == 2);
+        member.TenantId.Should().BeNull();
+
+        // Karar 6: hesabın TenantId'si HÂLÂ aynı; paylaşım korunur.
+        var calc = await ctx.Set<CalculationHistory>()
+            .AsAdminQuery()
+            .FirstAsync(h => h.UserId == 2);
+        calc.TenantId.Should().Be(tenantId);
+    }
+
+    /// <summary>
+    /// Karar 6 regresyonu (devam): tenant soft-delete edildiğinde, paylaşılmış
+    /// hesaplara dokunulmamalı. TenantId hâlâ set kalır (filter ile gizli olsa da
+    /// veri kaybedilmemeli — geri yükleme veya hard-delete cascade için).
+    /// </summary>
+    [Fact]
+    public async Task SoftDeleteAsync_PreservesCalculationHistoryTenantId()
+    {
+        var (ctx, svc) = Setup();
+        ctx.Users.Add(MakeUser(1, "owner@x.com"));
+        await ctx.SaveChangesAsync();
+
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
+
+        ctx.Set<CalculationHistory>().Add(new CalculationHistory
+        {
+            UserId = 1,
+            CategorySlug = "faiz",
+            ToolSlug = "yasal-faiz",
+            ToolTitle = "Yasal Faiz",
+            InputJson = "{}",
+            OutputJson = "{}",
+            TenantId = tenantId
+        });
+        await ctx.SaveChangesAsync();
+
+        await svc.SoftDeleteAsync(tenantId);
+
+        var tenant = await ctx.Tenants.AsAdminQuery().FirstAsync(t => t.Id == tenantId);
+        tenant.IsDeleted.Should().BeTrue();
+
+        var owner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == 1);
+        owner.TenantId.Should().BeNull();
+
+        var calc = await ctx.Set<CalculationHistory>()
+            .AsAdminQuery()
+            .FirstAsync(h => h.UserId == 1);
+        calc.TenantId.Should().Be(tenantId);
     }
 }
