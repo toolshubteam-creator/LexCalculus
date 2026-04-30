@@ -1,0 +1,65 @@
+@page "/uye/{slug}"
+@model LexCalculus.Web.Pages.UyeModel
+
+<section class="uye-profil">
+    <header class="uye-profil__header">
+        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+        {
+            <img src="@Model.AvatarUrl" alt="@Model.DisplayName"
+                 class="uye-profil__avatar" />
+        }
+        else
+        {
+            <div class="uye-profil__avatar uye-profil__avatar--placeholder"
+                 aria-label="@Model.DisplayName">
+                @(Model.DisplayName.Length > 0
+                    ? Model.DisplayName.Substring(0, 1).ToUpperInvariant()
+                    : "?")
+            </div>
+        }
+
+        <h1 class="uye-profil__name">@Model.DisplayName</h1>
+
+        @if (!Model.IsPublic)
+        {
+            <p class="uye-profil__hint">Bu profil gizli tutuluyor.</p>
+        }
+    </header>
+
+    @if (Model.IsPublic)
+    {
+        <div class="uye-profil__details">
+            @if (!string.IsNullOrEmpty(Model.Meslek))
+            {
+                <p class="uye-profil__meta">
+                    <span class="uye-profil__meta-label">Meslek:</span>
+                    <span>@Model.Meslek</span>
+                </p>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.City))
+            {
+                <p class="uye-profil__meta">
+                    <span class="uye-profil__meta-label">Şehir:</span>
+                    <span>@Model.City</span>
+                </p>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.TenantName))
+            {
+                <p class="uye-profil__meta">
+                    <span class="uye-profil__meta-label">Hukuk Bürosu:</span>
+                    <span>@Model.TenantName</span>
+                </p>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Bio))
+            {
+                <div class="uye-profil__bio">
+                    <h2 class="uye-profil__section-title">Hakkında</h2>
+                    <p class="uye-profil__bio-text">@Model.Bio</p>
+                </div>
+            }
+        </div>
+    }
+</section>

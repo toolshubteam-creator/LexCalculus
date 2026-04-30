@@ -1,27 +1,33 @@
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Interfaces;
 using LexCalculus.Core.Models.Seo;
+using LexCalculus.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace LexCalculus.Infrastructure.Seo;
 
 /// <summary>
-/// Phase 1 sitemap: static list of public pages. Future phases extend this
-/// to query the database for published blog posts, calculation tools, and
-/// public user profiles.
+/// Phase 1 sitemap: static list of public pages. Phase 4.1 P3/3'te public
+/// profile URL'leri DB-driven eklendi (IsPublicProfile=true + IsActive=true).
 /// </summary>
 public sealed class DefaultSitemapBuilder : ISitemapBuilder
 {
     private readonly SeoSettings _settings;
     private readonly ICalculatorRegistry _registry;
+    private readonly ApplicationDbContext _ctx;
 
-    public DefaultSitemapBuilder(IOptions<SeoSettings> options, ICalculatorRegistry registry)
+    public DefaultSitemapBuilder(
+        IOptions<SeoSettings> options,
+        ICalculatorRegistry registry,
+        ApplicationDbContext ctx)
     {
         _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _ctx = ctx ?? throw new ArgumentNullException(nameof(ctx));
     }
 
-    public Task<IReadOnlyList<SitemapNode>> BuildAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SitemapNode>> BuildAsync(CancellationToken cancellationToken = default)
     {
         var siteUrl = _settings.SiteUrl.TrimEnd('/');
 
@@ -73,6 +79,32 @@ public sealed class DefaultSitemapBuilder : ISitemapBuilder
             });
         }
 
-        return Task.FromResult<IReadOnlyList<SitemapNode>>(nodes);
+        // Faz 4.1 P3/3 — public profile URL'leri (IsPublicProfile + IsActive)
+        var publicProfiles = await _ctx.UserProfiles
+            .AsNoTracking()
+            .Include(p => p.User)
+            .Where(p => p.IsPublicProfile
+                     && p.PublicSlug != null
+                     && p.User != null
+                     && p.User.IsActive)
+            .Select(p => new
+            {
+                p.PublicSlug,
+                LastMod = p.UpdatedAt ?? p.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        foreach (var profile in publicProfiles)
+        {
+            nodes.Add(new SitemapNode
+            {
+                Url = $"{siteUrl}/uye/{profile.PublicSlug}",
+                LastModified = profile.LastMod == default ? DateTime.UtcNow : profile.LastMod,
+                ChangeFrequency = SitemapChangeFrequency.Weekly,
+                Priority = 0.5m
+            });
+        }
+
+        return nodes;
     }
 }
