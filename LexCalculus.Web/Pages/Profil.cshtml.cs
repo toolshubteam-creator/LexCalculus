@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace LexCalculus.Web.Pages;
 
@@ -22,17 +23,20 @@ public class ProfilModel : PageModel
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ApplicationDbContext _ctx;
     private readonly IPublicProfileService _publicProfile;
+    private readonly ILogger<ProfilModel> _logger;
 
     public ProfilModel(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ApplicationDbContext ctx,
-        IPublicProfileService publicProfile)
+        IPublicProfileService publicProfile,
+        ILogger<ProfilModel> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _ctx = ctx;
         _publicProfile = publicProfile;
+        _logger = logger;
     }
 
     public string Email { get; set; } = "";
@@ -82,8 +86,6 @@ public class ProfilModel : PageModel
         public bool ShowTenant { get; set; }
 
         [StringLength(100)]
-        [RegularExpression(@"^[a-z0-9-]+$",
-            ErrorMessage = "Slug sadece küçük harf, rakam ve tire içerebilir.")]
         [Display(Name = "Profil URL kısayolu")]
         public string? PublicSlug { get; set; }
 
@@ -143,7 +145,16 @@ public class ProfilModel : PageModel
         HasTenant = user.TenantId.HasValue;
 
         if (!ModelState.IsValid)
+        {
+            // Sessiz fail tanısı için (Faz 4.1 P1/3 fix): hangi field hangi hata.
+            var errors = ModelState
+                .Where(kv => kv.Value?.Errors.Count > 0)
+                .Select(kv => $"{kv.Key}: {string.Join("; ", kv.Value!.Errors.Select(e => e.ErrorMessage))}")
+                .ToList();
+            _logger.LogWarning("Profil POST ModelState invalid for user {UserId}: {Errors}",
+                user.Id, string.Join(" | ", errors));
             return Page();
+        }
 
         if (Input.MeslekTuru == LexCalculus.Core.Enums.MeslekTuru.Diger
             && string.IsNullOrWhiteSpace(Input.MeslekTuruDiger))
@@ -193,51 +204,51 @@ public class ProfilModel : PageModel
         // ShowTenant defansif: kullanıcı tenant üyesi değilse her zaman false
         profile.ShowTenant = HasTenant && Input.ShowTenant;
 
-        // Slug yönetimi
-        var requestedSlug = string.IsNullOrWhiteSpace(Input.PublicSlug)
-            ? null
-            : Input.PublicSlug.Trim().ToLowerInvariant();
+        // Slug yönetimi (Faz 4.1 P1/3 fix — server-side otomatik slugify):
+        // Kullanıcı girdisi her zaman SlugHelper üzerinden temizlenir; sert regex
+        // validation yerine kullanıcı dostu input (Türkçe karakter, büyük harf, boşluk)
+        // kabul edilir. Çakışma hâlâ kullanıcıya bildirilir (otomatik suffix kullanmıyoruz —
+        // kullanıcı kendi slug'ını seçmek isteyebilir).
+        var sanitizedInput = SlugHelper.Generate(Input.PublicSlug?.Trim());
 
         if (Input.IsPublicProfile)
         {
-            // Profil kamuya açıksa: kullanıcı slug yazdıysa onu validate et,
-            // yazmadıysa otomatik üret. Mevcut slug varsa korunur (kullanıcı boş bıraktıysa
-            // ve eski slug varsa eski tutulur).
-            if (!string.IsNullOrEmpty(requestedSlug))
+            if (!string.IsNullOrEmpty(sanitizedInput))
             {
-                if (requestedSlug != profile.PublicSlug)
+                if (sanitizedInput != profile.PublicSlug)
                 {
-                    if (await _publicProfile.IsSlugTakenAsync(requestedSlug, user.Id, ct))
+                    if (await _publicProfile.IsSlugTakenAsync(sanitizedInput, user.Id, ct))
                     {
                         ModelState.AddModelError(nameof(Input.PublicSlug),
                             "Bu profil URL'i başka bir kullanıcı tarafından kullanılıyor.");
                         return Page();
                     }
-                    profile.PublicSlug = requestedSlug;
+                    profile.PublicSlug = sanitizedInput;
                 }
-                // değişmediyse dokunma
+                // sanitize sonrası mevcut slug ile aynı → dokunma
             }
             else if (string.IsNullOrEmpty(profile.PublicSlug))
             {
-                // İlk defa public açılıyor, slug üret
+                // İlk defa public açılıyor + kullanıcı slug yazmadı (veya yazdığı tamamen
+                // sembolden ibaretti) → DisplayName tabanlı otomatik üret.
                 profile.PublicSlug = await _publicProfile.GenerateUniquePublicSlugAsync(
                     profile.DisplayName, user.Id, ct);
             }
-            // else: kullanıcı slug'ı boş bıraktı ve mevcut slug var → koru
+            // else: kullanıcı boş bıraktı ve mevcut slug var → koru
         }
         else
         {
-            // Profil gizli: kullanıcı slug yazdıysa korunur (re-enable için);
-            // yazmadıysa eski slug korunur. Hiçbir şey silinmez.
-            if (!string.IsNullOrEmpty(requestedSlug) && requestedSlug != profile.PublicSlug)
+            // Profil gizli: slug korunur (re-enable için). Kullanıcı yeni bir şey yazdıysa
+            // (sanitized) güncelle, çakışma kontrolü yine yapılır.
+            if (!string.IsNullOrEmpty(sanitizedInput) && sanitizedInput != profile.PublicSlug)
             {
-                if (await _publicProfile.IsSlugTakenAsync(requestedSlug, user.Id, ct))
+                if (await _publicProfile.IsSlugTakenAsync(sanitizedInput, user.Id, ct))
                 {
                     ModelState.AddModelError(nameof(Input.PublicSlug),
                         "Bu profil URL'i başka bir kullanıcı tarafından kullanılıyor.");
                     return Page();
                 }
-                profile.PublicSlug = requestedSlug;
+                profile.PublicSlug = sanitizedInput;
             }
         }
 

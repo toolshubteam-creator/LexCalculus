@@ -281,6 +281,34 @@ public class PublicProfileFieldsTests : IClassFixture<TestAuthWebApplicationFact
     }
 
     [Fact]
+    public async Task OnPost_SlugifiesUserInputWithTurkishCharsAndSpaces()
+    {
+        var user = await CreateUserAsync("pp-slugify@example.com", "Test User");
+        try
+        {
+            var client = CreateAuthClient(user.Id, allowAutoRedirect: false);
+            var token = await GetAntiforgeryTokenAsync(client, "/profil");
+
+            // Kullanıcı dostu input — büyük harf, Türkçe karakter, boşluk
+            var response = await client.PostAsync("/profil",
+                new FormUrlEncodedContent(BaseForm(token, "Test User",
+                    isPublic: true, publicSlug: "İstanbul Hukuk")));
+            ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect,
+                "regex artık server-side slugify ile yer değiştirdi, kullanıcı dostu input kabul edilir");
+
+            using var scope = _factory.Services.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var profile = await ctx.UserProfiles.AsNoTracking().FirstAsync(p => p.UserId == user.Id);
+            profile.PublicSlug.Should().Be("istanbul-hukuk",
+                "SlugHelper Türkçe karakterleri normalize eder, boşluk → tire, lowercase");
+        }
+        finally
+        {
+            await RemoveUserIfExistsAsync("pp-slugify@example.com");
+        }
+    }
+
+    [Fact]
     public async Task OnPost_ShowTenantIgnoredWhenUserHasNoTenant()
     {
         var user = await CreateUserAsync("pp-no-tenant@example.com", "No Tenant User",
