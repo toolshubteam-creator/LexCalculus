@@ -4,11 +4,14 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
-**Faz 2 — Hesaplama Modülleri tamamlandı (Nisan 2026).**
+**Faz 3 — Admin Paneli + Multi-tenant + Audit tamamlandı (Nisan 2026).**
 
 - 17/17 hesaplayıcı aktif
-- 219/219 test geçiyor
-- 9 hukuk kategorisinden 3'ü (İş Hukuku, Aktüerya, Faiz) Faz 2 kapsamında bitirildi
+- 396/396 test geçiyor
+- Admin paneli: parametre/LifeTable/kullanıcı/tenant/talep/davet CRUD, activity log
+- Multi-tenant altyapı (hukuk büroları); bireysel vatandaş kullanıcıları etkilenmiyor (TenantId nullable)
+- 2 Hangfire recurring job (veri tazelik kontrolü, davet expire)
+- 9 hukuk kategorisinden 3'ü (İş Hukuku, Aktüerya, Faiz) hesaplayıcı olarak hazır
 - Kalan 6 kategori (Vergi, Aile, Miras, vb.) Faz 5'te eklenecek
 
 ## Hesaplayıcılar
@@ -105,25 +108,57 @@ Default admin: `admin@lexcalculus.local` (parola seed sırasında oluşturulur).
 | Migration | 22 |
 | Adım | 25/25 |
 
-## Sonraki: Faz 3
+## Faz 3 — Admin Paneli + Multi-tenant + Audit (Tamamlandı: 2026-04-30)
 
-Admin paneli: parametre CRUD, veri tazelik bildirim sistemi (Hangfire + e-posta), hesap geçmişi UI, kullanıcı yönetimi, multi-tenant. Detay: `docs/phase-3-roadmap.md`.
+Faz 3, sistemi tek kullanıcılı ortamdan çoklu kullanıcı + organizasyonel SaaS'a taşıdı.
+Detay: `docs/phase-3-roadmap.md`.
 
-### Faz 3 İlerleme
+### Adımlar
 
 | Adım | Konu | Durum |
 |------|------|-------|
-| 3.1  | Admin Layout & Authorization Policy | ✅ |
-| 3.2  | FormulaParameter CRUD admin paneli  | ✅ |
+| 3.1  | Admin Layout & Authorization Policy   | ✅ |
+| 3.2  | FormulaParameter CRUD admin paneli    | ✅ |
 | 3.3  | Veri Tazelik Bildirim Sistemi (6 parça) | ✅ |
-| 3.4  | Hesap Geçmişi UI (3 parça)          | ✅ |
-| 3.5  | LifeTable CRUD admin paneli         | ⏳ |
-| 3.6  | Kullanıcı & Rol Yönetimi            | ⏳ |
-| 3.7  | Multi-tenant altyapı                | ⏳ |
-| 3.8  | Activity Log (audit trail)          | ⏳ |
-| 3.9  | Faz 3 final + tag                    | ⏳ |
+| 3.4  | Hesap Geçmişi UI (3 parça)            | ✅ |
+| 3.5  | LifeTable CRUD admin paneli           | ✅ |
+| 3.6  | Kullanıcı & Rol Yönetimi (4 parça)    | ✅ |
+| 3.7  | Multi-tenant altyapı (5 parça)        | ✅ |
+| 3.8  | Activity Log + ExpireInvitationsJob (2 parça) | ✅ |
+| 3.9  | Faz 3 cleanup + closeout (2 parça)    | ✅ |
 
-**Test sayısı:** 219 (Faz 2 sonu) → 284 (Adım 3.4 sonu, 28.04.2026)
+### Faz 3 sonu metrikler
+
+| Metrik | Değer |
+|---|---|
+| Test | 396/396 |
+| Yeni test (Faz 3) | +70 (326 → 396) |
+| Yeni migration | 6 |
+| Hangfire recurring job | 2 (DataFreshnessCheck, ExpireInvitations) |
+| Yeni admin sayfa | parametre, life-table, kullanıcı, tenant, talep, davet, activity-log |
+| Tech-debt kapatıldı | 5 madde |
+| Tech-debt açık (Faz 4'e) | 4 madde |
+
+### Mimari kararlar (öne çıkanlar)
+
+- **Multi-tenant:** TenantId nullable pattern; bireysel vatandaş kullanıcılar UI fark görmez
+- **Plan/üyelik field YOK** — sistem ücretsiz, vatandaş odaklı vizyon
+- **ShareWithTenant Core/Input DTO'larına SIZDIRILMADI** (controller seviyesi)
+- **AsAdminQuery()** niyet açıklayıcı bypass extension (IgnoreQueryFilters wrapper)
+- **ActivityLog:** service-level manuel log, HttpContext null'da defansif (background job uyumlu)
+- **Davet kabulü:** Identity scaffolded register sayfası DEĞİŞTİRİLMEDİ, ayrı `/davet/kayit` flow
+
+### Açık tech-debt (Faz 4)
+
+- Madde 1: Hangfire bağımlılığı Infrastructure'a sızdı
+- Madde 3: EF Core migration default uyarısı (kalıcı izleme)
+- Madde 4: Hangfire 401/403 (düşük öncelik, teorik)
+- Madde 9: ActivityLog retention policy (KVKK/hukuk dış bağımlılık)
+
+## Sonraki: Faz 4
+
+Sosyal platform (kullanıcılar arası bağlantı, mesajlaşma, üye profilleri).
+Vizyon netleşince roadmap yazılacak.
 
 ---
 
