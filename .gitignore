@@ -485,5 +485,8 @@ $RECYCLE.BIN/
 **/wwwroot/lib/
 **/Logs/
 
+# User-generated content (avatars, post images, etc.) — Faz 4 ve sonrası
+LexCalculus.Web/wwwroot/uploads/
+
 # Claude Code local settings (machine-specific, never commit)
 .claude/
