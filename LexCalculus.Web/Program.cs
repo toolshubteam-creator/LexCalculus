@@ -185,6 +185,7 @@ try
         });
 
         builder.Services.AddScoped<LexCalculus.Jobs.DataFreshness.DataFreshnessCheckJob>();
+        builder.Services.AddScoped<LexCalculus.Jobs.Tenancy.ExpireInvitationsJob>();
     }
 
     // -------------------------------------------------------------------------
@@ -478,6 +479,13 @@ try
             "data-freshness-check",
             job => job.ExecuteAsync(CancellationToken.None),
             "0 6 * * *",
+            new Hangfire.RecurringJobOptions { TimeZone = istanbulTz });
+
+        // Tenant davet süresi dolanları Expired'e çek — her gün 03:00 (Europe/Istanbul)
+        Hangfire.RecurringJob.AddOrUpdate<LexCalculus.Jobs.Tenancy.ExpireInvitationsJob>(
+            "expire-invitations",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 3 * * *",
             new Hangfire.RecurringJobOptions { TimeZone = istanbulTz });
     }
 
