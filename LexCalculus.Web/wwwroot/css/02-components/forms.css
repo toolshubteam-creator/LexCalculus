@@ -408,3 +408,96 @@
 .tenant-yonetim__inline-form {
   display: inline;
 }
+
+/* Üye / davet tablosu — public layout için kendi stiller (admin.css yüklenmediği için
+   param-table burada işe yaramıyor). Adım 3.9 P1/2 fix. */
+.tenant-yonetim__table-wrap {
+  overflow-x: auto;
+  margin-bottom: var(--sp-5);
+}
+
+.tenant-yonetim__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+}
+
+.tenant-yonetim__table thead th {
+  text-align: left;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 2px solid var(--gold-pale);
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.tenant-yonetim__table tbody td {
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--gold-pale);
+  vertical-align: middle;
+}
+
+.tenant-yonetim__table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.tenant-yonetim__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tenant-yonetim__email {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  color: var(--ink);
+}
+
+.tenant-yonetim__actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tenant-yonetim__badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border: 1px solid var(--gold-pale);
+  border-radius: 2px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.tenant-yonetim__badge--owner {
+  background: var(--burgundy);
+  color: var(--parchment);
+  border-color: var(--burgundy);
+}
+
+.tenant-yonetim__badge--member {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.tenant-yonetim__badge--pending {
+  background: var(--bg-overlay-gold, rgba(212, 175, 55, 0.15));
+  border-color: var(--gold);
+}
+
+.tenant-yonetim__badge--accepted {
+  background: rgba(76, 156, 88, 0.15);
+  border-color: rgba(76, 156, 88, 0.4);
+}
+
+.tenant-yonetim__badge--archived {
+  opacity: 0.6;
+}
+
+.tenant-yonetim__empty {
+  margin: var(--sp-3) 0 var(--sp-5);
+}

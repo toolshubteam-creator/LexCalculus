@@ -8,19 +8,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 
-namespace LexCalculus.Web.Areas.Identity.Pages.Account.Manage;
+namespace LexCalculus.Web.Pages;
 
 [Authorize]
-public class ChangePasswordModel : PageModel
+public class ProfilSifreDegistirModel : PageModel
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly ILogger<ChangePasswordModel> _logger;
+    private readonly ILogger<ProfilSifreDegistirModel> _logger;
 
-    public ChangePasswordModel(
+    public ProfilSifreDegistirModel(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ILogger<ChangePasswordModel> logger)
+        ILogger<ProfilSifreDegistirModel> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -56,11 +56,6 @@ public class ChangePasswordModel : PageModel
     {
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
-
-        var hasPassword = await _userManager.HasPasswordAsync(user);
-        if (!hasPassword)
-            return RedirectToPage("./SetPassword");
-
         return Page();
     }
 
@@ -84,6 +79,6 @@ public class ChangePasswordModel : PageModel
         _logger.LogInformation("Kullanıcı şifresini değiştirdi: {UserId}", user.Id);
 
         StatusMessage = "Şifreniz güncellendi.";
-        return RedirectToPage();
+        return RedirectToPage("Profil");
     }
 }

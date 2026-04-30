@@ -1,5 +1,5 @@
-@page
-@model ChangePasswordModel
+@page "/profil/sifre-degistir"
+@model LexCalculus.Web.Pages.ProfilSifreDegistirModel
 @{
     ViewData["Title"] = "Şifre Değiştir";
     ViewData["NoIndex"] = true;
@@ -17,7 +17,7 @@
 
     <div asp-validation-summary="ModelOnly" class="form-section__message form-section__message--error"></div>
 
-    <form method="post" id="change-password-form">
+    <form method="post" id="sifre-degistir-form">
         <div class="field">
             <label asp-for="Input.OldPassword" class="field__label field__label--required">
                 Mevcut Şifre <span class="required">*</span>
@@ -44,7 +44,7 @@
 
         <div class="form-section__actions">
             <button type="submit" class="btn btn--primary">Şifreyi Güncelle</button>
-            <a asp-page="./Index" class="form-section__cta-link-btn">Vazgeç</a>
+            <a href="/profil" class="form-section__cta-link">Vazgeç</a>
         </div>
     </form>
 </div>

@@ -10,14 +10,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace LexCalculus.Tests.Identity;
+namespace LexCalculus.Tests.Profil;
 
 [Collection("AdminWebHost")]
-public class ChangePasswordPageTests : IClassFixture<TestAuthWebApplicationFactory>
+public class ProfilSifreDegistirPageTests : IClassFixture<TestAuthWebApplicationFactory>
 {
+    private const string Url = "/profil/sifre-degistir";
+
     private readonly TestAuthWebApplicationFactory _factory;
 
-    public ChangePasswordPageTests(TestAuthWebApplicationFactory factory)
+    public ProfilSifreDegistirPageTests(TestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }
@@ -67,12 +69,12 @@ public class ChangePasswordPageTests : IClassFixture<TestAuthWebApplicationFacto
     }
 
     [Fact]
-    public async Task Get_ChangePassword_Authenticated_Returns200()
+    public async Task Get_SifreDegistir_Authenticated_Returns200()
     {
         var user = await CreateUserAsync("cp-get@example.com", "OldPass123!");
         using var client = CreateAuthClient(user.Id, user.Email!);
 
-        var response = await client.GetAsync("/Identity/Account/Manage/ChangePassword");
+        var response = await client.GetAsync(Url);
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var body = await response.Content.ReadAsStringAsync();
@@ -80,14 +82,14 @@ public class ChangePasswordPageTests : IClassFixture<TestAuthWebApplicationFacto
     }
 
     [Fact]
-    public async Task Post_ChangePassword_HappyPath_PasswordChangedAndRedirect()
+    public async Task Post_SifreDegistir_HappyPath_PasswordChangedAndRedirect()
     {
         const string oldPassword = "OldPass123!";
         const string newPassword = "NewPass456!";
         var user = await CreateUserAsync("cp-post@example.com", oldPassword);
         using var client = CreateAuthClient(user.Id, user.Email!, allowAutoRedirect: false);
 
-        var token = await GetAntiforgeryTokenAsync(client, "/Identity/Account/Manage/ChangePassword");
+        var token = await GetAntiforgeryTokenAsync(client, Url);
 
         var form = new FormUrlEncodedContent(new[]
         {
@@ -97,9 +99,9 @@ public class ChangePasswordPageTests : IClassFixture<TestAuthWebApplicationFacto
             new KeyValuePair<string, string>("Input.ConfirmPassword", newPassword)
         });
 
-        var response = await client.PostAsync("/Identity/Account/Manage/ChangePassword", form);
+        var response = await client.PostAsync(Url, form);
         ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect,
-            "happy path PRG ile aynı sayfaya redirect bekleniyor");
+            "happy path /profil'e redirect bekleniyor");
 
         // Yeni şifreyle CheckPasswordAsync doğrulama
         using var scope = _factory.Services.CreateScope();
@@ -113,13 +115,13 @@ public class ChangePasswordPageTests : IClassFixture<TestAuthWebApplicationFacto
     }
 
     [Fact]
-    public async Task Post_ChangePassword_WrongOldPassword_ReturnsValidationError()
+    public async Task Post_SifreDegistir_WrongOldPassword_ReturnsValidationError()
     {
         const string oldPassword = "RealOld123!";
         var user = await CreateUserAsync("cp-wrong@example.com", oldPassword);
         using var client = CreateAuthClient(user.Id, user.Email!, allowAutoRedirect: false);
 
-        var token = await GetAntiforgeryTokenAsync(client, "/Identity/Account/Manage/ChangePassword");
+        var token = await GetAntiforgeryTokenAsync(client, Url);
 
         var form = new FormUrlEncodedContent(new[]
         {
@@ -129,7 +131,7 @@ public class ChangePasswordPageTests : IClassFixture<TestAuthWebApplicationFacto
             new KeyValuePair<string, string>("Input.ConfirmPassword", "BrandNew123!")
         });
 
-        var response = await client.PostAsync("/Identity/Account/Manage/ChangePassword", form);
+        var response = await client.PostAsync(Url, form);
         // Page() döner — 200 + validation summary'de hata
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
