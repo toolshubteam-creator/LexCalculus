@@ -71,6 +71,18 @@
   font-style: italic;
 }
 
+/* ASP.NET asp-validation-for tag helper'ının ürettiği field-altı hata
+   span'i. Sadece ModelState[key] hatalı iken render edilir; default
+   font-style italic (field-hint paylaşımı) ama renk burgundy (form-section
+   message--error ile aynı palet). Faz 4.1 P1/3 fix-3. */
+.field-validation-error {
+  display: block;
+  color: var(--burgundy);
+  font-size: var(--fs-hint);
+  font-style: normal;
+  margin-top: 4px;
+}
+
 /* Checkbox label — input next to text */
 .field__label--checkbox {
   display: flex;
