@@ -82,6 +82,12 @@ public class UserProfile : BaseEntity
     public bool ShowTenant { get; set; }
 
     /// <summary>
+    /// Public profilde bağlantı sayısı / listesini göster. Faz 4.2 P1/3'te
+    /// alan eklendi; UI bağlama P3/3'te. Default false.
+    /// </summary>
+    public bool ShowConnections { get; set; }
+
+    /// <summary>
     /// Navigation property — the ApplicationUser this profile belongs to.
     /// </summary>
     public ApplicationUser? User { get; set; }

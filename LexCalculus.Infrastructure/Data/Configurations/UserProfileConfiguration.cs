@@ -49,5 +49,8 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
 
         // ShowTenant default 0 — migration'da DB defaultValueSql olarak da yaz.
         builder.Property(p => p.ShowTenant).HasDefaultValueSql("0");
+
+        // Faz 4.2 P1/3 — public profilde bağlantıları göster toggle (UI P3'te)
+        builder.Property(p => p.ShowConnections).HasDefaultValueSql("0");
     }
 }

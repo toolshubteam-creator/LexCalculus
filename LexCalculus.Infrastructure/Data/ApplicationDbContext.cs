@@ -3,6 +3,7 @@ using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Notifications;
+using LexCalculus.Core.Entities.Social;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data.Extensions;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -39,6 +40,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
+    public DbSet<UserConnection> UserConnections => Set<UserConnection>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -132,6 +134,34 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
              .WithMany()
              .HasForeignKey(m => m.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<UserConnection>(e =>
+        {
+            e.HasKey(c => c.Id);
+
+            e.HasOne(c => c.Requester)
+             .WithMany()
+             .HasForeignKey(c => c.RequesterId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(c => c.Target)
+             .WithMany()
+             .HasForeignKey(c => c.TargetId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.Property(c => c.Status).HasConversion<int>();
+
+            e.HasIndex(c => c.RequesterId);
+            e.HasIndex(c => c.TargetId);
+            e.HasIndex(c => c.Status);
+
+            // Aynı yönde birden fazla aktif Pending olmamalı (filtered unique).
+            // Servis seviyesinde de cooldown kontrolü var; DB seviyesinde de
+            // yarış koşulu (race) için savunma.
+            e.HasIndex(c => new { c.RequesterId, c.TargetId })
+             .IsUnique()
+             .HasFilter("[Status] = 0");
         });
 
         builder.Entity<ActivityLog>(e =>
