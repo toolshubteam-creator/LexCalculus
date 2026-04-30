@@ -1,6 +1,23 @@
 @model LexCalculus.Web.Areas.Admin.Models.Tenants.TenantDetailVm
+@using LexCalculus.Core.Entities.Identity
 @{
     var d = Model.Detail;
+
+    string StatusLabel(TenantInvitationStatus s) => s switch
+    {
+        TenantInvitationStatus.Pending => "Beklemede",
+        TenantInvitationStatus.Accepted => "Kabul edildi",
+        TenantInvitationStatus.Cancelled => "İptal",
+        TenantInvitationStatus.Expired => "Süresi doldu",
+        _ => s.ToString()
+    };
+
+    string StatusBadge(TenantInvitationStatus s) => s switch
+    {
+        TenantInvitationStatus.Pending => "param-badge--current",
+        TenantInvitationStatus.Accepted => "param-badge--active",
+        _ => "param-badge--archived"
+    };
 }
 
 <div class="admin-page">
@@ -131,6 +148,73 @@
                                 else if (m.Id == d.OwnerUserId)
                                 {
                                     <span class="form-section__cta-disabled" title="Owner çıkarılamaz">Çıkarılamaz</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <header class="admin-page__sub-header">
+        <h2 class="admin-page__sub-title">Davetler (@Model.Invitations.Count)</h2>
+    </header>
+
+    @if (!d.IsDeleted)
+    {
+        <section class="admin-card">
+            <h3 class="admin-card__title">Yeni Davet</h3>
+            <form method="post" asp-action="Davet" asp-route-id="@d.Id"
+                  class="admin-inline-form admin-inline-form--block">
+                @Html.AntiForgeryToken()
+                <label class="admin-form__label" for="invitation-email">Davet edilecek e-posta</label>
+                <input id="invitation-email" name="email" type="email" class="admin-form__input"
+                       required maxlength="256" placeholder="ornek@eposta.com" />
+                <button type="submit" class="admin-btn admin-btn--secondary">Davet Gönder</button>
+            </form>
+        </section>
+    }
+
+    @if (Model.Invitations.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Bu tenant için henüz hiç davet gönderilmedi.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>E-posta</th>
+                        <th>Durum</th>
+                        <th>Davet Eden</th>
+                        <th>Gönderim</th>
+                        <th>Bitiş</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inv in Model.Invitations)
+                    {
+                        <tr class="param-table__row">
+                            <td><code class="param-table__slug">@inv.Email</code></td>
+                            <td><span class="param-badge @StatusBadge(inv.Status)">@StatusLabel(inv.Status)</span></td>
+                            <td>@inv.InvitedByUserName</td>
+                            <td>@inv.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@inv.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                            <td class="param-table__actions">
+                                @if (inv.Status == TenantInvitationStatus.Pending && !inv.IsExpired && !d.IsDeleted)
+                                {
+                                    <form method="post" asp-action="DavetIptal"
+                                          asp-route-tenantId="@d.Id" asp-route-invitationId="@inv.Id"
+                                          class="admin-inline-form"
+                                          onsubmit="return confirm('Daveti iptal etmek istediğinize emin misiniz?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="admin-link admin-link--danger">İptal Et</button>
+                                    </form>
                                 }
                             </td>
                         </tr>

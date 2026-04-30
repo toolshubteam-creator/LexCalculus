@@ -1,0 +1,27 @@
+@model LexCalculus.Core.Services.InvitationLookupResult
+@{
+    ViewData["Title"] = "Davet Geçersiz";
+    ViewData["NoIndex"] = true;
+
+    string ReasonLabel(string? reason) => reason switch
+    {
+        "expired" => "Bu davetin süresi dolmuş.",
+        "cancelled" => "Bu davet iptal edilmiş.",
+        "accepted" => "Bu davet zaten kabul edilmiş.",
+        "notfound" => "Davet bağlantısı geçersiz veya hatalı.",
+        _ => "Davet doğrulanamadı."
+    };
+}
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">Davet Geçersiz</h1>
+
+    <div class="form-section__message form-section__message--error" role="alert">
+        <p><strong>@ReasonLabel(Model.InvalidReason)</strong></p>
+        <p>Davet eden kişiyle iletişime geçerek yeni bir bağlantı talep edebilirsiniz.</p>
+    </div>
+
+    <div class="form-section__cta">
+        <a href="/">← Ana sayfaya dön</a>
+    </div>
+</div>

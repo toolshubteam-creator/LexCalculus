@@ -1,0 +1,47 @@
+@model LexCalculus.Core.Email.Models.TenantInvitationEmailModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = $"Lex Calculus — {Model.TenantName} davetiyesi";
+}
+
+<h1 style="margin:0 0 20px 0;font-family:Georgia,serif;font-size:24px;color:#0a1428;font-weight:normal;">
+  Hukuk Bürosu Daveti
+</h1>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba,
+</p>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  <strong>@Model.InvitedByUserName</strong>, sizi <strong>@Model.TenantName</strong>
+  hukuk bürosu Lex Calculus tenant'ına davet etti.
+</p>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Daveti kabul etmek için aşağıdaki bağlantıya tıklayın. Eğer henüz hesabınız yoksa
+  bağlantı sizi kayıt sayfasına yönlendirecek.
+</p>
+
+<div style="text-align:center;margin:28px 0;">
+  <a href="@Model.AcceptUrl"
+     style="display:inline-block;padding:14px 28px;background-color:#0a1428;color:#f4ede0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border:1px solid #b8924a;">
+    Daveti Kabul Et
+  </a>
+</div>
+
+<p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#0a1428;opacity:0.75;">
+  Düğme çalışmıyorsa, aşağıdaki bağlantıyı tarayıcınıza kopyalayabilirsiniz:
+</p>
+
+<p style="margin:0 0 24px 0;font-family:'Courier New',monospace;font-size:12px;line-height:1.5;color:#6b1f2e;word-break:break-all;background-color:#f4ede0;padding:10px 12px;border-radius:3px;">
+  @Model.AcceptUrl
+</p>
+
+<p style="margin:24px 0 8px 0;font-size:13px;color:#0a1428;opacity:0.7;font-style:italic;line-height:1.6;">
+  Bu davet @Model.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy") tarihine kadar geçerlidir.
+  Davet size yanlışlıkla geldiyse bu e-postayı yok sayabilirsiniz.
+</p>
+
+<p style="margin:16px 0 0 0;font-family:Georgia,serif;font-size:15px;color:#0a1428;font-style:italic;">
+  İyi çalışmalar,<br/>Lex Calculus Ekibi
+</p>

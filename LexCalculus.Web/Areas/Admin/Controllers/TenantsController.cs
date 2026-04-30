@@ -1,6 +1,8 @@
+using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Services;
 using LexCalculus.Web.Areas.Admin.Models.Tenants;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LexCalculus.Web.Areas.Admin.Controllers;
@@ -11,10 +13,17 @@ namespace LexCalculus.Web.Areas.Admin.Controllers;
 public sealed class TenantsController : Controller
 {
     private readonly ITenantAdminService _tenants;
+    private readonly ITenantInvitationService _invitations;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public TenantsController(ITenantAdminService tenants)
+    public TenantsController(
+        ITenantAdminService tenants,
+        ITenantInvitationService invitations,
+        UserManager<ApplicationUser> userManager)
     {
         _tenants = tenants;
+        _invitations = invitations;
+        _userManager = userManager;
     }
 
     [HttpGet("")]
@@ -83,10 +92,12 @@ public sealed class TenantsController : Controller
         if (detail == null) return NotFound();
 
         var available = await _tenants.GetAvailableUsersAsync(ct);
+        var invitations = await _invitations.GetForTenantAsync(detail.Id, ct);
         var vm = new TenantDetailVm
         {
             Detail = detail,
-            AvailableUsers = available
+            AvailableUsers = available,
+            Invitations = invitations
         };
 
         ViewData["Title"] = $"{detail.Name} — Detay";
@@ -190,6 +201,50 @@ public sealed class TenantsController : Controller
             TempData["AdminError"] = ex.Message;
         }
         return RedirectToAction(nameof(Detay), new { id });
+    }
+
+    [HttpPost("{id:int}/davet")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Davet(int id, [FromForm] string email, CancellationToken ct = default)
+    {
+        var raw = _userManager.GetUserId(User);
+        if (!int.TryParse(raw, out var adminUserId))
+            return Forbid();
+
+        try
+        {
+            await _invitations.CreateAsync(id, adminUserId, email, requesterIsAdmin: true, ct);
+            TempData["AdminSuccess"] = $"✓ Davet gönderildi: {email}";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["AdminError"] = ex.Message;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            TempData["AdminError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Detay), new { id });
+    }
+
+    [HttpPost("{tenantId:int}/davet/{invitationId:int}/iptal")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DavetIptal(int tenantId, int invitationId, CancellationToken ct = default)
+    {
+        var raw = _userManager.GetUserId(User);
+        if (!int.TryParse(raw, out var adminUserId))
+            return Forbid();
+
+        try
+        {
+            await _invitations.CancelAsync(invitationId, adminUserId, isAdmin: true, ct);
+            TempData["AdminSuccess"] = "✓ Davet iptal edildi.";
+        }
+        catch (Exception ex)
+        {
+            TempData["AdminError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Detay), new { id = tenantId });
     }
 
     private List<(string Label, string? Url)> BuildBreadcrumb(params (string Label, string? Url)[] tail)

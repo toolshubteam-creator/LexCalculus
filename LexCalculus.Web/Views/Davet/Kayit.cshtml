@@ -1,0 +1,56 @@
+@model LexCalculus.Web.Models.Davet.DavetKayitVm
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">Davet ile Yeni Hesap</h1>
+
+    <p class="field-hint" style="margin-bottom:20px;">
+        Davet edildiğiniz e-posta adresine yeni bir Lex Calculus hesabı açın.
+        Hesap oluşturulduktan sonra otomatik olarak tenant'a katılacaksınız.
+    </p>
+
+    <div asp-validation-summary="ModelOnly" class="form-section__message form-section__message--error"></div>
+
+    <form method="post" asp-action="Kayit" asp-route-token="@Model.Token">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Token" />
+
+        <div class="field">
+            <label class="field__label">E-posta</label>
+            <input class="field__input field__input--locked" value="@Model.Email" readonly />
+            <span class="field-hint">Davet edilen e-posta — değiştirilemez.</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="FullName" class="field__label field__label--required">
+                Ad-Soyad <span class="required">*</span>
+            </label>
+            <input asp-for="FullName" class="field__input" maxlength="100" autocomplete="name" />
+            <span asp-validation-for="FullName" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Password" class="field__label field__label--required">
+                Şifre <span class="required">*</span>
+            </label>
+            <input asp-for="Password" class="field__input" type="password" autocomplete="new-password" />
+            <span asp-validation-for="Password" class="field-hint">En az 8 karakter.</span>
+        </div>
+
+        <div class="field">
+            <label asp-for="ConfirmPassword" class="field__label field__label--required">
+                Şifre Tekrar <span class="required">*</span>
+            </label>
+            <input asp-for="ConfirmPassword" class="field__input" type="password" autocomplete="new-password" />
+            <span asp-validation-for="ConfirmPassword" class="field-hint"></span>
+        </div>
+
+        <div class="form-section__actions">
+            <button type="submit" class="btn btn--primary">Hesabı Oluştur ve Katıl</button>
+            <a class="btn btn--ghost" href="/">İptal</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

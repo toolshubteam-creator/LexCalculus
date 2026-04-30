@@ -1,0 +1,59 @@
+@model LexCalculus.Web.Models.Davet.DavetDetayVm
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">Hukuk Bürosu Daveti</h1>
+
+    @if (TempData["Success"] is string success)
+    {
+        <div class="form-section__message form-section__message--success" role="status">@success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="form-section__message form-section__message--error" role="alert">@error</div>
+    }
+
+    <div class="form-section__message form-section__message--info" role="status">
+        <p><strong>@Model.Lookup.TenantName</strong></p>
+        <p>@(Model.Lookup.InvitedByUserName ?? "Lex Calculus üyesi") sizi davet etti.</p>
+        <p class="form-section__message-note">Bu davet @Model.Lookup.ExpiresAt?.ToLocalTime().ToString("dd.MM.yyyy") tarihine kadar geçerli.</p>
+    </div>
+
+    @if (!Model.UserAuthenticated)
+    {
+        <p class="field-hint" style="margin-bottom:20px;">
+            Daveti kabul etmek için bir hesabınız olmalı.
+            <strong>@Model.Lookup.Email</strong> adresine bir hesap oluşturabilir veya
+            mevcut hesabınızla giriş yapabilirsiniz.
+        </p>
+        <div class="form-section__actions">
+            <a class="btn btn--primary" href="/davet/kayit/@Model.Token">Hesap Aç ve Katıl</a>
+            <a class="btn btn--ghost" href="/Identity/Account/Login?returnUrl=@Url.Action("Detay", new { token = Model.Token })">Giriş Yap</a>
+        </div>
+    }
+    else if (Model.CurrentUserAlreadyInTenant)
+    {
+        <div class="form-section__message form-section__message--error">
+            Zaten bir tenant'a bağlısınız. Bu daveti kabul edebilmek için önce mevcut tenant'tan ayrılmalısınız.
+        </div>
+    }
+    else if (!Model.EmailMatches)
+    {
+        <div class="form-section__message form-section__message--error">
+            Bu davet <strong>@Model.Lookup.Email</strong> e-postasına gönderildi, ancak siz
+            <strong>@Model.CurrentUserEmail</strong> hesabıyla giriş yapmışsınız. Davet sahibinin
+            hesabıyla giriş yapın veya yeni bir hesap açın.
+        </div>
+    }
+    else
+    {
+        <p class="field-hint" style="margin-bottom:20px;">
+            <strong>@Model.CurrentUserEmail</strong> hesabıyla daveti kabul etmek üzeresiniz.
+        </p>
+        <form method="post" asp-action="Kabul" asp-route-token="@Model.Token">
+            @Html.AntiForgeryToken()
+            <div class="form-section__actions">
+                <button type="submit" class="btn btn--primary">Daveti Kabul Et</button>
+            </div>
+        </form>
+    }
+</div>

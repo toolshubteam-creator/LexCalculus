@@ -35,6 +35,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantRequest> TenantRequests => Set<TenantRequest>();
+    public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -69,6 +70,31 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             e.HasOne(u => u.Tenant)
              .WithMany(t => t.Members)
              .HasForeignKey(u => u.TenantId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<TenantInvitation>(e =>
+        {
+            e.HasIndex(i => i.Token).IsUnique();
+            e.HasIndex(i => new { i.TenantId, i.Email, i.Status });
+            e.HasIndex(i => i.Status);
+
+            e.Property(i => i.Email).HasMaxLength(256).IsRequired();
+            e.Property(i => i.Token).HasMaxLength(64).IsRequired();
+
+            e.HasOne(i => i.Tenant)
+             .WithMany()
+             .HasForeignKey(i => i.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(i => i.InvitedBy)
+             .WithMany()
+             .HasForeignKey(i => i.InvitedByUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(i => i.AcceptedBy)
+             .WithMany()
+             .HasForeignKey(i => i.AcceptedByUserId)
              .OnDelete(DeleteBehavior.SetNull);
         });
 

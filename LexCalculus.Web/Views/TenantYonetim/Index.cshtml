@@ -1,0 +1,131 @@
+@model LexCalculus.Web.Models.TenantYonetim.TenantYonetimVm
+@using LexCalculus.Core.Entities.Identity
+@{
+    string StatusLabel(TenantInvitationStatus s) => s switch
+    {
+        TenantInvitationStatus.Pending => "Beklemede",
+        TenantInvitationStatus.Accepted => "Kabul edildi",
+        TenantInvitationStatus.Cancelled => "İptal",
+        TenantInvitationStatus.Expired => "Süresi doldu",
+        _ => s.ToString()
+    };
+
+    string StatusBadge(TenantInvitationStatus s) => s switch
+    {
+        TenantInvitationStatus.Pending => "param-badge--current",
+        TenantInvitationStatus.Accepted => "param-badge--active",
+        _ => "param-badge--archived"
+    };
+}
+
+<div class="form-section form-section--narrow">
+    <h1 class="form-section__title">@Model.Tenant.Name — Yönetim</h1>
+
+    @if (TempData["Success"] is string success)
+    {
+        <div class="form-section__message form-section__message--success" role="status">@success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="form-section__message form-section__message--error" role="alert">@error</div>
+    }
+
+    <p class="field-hint" style="margin-bottom:20px;">
+        Slug: <code>@Model.Tenant.Slug</code> · Üye sayısı: @Model.Tenant.Members.Count
+    </p>
+
+    <h2 class="form-section__title" style="font-size:18px;margin-top:24px;">Üyeler</h2>
+    <table class="param-table">
+        <thead>
+            <tr>
+                <th>E-posta</th>
+                <th>Rol</th>
+                <th class="param-table__actions">Eylem</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in Model.Tenant.Members)
+            {
+                <tr class="param-table__row">
+                    <td><code class="param-table__slug">@m.Email</code></td>
+                    <td>
+                        @if (m.Id == Model.Tenant.OwnerUserId)
+                        {
+                            <span class="param-badge param-badge--admin">Owner</span>
+                        }
+                        else
+                        {
+                            <span class="param-badge param-badge--kullanici">Üye</span>
+                        }
+                    </td>
+                    <td class="param-table__actions">
+                        @if (m.Id != Model.Tenant.OwnerUserId)
+                        {
+                            <form method="post" asp-action="UyeCikar" asp-route-id="@m.Id"
+                                  onsubmit="return confirm('Bu üyeyi çıkarmak istediğinize emin misiniz?');"
+                                  style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="form-section__cta-link-btn">Çıkar</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h2 class="form-section__title" style="font-size:18px;margin-top:32px;">Yeni Davet</h2>
+    <form method="post" asp-action="Davet">
+        @Html.AntiForgeryToken()
+        <div class="field">
+            <label class="field__label" for="invitation-email">Davet edilecek e-posta</label>
+            <input id="invitation-email" name="Email" type="email" class="field__input"
+                   required maxlength="256" placeholder="ornek@eposta.com" />
+        </div>
+        <div class="form-section__actions">
+            <button type="submit" class="btn btn--primary">Davet Gönder</button>
+        </div>
+    </form>
+
+    <h2 class="form-section__title" style="font-size:18px;margin-top:32px;">Davetler</h2>
+    @if (Model.Invitations.Count == 0)
+    {
+        <p class="field-hint">Henüz hiç davet gönderilmedi.</p>
+    }
+    else
+    {
+        <table class="param-table">
+            <thead>
+                <tr>
+                    <th>E-posta</th>
+                    <th>Durum</th>
+                    <th>Gönderim</th>
+                    <th>Bitiş</th>
+                    <th class="param-table__actions">Eylem</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inv in Model.Invitations)
+                {
+                    <tr class="param-table__row">
+                        <td><code class="param-table__slug">@inv.Email</code></td>
+                        <td><span class="param-badge @StatusBadge(inv.Status)">@StatusLabel(inv.Status)</span></td>
+                        <td>@inv.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                        <td>@inv.ExpiresAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                        <td class="param-table__actions">
+                            @if (inv.Status == TenantInvitationStatus.Pending && !inv.IsExpired)
+                            {
+                                <form method="post" asp-action="DavetIptal" asp-route-id="@inv.Id"
+                                      onsubmit="return confirm('Daveti iptal etmek istediğinize emin misiniz?');"
+                                      style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="form-section__cta-link-btn">İptal Et</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
