@@ -46,6 +46,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<PostTag> PostTags => Set<PostTag>();
     public DbSet<UserPost> UserPosts => Set<UserPost>();
     public DbSet<PostTagLink> PostTagLinks => Set<PostTagLink>();
+    public DbSet<PostComment> PostComments => Set<PostComment>();
+    public DbSet<PostLike> PostLikes => Set<PostLike>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -255,6 +257,46 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             // Aynı (post, tag) ikilisi sadece bir kez
             e.HasIndex(l => new { l.PostId, l.TagId }).IsUnique();
+        });
+
+        builder.Entity<PostComment>(e =>
+        {
+            e.HasKey(c => c.Id);
+
+            // Sanitize edilmiş HTML için margin (raw 1000 → URL/<br> şişer ~2000)
+            e.Property(c => c.Body).HasMaxLength(2000).IsRequired();
+
+            e.HasOne(c => c.Post)
+             .WithMany()
+             .HasForeignKey(c => c.PostId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(c => c.User)
+             .WithMany()
+             .HasForeignKey(c => c.UserId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(c => c.PostId);
+            e.HasIndex(c => new { c.PostId, c.CreatedAt });
+        });
+
+        builder.Entity<PostLike>(e =>
+        {
+            e.HasKey(l => l.Id);
+
+            e.HasOne(l => l.Post)
+             .WithMany()
+             .HasForeignKey(l => l.PostId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(l => l.User)
+             .WithMany()
+             .HasForeignKey(l => l.UserId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            // Bir kullanıcı bir post'u sadece bir kez beğenir
+            e.HasIndex(l => new { l.PostId, l.UserId }).IsUnique();
+            e.HasIndex(l => l.PostId);
         });
 
         builder.Entity<ActivityLog>(e =>

@@ -290,6 +290,11 @@ try
     // Kullanıcı makalesi (Faz 4.6 P1) — Draft/Published state machine + tag sync
     builder.Services.AddScoped<IUserPostService, UserPostService>();
 
+    // Yorum + beğeni (Faz 4.9 P1)
+    builder.Services.AddSingleton<ICommentSanitizer, CommentSanitizer>();
+    builder.Services.AddScoped<IPostCommentService, PostCommentService>();
+    builder.Services.AddScoped<IPostLikeService, PostLikeService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {
