@@ -24,6 +24,8 @@
 @import url('02-components/uye-profil.css');
 @import url('02-components/baglantilarim.css');
 @import url('02-components/kullanici-kart.css');
+@import url('02-components/makalelerim.css');
+@import url('02-components/makale-kart.css');
 
 /* 03 — Yardımcı sınıflar */
 @import url('03-utilities/animations.css');

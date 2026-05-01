@@ -1,0 +1,77 @@
+/* /makalelerim — Faz 4.6 P2/3.
+   2 sekme (Yayında / Taslak) + count badge. baglantilarim pattern reuse. */
+
+.makalelerim {
+  max-width: 920px;
+  margin: var(--sp-8) auto;
+  padding: 0 var(--sp-5);
+}
+
+.makalelerim__header {
+  margin-bottom: var(--sp-6);
+}
+
+.makalelerim__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.makalelerim__tabs {
+  display: flex;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: var(--sp-6);
+  overflow-x: auto;
+}
+
+.makalelerim__tab {
+  padding: var(--sp-3) var(--sp-5);
+  text-decoration: none;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.makalelerim__tab:hover {
+  color: var(--ink);
+}
+
+.makalelerim__tab--active {
+  color: var(--ink);
+  border-bottom-color: var(--gold);
+}
+
+.makalelerim__tab-count {
+  display: inline-block;
+  margin-left: var(--sp-2);
+  padding: 2px var(--sp-2);
+  background: var(--parchment);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 18px;
+  text-align: center;
+}
+
+.makalelerim__tab--active .makalelerim__tab-count {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.makalelerim__empty {
+  padding: var(--sp-8);
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  background: var(--parchment);
+  border: 1px solid var(--gold-pale);
+  border-radius: 4px;
+}

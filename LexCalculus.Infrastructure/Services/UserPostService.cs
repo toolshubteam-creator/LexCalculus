@@ -228,6 +228,7 @@ public sealed class UserPostService : IUserPostService
     {
         var query = _ctx.UserPosts
             .Include(p => p.Category)
+            .Include(p => p.TagLinks).ThenInclude(l => l.Tag)
             .Where(p => p.UserId == userId);
 
         if (!includeUnpublished)

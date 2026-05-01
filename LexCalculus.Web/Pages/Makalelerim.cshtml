@@ -1,0 +1,118 @@
+@page "/makalelerim"
+@model LexCalculus.Web.Pages.MakalelerimModel
+@{
+    ViewData["Title"] = "Makalelerim";
+    ViewData["NoIndex"] = true;
+}
+
+<section class="makalelerim">
+    <header class="makalelerim__header">
+        <h1 class="makalelerim__title">Makalelerim</h1>
+    </header>
+
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div class="form-section__message form-section__message--success" role="status">@successMsg</div>
+    }
+    @if (TempData["Error"] is string errorMsg)
+    {
+        <div class="form-section__message form-section__message--error" role="alert">@errorMsg</div>
+    }
+
+    <nav class="makalelerim__tabs" aria-label="Makale sekmeleri">
+        <a href="?tab=yayinda"
+           class="makalelerim__tab@(Model.ActiveTab == "yayinda" ? " makalelerim__tab--active" : "")">
+            Yayında <span class="makalelerim__tab-count">@Model.PublishedCount</span>
+        </a>
+        <a href="?tab=taslak"
+           class="makalelerim__tab@(Model.ActiveTab == "taslak" ? " makalelerim__tab--active" : "")">
+            Taslak <span class="makalelerim__tab-count">@Model.DraftCount</span>
+        </a>
+    </nav>
+
+    <div class="makalelerim__content">
+        @if (Model.Posts.Count == 0)
+        {
+            <p class="makalelerim__empty">
+                @if (Model.ActiveTab == "taslak")
+                {
+                    <text>Taslak makaleniz yok.</text>
+                }
+                else
+                {
+                    <text>Yayınladığınız makale yok.</text>
+                }
+            </p>
+        }
+        else
+        {
+            <ul class="makale-kart-list">
+                @foreach (var post in Model.Posts)
+                {
+                    <li class="makale-kart">
+                        <div class="makale-kart__main">
+                            <h2 class="makale-kart__title">@post.Title</h2>
+
+                            <div class="makale-kart__meta">
+                                @if (post.Category is not null)
+                                {
+                                    <span class="makale-kart__category">@post.Category.Name</span>
+                                }
+                                @if (post.IsPublished)
+                                {
+                                    <span class="makale-kart__date">
+                                        Yayınlandı: @(post.PublishedAt?.ToLocalTime().ToString("d MMMM yyyy") ?? "—")
+                                    </span>
+                                    <span class="makale-kart__views">
+                                        @post.ViewCount görüntülenme
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="makale-kart__date">
+                                        Güncellendi: @post.UpdatedAt.ToLocalTime().ToString("d MMMM yyyy")
+                                    </span>
+                                }
+                            </div>
+
+                            @if (post.TagLinks is { Count: > 0 })
+                            {
+                                <div class="makale-kart__tags">
+                                    @foreach (var link in post.TagLinks)
+                                    {
+                                        <span class="makale-tag-chip">@link.Tag.Name</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="makale-kart__actions">
+                            @if (post.IsPublished)
+                            {
+                                <form method="post" asp-page-handler="Unpublish" class="makale-kart__action-form">
+                                    <input type="hidden" name="id" value="@post.Id" />
+                                    <button type="submit" class="btn btn--ghost">Yayından Kaldır</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" asp-page-handler="Publish" class="makale-kart__action-form">
+                                    <input type="hidden" name="id" value="@post.Id" />
+                                    <button type="submit" class="btn btn--primary">Yayınla</button>
+                                </form>
+                            }
+                            <form method="post" asp-page-handler="Delete" class="makale-kart__action-form">
+                                <input type="hidden" name="id" value="@post.Id" />
+                                <input type="hidden" name="returnTab" value="@Model.ActiveTab" />
+                                <button type="submit" class="btn btn--danger"
+                                        onclick="return confirm('Bu makaleyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')">
+                                    Sil
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</section>

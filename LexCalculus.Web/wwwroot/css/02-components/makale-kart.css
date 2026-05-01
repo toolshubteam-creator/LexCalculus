@@ -1,0 +1,107 @@
+/* Makale kart bileşeni — Faz 4.6 P2/3.
+   /makalelerim ve ileride public liste sayfalarında reuse edilebilir. */
+
+.makale-kart-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.makale-kart {
+  display: flex;
+  gap: var(--sp-4);
+  padding: var(--sp-5) var(--sp-6);
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+.makale-kart__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.makale-kart__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg, 20px);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 var(--sp-2);
+  letter-spacing: -0.01em;
+}
+
+.makale-kart__meta {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+}
+
+.makale-kart__category {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.makale-kart__date,
+.makale-kart__views {
+  color: var(--muted);
+}
+
+.makale-kart__tags {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-2);
+}
+
+.makale-tag-chip {
+  display: inline-block;
+  padding: 3px var(--sp-3);
+  background: var(--background, #fff);
+  border: 1px solid var(--gold-pale);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.makale-kart__actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: stretch;
+  min-width: 140px;
+}
+
+.makale-kart__action-form {
+  margin: 0;
+}
+
+.makale-kart__action-form .btn {
+  width: 100%;
+}
+
+@media (max-width: 700px) {
+  .makale-kart {
+    flex-direction: column;
+    padding: var(--sp-4);
+  }
+
+  .makale-kart__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .makale-kart__action-form {
+    flex: 1 1 auto;
+  }
+}
