@@ -1,0 +1,96 @@
+@model LexCalculus.Web.Areas.Admin.Models.PostCategories.PostCategoryListVm
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header admin-page__header--with-action">
+        <div>
+            <h1 class="admin-page__title">Kategoriler</h1>
+            <p class="admin-page__subtitle">
+                @Model.Items.Count kategori
+                @{
+                    var inactive = Model.Items.Count(c => !c.IsActive);
+                }
+                @if (inactive > 0)
+                {
+                    <span class="admin-page__filter-note">· @inactive devre dışı</span>
+                }
+            </p>
+        </div>
+        <a asp-action="Yeni" class="admin-btn admin-btn--primary">+ Yeni Kategori</a>
+    </header>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Henüz kategori yok.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th class="param-table__num">Sıra</th>
+                        <th>Ad</th>
+                        <th>Slug</th>
+                        <th>Açıklama</th>
+                        <th>Durum</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.Items)
+                    {
+                        <tr class="param-table__row @(c.IsActive ? "" : "param-table__row--inactive")">
+                            <td class="param-table__num">@c.DisplayOrder</td>
+                            <td>@c.Name</td>
+                            <td><code class="param-table__slug">@c.Slug</code></td>
+                            <td>@(string.IsNullOrEmpty(c.Description) ? "—" : c.Description)</td>
+                            <td>
+                                @if (c.IsActive)
+                                {
+                                    <span class="param-badge param-badge--active">Aktif</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--archived">Devre Dışı</span>
+                                }
+                            </td>
+                            <td class="param-table__actions">
+                                <a class="admin-link" asp-action="Duzenle" asp-route-id="@c.Id">Düzenle</a>
+                                @if (c.IsActive)
+                                {
+                                    <form method="post" asp-action="DevreDisi" asp-route-id="@c.Id"
+                                          class="admin-inline-form">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="admin-link admin-link--danger"
+                                                onclick="return confirm('Devre dışı bırakmak istediğinizden emin misiniz?')">
+                                            Devre Dışı
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-action="Etkinlestir" asp-route-id="@c.Id"
+                                          class="admin-inline-form">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="admin-link">Etkinleştir</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -249,6 +249,10 @@ try
     // UserBlock (Faz 4.3) — sessiz pattern engelleme + cascade
     builder.Services.AddScoped<IUserBlockService, UserBlockService>();
 
+    // İçerik altyapısı (Faz 4.5) — kategori master + serbest tag
+    builder.Services.AddScoped<IPostCategoryService, PostCategoryService>();
+    builder.Services.AddScoped<IPostTagService, PostTagService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {
@@ -461,6 +465,7 @@ try
             await LexCalculus.Infrastructure.Persistence.Seed.FormulaParameterMetadataBackfill.BackfillAsync(dbContext);
             await LexCalculus.Infrastructure.Persistence.Seed.TUFESeedData.SeedAsync(dbContext);
             await LifeTableSeeder.SeedAsync(dbContext, startupLogger);
+            await PostCategorySeeder.SeedAsync(dbContext, startupLogger);
         }
         catch (Exception ex)
         {

@@ -31,6 +31,10 @@
        asp-area="Admin" asp-controller="Tenants" asp-action="Index">
         <span class="admin-nav-link__label">Hukuk Büroları</span>
     </a>
+    <a class="admin-nav-link @(currentController == "PostCategories" ? "admin-nav-link--active" : "")"
+       asp-area="Admin" asp-controller="PostCategories" asp-action="Index">
+        <span class="admin-nav-link__label">Kategoriler</span>
+    </a>
     <a class="admin-nav-link @(currentController == "TenantTalepleri" ? "admin-nav-link--active" : "")"
        asp-area="Admin" asp-controller="TenantTalepleri" asp-action="Index">
         <span class="admin-nav-link__label">Tenant Talepleri</span>

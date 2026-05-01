@@ -42,6 +42,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
     public DbSet<UserConnection> UserConnections => Set<UserConnection>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+    public DbSet<PostCategory> PostCategories => Set<PostCategory>();
+    public DbSet<PostTag> PostTags => Set<PostTag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -184,6 +186,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             // Aynı yönde tek block (BlockerId → BlockedId) — DB seviyesinde garanti.
             e.HasIndex(b => new { b.BlockerId, b.BlockedId }).IsUnique();
+        });
+
+        builder.Entity<PostCategory>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).HasMaxLength(80).IsRequired();
+            e.Property(c => c.Slug).HasMaxLength(100).IsRequired();
+            e.Property(c => c.Description).HasMaxLength(500);
+
+            e.HasIndex(c => c.Slug).IsUnique();
+            e.HasIndex(c => c.DisplayOrder);
+            e.HasIndex(c => c.IsActive);
+        });
+
+        builder.Entity<PostTag>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Name).HasMaxLength(30).IsRequired();
+            e.Property(t => t.Slug).HasMaxLength(40).IsRequired();
+
+            e.HasIndex(t => t.Slug).IsUnique();
+            e.HasIndex(t => t.UsageCount);
         });
 
         builder.Entity<ActivityLog>(e =>

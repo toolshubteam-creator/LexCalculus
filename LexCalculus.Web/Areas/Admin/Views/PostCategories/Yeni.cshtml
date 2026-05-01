@@ -1,0 +1,56 @@
+@model LexCalculus.Web.Areas.Admin.Models.PostCategories.PostCategoryFormVm
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <h1 class="admin-page__title">Yeni Kategori</h1>
+        <p class="admin-page__subtitle">
+            Slug, kategori adından otomatik üretilir (örn. "İş Hukuku" → "is-hukuku").
+            Çakışma varsa adı değiştirin.
+        </p>
+    </header>
+
+    <div asp-validation-summary="ModelOnly" class="admin-banner admin-banner--error"></div>
+
+    <div class="admin-form-layout">
+        <form method="post" asp-action="Yeni" class="admin-form">
+            @Html.AntiForgeryToken()
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Name">Kategori Adı</label>
+                <input class="admin-form__input" asp-for="Name" maxlength="80"
+                       placeholder="örn. İş Hukuku" />
+                <span asp-validation-for="Name" class="admin-form__error"></span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="Description">Açıklama</label>
+                <textarea class="admin-form__input" asp-for="Description" rows="3"
+                          maxlength="500"></textarea>
+                <span asp-validation-for="Description" class="admin-form__error"></span>
+                <span class="admin-form__hint">Opsiyonel, en fazla 500 karakter.</span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="DisplayOrder">Sıra</label>
+                <input class="admin-form__input" asp-for="DisplayOrder" type="number" min="0" />
+                <span asp-validation-for="DisplayOrder" class="admin-form__error"></span>
+                <span class="admin-form__hint">Küçük değerler önce gösterilir.</span>
+            </div>
+
+            <div class="admin-form__field">
+                <label class="admin-form__label field__label--inline">
+                    <input type="checkbox" asp-for="IsActive" />
+                    <span>Aktif</span>
+                </label>
+                <span class="admin-form__hint">
+                    Aktif kategoriler makale yazma formunda seçenek olarak görünür.
+                </span>
+            </div>
+
+            <div class="admin-form__actions">
+                <button type="submit" class="admin-btn admin-btn--primary">Oluştur</button>
+                <a href="@Url.Action("Index")" class="admin-btn admin-btn--secondary">İptal</a>
+            </div>
+        </form>
+    </div>
+</div>
