@@ -105,6 +105,37 @@ public sealed class DefaultSitemapBuilder : ISitemapBuilder
             });
         }
 
+        // Faz 4.7 — public makale URL'leri (yayında + yazar aktif + yazar profili public)
+        // Yazar profili gizliyse (IsPublicProfile=false) makale URL'i erişilebilir
+        // ama sitemap dışı (charter §G-a).
+        var publishedPosts = await _ctx.UserPosts
+            .AsNoTracking()
+            .Include(p => p.User).ThenInclude(u => u!.Profile)
+            .Where(p => p.IsPublished
+                     && p.User != null
+                     && p.User.IsActive
+                     && p.User.Profile != null
+                     && p.User.Profile.IsPublicProfile
+                     && p.User.Profile.PublicSlug != null)
+            .Select(p => new
+            {
+                UserSlug = p.User!.Profile!.PublicSlug!,
+                PostSlug = p.Slug,
+                LastMod = p.UpdatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        foreach (var post in publishedPosts)
+        {
+            nodes.Add(new SitemapNode
+            {
+                Url = $"{siteUrl}/uye/{post.UserSlug}/makale/{post.PostSlug}",
+                LastModified = post.LastMod,
+                ChangeFrequency = SitemapChangeFrequency.Weekly,
+                Priority = 0.6m
+            });
+        }
+
         return nodes;
     }
 }

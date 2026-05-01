@@ -1,0 +1,120 @@
+@page "/uye/{userSlug}/makale/{postSlug}"
+@model LexCalculus.Web.Pages.MakaleModel
+
+<article class="makale">
+    @if (Model.IsOwnerPreview)
+    {
+        <div class="makale__preview-banner" role="status">
+            <strong>Önizleme:</strong> Bu makale henüz yayında değil, yalnızca size görünür.
+            <a href="/makalelerim/duzenle/@Model.Post.Id">Düzenle</a> ·
+            <a href="/makalelerim?tab=taslak">Makalelerim</a>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.FeaturedImageAbsoluteUrl))
+    {
+        <figure class="makale__featured">
+            <img src="@Model.FeaturedImageAbsoluteUrl" alt="@Model.Post.Title" />
+        </figure>
+    }
+
+    <header class="makale__header">
+        @if (Model.Post.Category is not null)
+        {
+            <div class="makale__category">@Model.Post.Category.Name</div>
+        }
+        <h1 class="makale__title">@Model.Post.Title</h1>
+
+        <div class="makale__meta">
+            <div class="makale__author">
+                @if (!string.IsNullOrEmpty(Model.AuthorAvatarUrl))
+                {
+                    <img src="@Model.AuthorAvatarUrl" alt="@Model.AuthorDisplayName"
+                         class="makale__author-avatar" />
+                }
+                else
+                {
+                    <span class="makale__author-avatar makale__author-avatar--placeholder"
+                          aria-hidden="true">
+                        @(Model.AuthorDisplayName.Length > 0
+                            ? Model.AuthorDisplayName.Substring(0, 1).ToUpperInvariant()
+                            : "?")
+                    </span>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.AuthorSlug))
+                {
+                    <a href="/uye/@Model.AuthorSlug" class="makale__author-name">@Model.AuthorDisplayName</a>
+                }
+                else
+                {
+                    <span class="makale__author-name">@Model.AuthorDisplayName</span>
+                }
+            </div>
+
+            @if (Model.Post.PublishedAt.HasValue)
+            {
+                <span class="makale__date">
+                    @Model.Post.PublishedAt.Value.ToLocalTime().ToString("d MMMM yyyy")
+                </span>
+            }
+
+            @if (Model.Post.IsPublished)
+            {
+                <span class="makale__views">@Model.Post.ViewCount görüntülenme</span>
+            }
+        </div>
+    </header>
+
+    <div class="makale__body">
+        @* Body, UserPostService.Sanitize ile temizlenmiş — Html.Raw güvenli *@
+        @Html.Raw(Model.Post.Body)
+    </div>
+
+    @if (Model.Post.TagLinks is { Count: > 0 })
+    {
+        <div class="makale__tags" aria-label="Etiketler">
+            @foreach (var link in Model.Post.TagLinks)
+            {
+                <span class="makale-tag-chip">@link.Tag.Name</span>
+            }
+        </div>
+    }
+
+    <aside class="makale__disclaimer" role="note">
+        <strong>Önemli:</strong> Bu içerik tamamen yazarın kişisel görüşü ve
+        değerlendirmesidir. Hukuki tavsiye niteliği taşımaz. Spesifik durumunuz
+        için lütfen yetkili bir hukuk profesyoneline danışınız.
+    </aside>
+
+    @if (!string.IsNullOrEmpty(Model.AuthorSlug))
+    {
+        <footer class="makale__author-footer">
+            <h2 class="makale__author-footer-title">Yazar</h2>
+            <div class="makale__author-card">
+                @if (!string.IsNullOrEmpty(Model.AuthorAvatarUrl))
+                {
+                    <img src="@Model.AuthorAvatarUrl" alt="@Model.AuthorDisplayName"
+                         class="makale__author-card-avatar" />
+                }
+                else
+                {
+                    <span class="makale__author-card-avatar makale__author-card-avatar--placeholder"
+                          aria-hidden="true">
+                        @(Model.AuthorDisplayName.Length > 0
+                            ? Model.AuthorDisplayName.Substring(0, 1).ToUpperInvariant()
+                            : "?")
+                    </span>
+                }
+                <div class="makale__author-card-info">
+                    <a href="/uye/@Model.AuthorSlug" class="makale__author-card-name">@Model.AuthorDisplayName</a>
+                    @if (!string.IsNullOrEmpty(Model.AuthorBio))
+                    {
+                        <p class="makale__author-card-bio">@Model.AuthorBio</p>
+                    }
+                    <a href="/uye/@Model.AuthorSlug" class="makale__author-card-link">Profili Gör →</a>
+                </div>
+            </div>
+        </footer>
+    }
+</article>
