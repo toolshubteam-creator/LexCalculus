@@ -17,6 +17,7 @@ public sealed class MediaUploadService : IMediaUploadService
     private const int AvatarSize = 256;                      // 256x256 square
     private const int FeaturedWidth = 1200;                  // OG 1.91:1
     private const int FeaturedHeight = 630;
+    private const int InlineMaxDimension = 1200;             // max 1200x1200, aspect korunur
     private const int WebpQuality = 85;
 
     private readonly ApplicationDbContext _ctx;
@@ -282,6 +283,114 @@ public sealed class MediaUploadService : IMediaUploadService
             entityType: nameof(MediaFile),
             entityId: null,
             description: $"Makale kapak görseli yüklendi: {relativePath}",
+            metadata: new { SizeBytes = webpBytes.LongLength, OriginalName = originalFileName },
+            ct: ct);
+
+        return new MediaUploadResult(true, relativePath, null);
+    }
+
+    public async Task<MediaUploadResult> UploadInlineImageAsync(
+        int userId,
+        Stream content,
+        string originalFileName,
+        string contentType,
+        long sizeBytes,
+        CancellationToken ct = default)
+    {
+        if (content == null || sizeBytes <= 0)
+            return new MediaUploadResult(false, null, "Dosya seçilmedi.");
+
+        if (sizeBytes > MaxBytes)
+            return new MediaUploadResult(false, null,
+                $"Dosya çok büyük (max {MaxBytes / 1024 / 1024} MB).");
+
+        var declaredCt = (contentType ?? "").ToLowerInvariant();
+        if (declaredCt is not ("image/jpeg" or "image/png" or "image/webp"))
+            return new MediaUploadResult(false, null,
+                "Yalnızca JPG, PNG veya WebP yüklenebilir.");
+
+        var ms = new MemoryStream();
+        try
+        {
+            if (content.CanSeek) content.Position = 0;
+            await content.CopyToAsync(ms, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Inline image stream okuma hatası: user={UserId}", userId);
+            return new MediaUploadResult(false, null, "Yükleme okuma hatası.");
+        }
+
+        var detected = DetectImageMime(ms.ToArray());
+        if (detected is null)
+            return new MediaUploadResult(false, null,
+                "Geçersiz görsel dosyası (içerik MIME ile uyuşmuyor).");
+
+        ms.Position = 0;
+        byte[] webpBytes;
+        try
+        {
+            using var image = await Image.LoadAsync(ms, ct);
+            // Max mode: aspect ratio korunur, en büyük boyut 1200'e indirilir
+            // (zaten 1200'den küçükse dokunulmaz).
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new Size(InlineMaxDimension, InlineMaxDimension),
+                Mode = ResizeMode.Max
+            }));
+            image.Metadata.ExifProfile = null;
+            image.Metadata.IccProfile = null;
+            image.Metadata.IptcProfile = null;
+            image.Metadata.XmpProfile = null;
+
+            var encoder = new WebpEncoder { Quality = WebpQuality };
+            using var outMs = new MemoryStream();
+            await image.SaveAsync(outMs, encoder, ct);
+            webpBytes = outMs.ToArray();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Inline image ImageSharp hatası: user={UserId}", userId);
+            return new MediaUploadResult(false, null,
+                "Görsel işlenemedi (bozuk veya desteklenmeyen format).");
+        }
+        finally
+        {
+            await ms.DisposeAsync();
+        }
+
+        var newFileName = $"{Guid.NewGuid():N}.webp";
+        var subdir = $"uploads/posts/{userId}/inline";
+        string relativePath;
+        try
+        {
+            using var writeMs = new MemoryStream(webpBytes);
+            relativePath = await _storage.StoreAsync(writeMs, subdir, newFileName, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Inline image storage hatası: user={UserId}", userId);
+            return new MediaUploadResult(false, null, "Yükleme depolama hatası.");
+        }
+
+        // MediaFile audit kaydı (eski silme YOK — orphan GC Faz 5+)
+        _ctx.MediaFiles.Add(new MediaFile
+        {
+            UserId = userId,
+            FileName = newFileName,
+            OriginalName = TrimToMax(originalFileName ?? newFileName, 255),
+            RelativePath = relativePath,
+            MimeType = "image/webp",
+            SizeBytes = webpBytes.LongLength,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _ctx.SaveChangesAsync(ct);
+
+        await _activityLog.LogAsync(
+            action: "User.InlineImageUpload",
+            entityType: nameof(MediaFile),
+            entityId: null,
+            description: $"Makale içi görsel yüklendi: {relativePath}",
             metadata: new { SizeBytes = webpBytes.LongLength, OriginalName = originalFileName },
             ct: ct);
 

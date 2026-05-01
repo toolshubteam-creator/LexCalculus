@@ -85,6 +85,14 @@
   line-height: 1.6;
 }
 
+/* Faz 4.8 — Quill içi inline image: max-width container, oran korunur */
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: var(--sp-3) 0;
+}
+
 /* Tag chip input + listesi */
 .tag-chip-container {
   display: flex;

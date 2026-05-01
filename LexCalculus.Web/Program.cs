@@ -390,6 +390,14 @@ try
     builder.Services.AddResponseCaching();
     builder.Services.AddRazorPages();
 
+    // AJAX endpoint'ler (Faz 4.8+) için CSRF token header adı.
+    // Form post'larında __RequestVerificationToken otomatik bind edilir;
+    // fetch/XHR isteklerinde JS bu header'ı manuel set eder.
+    builder.Services.AddAntiforgery(options =>
+    {
+        options.HeaderName = "X-CSRF-TOKEN";
+    });
+
     if (builder.Environment.IsDevelopment())
     {
         mvcBuilder.AddRazorRuntimeCompilation();

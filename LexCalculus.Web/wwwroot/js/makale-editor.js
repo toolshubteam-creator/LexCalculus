@@ -14,15 +14,104 @@
         theme: 'snow',
         placeholder: 'Makalenizi buraya yazın…',
         modules: {
-            toolbar: [
-                ['bold', 'italic', 'underline'],
-                [{ 'header': 2 }, { 'header': 3 }],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                ['blockquote', 'link'],
-                ['clean']
-            ]
+            toolbar: {
+                container: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'header': 2 }, { 'header': 3 }],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['blockquote', 'link', 'image'],
+                    ['clean']
+                ],
+                handlers: {
+                    'image': customImageHandler
+                }
+            }
         }
     });
+
+    // Faz 4.8 — clipboard'tan gelen IMG'leri engelle (sadece toolbar upload).
+    // Dış URL'li img veya base64 paste yapılırsa kaldırılır.
+    const QuillDelta = Quill.import('delta');
+    quill.clipboard.addMatcher('IMG', function () {
+        return new QuillDelta();
+    });
+
+    // Drag-drop kapalı — kullanıcı toolbar üzerinden upload etmeli.
+    editorEl.addEventListener('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }, true);
+    editorEl.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }, true);
+
+    function customImageHandler() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/jpeg,image/png,image/webp');
+
+        input.onchange = async function () {
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Dosya çok büyük (max 5 MB).');
+                return;
+            }
+
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (!tokenInput) {
+                alert('Güvenlik token bulunamadı. Sayfayı yenileyin.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const range = quill.getSelection(true);
+            const placeholderText = '⏳ Yükleniyor…';
+            quill.insertText(range.index, placeholderText, { italic: true });
+            const placeholderLen = placeholderText.length;
+
+            try {
+                const response = await fetch('/api/post-images/upload', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': tokenInput.value
+                        // Content-Type'ı browser otomatik (multipart boundary için) belirler
+                    },
+                    body: formData
+                });
+
+                quill.deleteText(range.index, placeholderLen);
+
+                if (!response.ok) {
+                    let errMsg = response.statusText;
+                    try {
+                        const errData = await response.json();
+                        if (errData && errData.error) errMsg = errData.error;
+                    } catch (_) { /* JSON parse fail; statusText kullan */ }
+                    alert('Yükleme başarısız: ' + errMsg);
+                    return;
+                }
+
+                const data = await response.json();
+                if (!data || !data.url) {
+                    alert('Sunucu görsel URL döndürmedi.');
+                    return;
+                }
+
+                quill.insertEmbed(range.index, 'image', data.url, 'user');
+                quill.setSelection(range.index + 1);
+            } catch (err) {
+                quill.deleteText(range.index, placeholderLen);
+                alert('Bağlantı hatası: ' + (err && err.message ? err.message : err));
+            }
+        };
+
+        input.click();
+    }
 
     // Düzenleme: mevcut Body'yi yükle
     if (bodyInput.value && bodyInput.value.trim().length > 0) {

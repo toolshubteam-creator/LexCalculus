@@ -31,6 +31,20 @@ public interface IMediaUploadService
         string contentType,
         long sizeBytes,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Makale içine Quill editor'den eklenen inline görsel. Featured'dan
+    /// farklı: ResizeMode.Max (max 1200x1200, aspect korunur), path
+    /// uploads/posts/{userId}/inline/. WebP, EXIF strip, max 5 MB.
+    /// Faz 4.8.
+    /// </summary>
+    Task<MediaUploadResult> UploadInlineImageAsync(
+        int userId,
+        Stream content,
+        string originalFileName,
+        string contentType,
+        long sizeBytes,
+        CancellationToken ct = default);
 }
 
 public sealed record MediaUploadResult(
