@@ -44,6 +44,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
     public DbSet<PostCategory> PostCategories => Set<PostCategory>();
     public DbSet<PostTag> PostTags => Set<PostTag>();
+    public DbSet<UserPost> UserPosts => Set<UserPost>();
+    public DbSet<PostTagLink> PostTagLinks => Set<PostTagLink>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -208,6 +210,51 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             e.HasIndex(t => t.Slug).IsUnique();
             e.HasIndex(t => t.UsageCount);
+        });
+
+        builder.Entity<UserPost>(e =>
+        {
+            e.HasKey(p => p.Id);
+
+            e.Property(p => p.Title).HasMaxLength(200).IsRequired();
+            e.Property(p => p.Slug).HasMaxLength(200).IsRequired();
+            e.Property(p => p.Body).IsRequired();
+            e.Property(p => p.FeaturedImageUrl).HasMaxLength(500);
+
+            e.HasOne(p => p.User)
+             .WithMany()
+             .HasForeignKey(p => p.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(p => p.Category)
+             .WithMany()
+             .HasForeignKey(p => p.CategoryId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            // Slug user namespace altında unique (Yaklaşım 4)
+            e.HasIndex(p => new { p.UserId, p.Slug }).IsUnique();
+
+            // Public listing — yayın tarihi DESC sorgusu
+            e.HasIndex(p => new { p.IsPublished, p.PublishedAt });
+            e.HasIndex(p => p.CategoryId);
+        });
+
+        builder.Entity<PostTagLink>(e =>
+        {
+            e.HasKey(l => l.Id);
+
+            e.HasOne(l => l.Post)
+             .WithMany(p => p.TagLinks)
+             .HasForeignKey(l => l.PostId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(l => l.Tag)
+             .WithMany()
+             .HasForeignKey(l => l.TagId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            // Aynı (post, tag) ikilisi sadece bir kez
+            e.HasIndex(l => new { l.PostId, l.TagId }).IsUnique();
         });
 
         builder.Entity<ActivityLog>(e =>

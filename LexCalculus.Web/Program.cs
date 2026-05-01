@@ -253,6 +253,9 @@ try
     builder.Services.AddScoped<IPostCategoryService, PostCategoryService>();
     builder.Services.AddScoped<IPostTagService, PostTagService>();
 
+    // Kullanıcı makalesi (Faz 4.6 P1) — Draft/Published state machine + tag sync
+    builder.Services.AddScoped<IUserPostService, UserPostService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {
