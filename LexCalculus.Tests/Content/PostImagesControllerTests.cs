@@ -162,6 +162,8 @@ public class PostImagesControllerTests : IClassFixture<TestAuthWebApplicationFac
             var json = await response.Content.ReadFromJsonAsync<UploadResponse>();
             json.Should().NotBeNull();
             json!.url.Should().NotBeNullOrEmpty();
+            json.url.Should().StartWith("/",
+                "Faz 4.8 fix: GetPublicUrl '/' prefix garantisi (Quill img src absolute olmalı)");
             json.url.Should().Contain($"uploads/posts/{u.Id}/inline/");
             json.url.Should().EndWith(".webp");
         }

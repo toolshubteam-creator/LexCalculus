@@ -1,5 +1,6 @@
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Services;
+using LexCalculus.Core.Storage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -17,13 +18,16 @@ namespace LexCalculus.Web.Controllers.Api;
 public sealed class PostImagesController : ControllerBase
 {
     private readonly IMediaUploadService _mediaUpload;
+    private readonly IMediaStorage _storage;
     private readonly UserManager<ApplicationUser> _userManager;
 
     public PostImagesController(
         IMediaUploadService mediaUpload,
+        IMediaStorage storage,
         UserManager<ApplicationUser> userManager)
     {
         _mediaUpload = mediaUpload;
+        _storage = storage;
         _userManager = userManager;
     }
 
@@ -45,6 +49,9 @@ public sealed class PostImagesController : ControllerBase
         if (!result.Success)
             return BadRequest(new { error = result.ErrorMessage ?? "Yükleme başarısız." });
 
-        return Ok(new { url = result.RelativePath });
+        // Faz 4.8 fix: IMediaStorage.GetPublicUrl '/' prefix garantisi verir.
+        // Avatar/Featured render pattern reuse — Quill img src'i de aynı format.
+        var url = _storage.GetPublicUrl(result.RelativePath ?? string.Empty);
+        return Ok(new { url });
     }
 }

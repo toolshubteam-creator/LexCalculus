@@ -102,7 +102,13 @@
                     return;
                 }
 
-                quill.insertEmbed(range.index, 'image', data.url, 'user');
+                // Defansif: server bypass durumunda da '/' prefix garantisi
+                let imageUrl = data.url;
+                if (!imageUrl.startsWith('/') && !imageUrl.startsWith('http')) {
+                    imageUrl = '/' + imageUrl;
+                }
+
+                quill.insertEmbed(range.index, 'image', imageUrl, 'user');
                 quill.setSelection(range.index + 1);
             } catch (err) {
                 quill.deleteText(range.index, placeholderLen);
