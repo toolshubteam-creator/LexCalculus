@@ -115,10 +115,21 @@
 
     @if (Model.IsPublic && Model.ConnectionCount > 0)
     {
-        <div class="uye-profil__connection-count">
-            <span class="uye-profil__connection-count-number">@Model.ConnectionCount</span>
-            <span class="uye-profil__connection-count-label">bağlantı</span>
-        </div>
+        @if (Model.ShowConnections)
+        {
+            <a href="/uye/@Model.Slug/baglantilar"
+               class="uye-profil__connection-count uye-profil__connection-count--link">
+                <span class="uye-profil__connection-count-number">@Model.ConnectionCount</span>
+                <span class="uye-profil__connection-count-label">bağlantı</span>
+            </a>
+        }
+        else
+        {
+            <div class="uye-profil__connection-count">
+                <span class="uye-profil__connection-count-number">@Model.ConnectionCount</span>
+                <span class="uye-profil__connection-count-label">bağlantı</span>
+            </div>
+        }
     }
 
     @if (Model.IsPublic)

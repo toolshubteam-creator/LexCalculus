@@ -63,6 +63,9 @@ public sealed class UyeModel : PageModel
     public int? ConnectionId { get; private set; }
     public int ConnectionCount { get; private set; }
 
+    // Faz 4.2 P3b/3 — bağlantı listesi görünürlüğü (sayı link mi?)
+    public bool ShowConnections { get; private set; }
+
     public async Task<IActionResult> OnGetAsync(string slug, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(slug))
@@ -84,6 +87,7 @@ public sealed class UyeModel : PageModel
             ? null
             : _storage.GetPublicUrl(profile.AvatarUrl);
         IsPublic = profile.IsPublicProfile;
+        ShowConnections = profile.ShowConnections;
 
         if (profile.IsPublicProfile)
         {

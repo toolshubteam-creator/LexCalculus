@@ -163,6 +163,18 @@
             </div>
         }
 
+        @* Faz 4.2 P3b/3 — bağlantı listesi görünürlük toggle'ı *@
+        <div class="field">
+            <label class="field__label field__label--inline">
+                <input type="checkbox" asp-for="Input.ShowConnections" />
+                <span>Bağlantı listemi profilimde göster</span>
+            </label>
+            <span class="field-hint">
+                Açıkken profilinizdeki bağlantı sayısı tıklanabilir olur ve diğer
+                kullanıcılar bağlantı listenizi görebilir.
+            </span>
+        </div>
+
         <div class="field">
             <label asp-for="Input.City" class="field__label">Şehir</label>
             <input asp-for="Input.City" class="field__input" maxlength="80" placeholder="İstanbul" />

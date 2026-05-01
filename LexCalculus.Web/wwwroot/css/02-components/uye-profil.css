@@ -153,3 +153,94 @@
   letter-spacing: var(--tracking-wide);
   color: var(--muted);
 }
+
+/* Faz 4.2 P3b/3 — sayı tıklanabilir variant (ShowConnections=true) */
+.uye-profil__connection-count--link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.uye-profil__connection-count--link:hover,
+.uye-profil__connection-count--link:focus-visible {
+  opacity: 0.85;
+  border-color: var(--gold);
+}
+
+/* Faz 4.2 P3b/3 — /uye/{slug}/baglantilar sayfası */
+.uye-baglantilar {
+  max-width: 720px;
+  margin: var(--sp-8) auto;
+  padding: 0 var(--sp-5);
+}
+
+.uye-baglantilar__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+  padding-bottom: var(--sp-5);
+  border-bottom: var(--border-thin-parchment);
+}
+
+.uye-baglantilar__avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--gold-pale, #d4c389);
+  flex-shrink: 0;
+}
+
+.uye-baglantilar__avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: var(--font-heading);
+  font-size: 36px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.uye-baglantilar__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.uye-baglantilar__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl, 28px);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.uye-baglantilar__profile-link {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.uye-baglantilar__profile-link:hover,
+.uye-baglantilar__profile-link:focus-visible {
+  text-decoration: underline;
+  color: var(--ink);
+}
+
+.uye-baglantilar__empty {
+  margin: var(--sp-6) 0;
+  padding: var(--sp-6) var(--sp-5);
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  background: var(--parchment);
+  border: 1px solid var(--gold-pale, #d4c389);
+  border-radius: 4px;
+}

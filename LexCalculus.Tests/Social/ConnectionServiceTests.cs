@@ -15,8 +15,17 @@ public class ConnectionServiceTests
     private static (ConnectionService svc, ApplicationDbContext ctx) Setup()
     {
         var ctx = TestDbContextFactory.Create();
-        var svc = new ConnectionService(ctx, new NullActivityLogService());
+        var svc = new ConnectionService(ctx, new NullActivityLogService(),
+            new NullNotificationService());
         return (svc, ctx);
+    }
+
+    private static (ConnectionService svc, ApplicationDbContext ctx, RecordingNotificationService notif) SetupRecording()
+    {
+        var ctx = TestDbContextFactory.Create();
+        var notif = new RecordingNotificationService();
+        var svc = new ConnectionService(ctx, new NullActivityLogService(), notif);
+        return (svc, ctx, notif);
     }
 
     private static ApplicationUser MakeUser(int id, bool isActive = true) => new()
@@ -354,5 +363,130 @@ public class ConnectionServiceTests
         var sentByUser1 = await svc.GetSentByUserAsync(1);
         sentByUser1.Should().HaveCount(1);
         sentByUser1[0].TargetId.Should().Be(2);
+    }
+
+    // ─── Faz 4.2 P3b/3 — Notification entegrasyon testleri ────────────────
+
+    [Fact]
+    public async Task SendAsync_CreatesConnectionRequestNotificationForTarget()
+    {
+        var (svc, ctx, notif) = SetupRecording();
+        await SeedUsersAsync(ctx, 1, 2);
+        ctx.UserProfiles.Add(new LexCalculus.Core.Entities.Identity.UserProfile
+        {
+            UserId = 1, DisplayName = "Mesut Avukat"
+        });
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.SendAsync(1, 2);
+
+        result.Success.Should().BeTrue();
+        notif.Created.Should().HaveCount(1);
+        var n = notif.Created[0];
+        n.Type.Should().Be(LexCalculus.Core.Notifications.NotificationType.ConnectionRequest);
+        n.UserId.Should().Be(2, "bildirim hedef kullanıcıya gider");
+        n.Body.Should().Contain("Mesut Avukat");
+        n.Link.Should().Be("/baglantilarim?tab=bekleyen");
+        n.RelatedEntityType.Should().Be(nameof(UserConnection));
+        n.RelatedEntityId.Should().Be(result.Connection!.Id);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_CreatesConnectionAcceptedNotificationForRequester()
+    {
+        var (svc, ctx, notif) = SetupRecording();
+        await SeedUsersAsync(ctx, 1, 2);
+        ctx.UserProfiles.Add(new LexCalculus.Core.Entities.Identity.UserProfile
+        {
+            UserId = 2, DisplayName = "Hâkim Ali"
+        });
+        await ctx.SaveChangesAsync();
+
+        var first = await svc.SendAsync(1, 2);
+        notif.Created.Clear(); // sadece accept'i izle
+
+        var accept = await svc.AcceptAsync(first.Connection!.Id, actingUserId: 2);
+
+        accept.Success.Should().BeTrue();
+        notif.Created.Should().HaveCount(1);
+        var n = notif.Created[0];
+        n.Type.Should().Be(LexCalculus.Core.Notifications.NotificationType.ConnectionAccepted);
+        n.UserId.Should().Be(1, "bildirim isteği gönderene gider");
+        n.Body.Should().Contain("Hâkim Ali");
+        n.RelatedEntityId.Should().Be(first.Connection.Id);
+    }
+
+    [Fact]
+    public async Task RejectAsync_DoesNotCreateNotification()
+    {
+        var (svc, ctx, notif) = SetupRecording();
+        await SeedUsersAsync(ctx, 1, 2);
+        var first = await svc.SendAsync(1, 2);
+        notif.Created.Clear();
+
+        await svc.RejectAsync(first.Connection!.Id, actingUserId: 2);
+
+        notif.Created.Should().BeEmpty("LinkedIn pattern: reddedildi sessiz");
+    }
+
+    [Fact]
+    public async Task CancelAsync_DoesNotCreateNotification()
+    {
+        var (svc, ctx, notif) = SetupRecording();
+        await SeedUsersAsync(ctx, 1, 2);
+        var first = await svc.SendAsync(1, 2);
+        notif.Created.Clear();
+
+        await svc.CancelAsync(first.Connection!.Id, actingUserId: 1);
+
+        notif.Created.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RemoveAsync_DoesNotCreateNotification()
+    {
+        var (svc, ctx, notif) = SetupRecording();
+        await SeedUsersAsync(ctx, 1, 2);
+        var first = await svc.SendAsync(1, 2);
+        await svc.AcceptAsync(first.Connection!.Id, actingUserId: 2);
+        notif.Created.Clear();
+
+        await svc.RemoveAsync(first.Connection.Id, actingUserId: 1);
+
+        notif.Created.Should().BeEmpty("LinkedIn pattern: bağlantı kaldırma sessiz");
+    }
+
+    [Fact]
+    public async Task SendAsync_NotificationFails_DoesNotBreakSendOperation()
+    {
+        // Notification fail durumunda asıl Pending kayıt yine de oluşur (defansif).
+        var ctx = TestDbContextFactory.Create();
+        var failing = new ThrowingNotificationService();
+        var svc = new ConnectionService(ctx, new NullActivityLogService(), failing);
+        await SeedUsersAsync(ctx, 1, 2);
+
+        var result = await svc.SendAsync(1, 2);
+
+        result.Success.Should().BeTrue("notification fail asıl işlemi bozmamalı");
+        result.Connection!.Status.Should().Be(UserConnectionStatus.Pending);
+    }
+
+    private sealed class ThrowingNotificationService : LexCalculus.Core.Notifications.INotificationService
+    {
+        public Task<LexCalculus.Core.Entities.Notifications.Notification?> CreateAsync(
+            LexCalculus.Core.Notifications.NotificationType type, int userId,
+            string title, string body, string? link = null, string? relatedEntityType = null,
+            int? relatedEntityId = null, string? iconHint = null,
+            TimeSpan? dedupWindow = null, CancellationToken ct = default)
+            => throw new InvalidOperationException("test: notification servis düştü");
+
+        public Task<int> GetUnreadCountAsync(int userId, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyList<LexCalculus.Core.Entities.Notifications.Notification>> GetForUserAsync(
+            int userId, int limit, bool unreadOnly, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<LexCalculus.Core.Entities.Notifications.Notification>>(
+                Array.Empty<LexCalculus.Core.Entities.Notifications.Notification>());
+        public Task MarkAsReadAsync(int notificationId, int userId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<int> MarkAllAsReadAsync(int userId, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<int> GetTotalActiveCountAsync(CancellationToken ct = default) => Task.FromResult(0);
     }
 }

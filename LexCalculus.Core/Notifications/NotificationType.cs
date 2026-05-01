@@ -24,5 +24,8 @@ public enum NotificationType
     NewMessage = 101,
 
     /// <summary>Faz 4 — bir post'a yorum yapıldı.</summary>
-    PostComment = 102
+    PostComment = 102,
+
+    /// <summary>Faz 4.2 P3b — gönderilen bağlantı isteği kabul edildi.</summary>
+    ConnectionAccepted = 103
 }

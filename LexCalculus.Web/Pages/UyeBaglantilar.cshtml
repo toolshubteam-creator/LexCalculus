@@ -1,0 +1,110 @@
+@page "/uye/{slug}/baglantilar"
+@model LexCalculus.Web.Pages.UyeBaglantilarModel
+
+<section class="uye-baglantilar">
+    <header class="uye-baglantilar__header">
+        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+        {
+            <img src="@Model.AvatarUrl" alt="@Model.DisplayName"
+                 class="uye-baglantilar__avatar" />
+        }
+        else
+        {
+            <div class="uye-baglantilar__avatar uye-baglantilar__avatar--placeholder"
+                 aria-label="@Model.DisplayName">
+                @(Model.DisplayName.Length > 0
+                    ? Model.DisplayName.Substring(0, 1).ToUpperInvariant()
+                    : "?")
+            </div>
+        }
+
+        <div class="uye-baglantilar__heading">
+            <h1 class="uye-baglantilar__title">@Model.DisplayName</h1>
+            <a href="/uye/@Model.Slug" class="uye-baglantilar__profile-link">← Profile dön</a>
+        </div>
+    </header>
+
+    @if (!Model.IsPublicProfile)
+    {
+        <p class="uye-baglantilar__empty">
+            Bu profil gizli tutuluyor. Bağlantı listesi görüntülenemez.
+        </p>
+    }
+    else if (!Model.ShowConnections)
+    {
+        <p class="uye-baglantilar__empty">
+            Bu kullanıcı bağlantı listesini gizli tutmuş.
+        </p>
+    }
+    else if (Model.Connections.Count == 0)
+    {
+        <p class="uye-baglantilar__empty">
+            Henüz bir bağlantı yok.
+        </p>
+    }
+    else
+    {
+        <ul class="kullanici-kart-list">
+            @foreach (var conn in Model.Connections)
+            {
+                @* Profil sahibinin perspektifinden karşı taraf *@
+                var other = conn.RequesterId == Model.ProfileUserId
+                    ? conn.Target
+                    : conn.Requester;
+
+                if (other is null) { continue; }
+
+                var displayName = !string.IsNullOrWhiteSpace(other.Profile?.DisplayName)
+                    ? other.Profile!.DisplayName
+                    : (other.UserName ?? "Kullanıcı");
+                var slug = other.Profile?.PublicSlug;
+                var avatarUrl = Model.GetAvatarUrl(other);
+                var meslek = other.Profile?.MeslekTuru.ToTurkish(other.Profile?.MeslekTuruDiger);
+
+                <li class="kullanici-kart">
+                    <div class="kullanici-kart__avatar-wrap">
+                        @if (!string.IsNullOrEmpty(avatarUrl))
+                        {
+                            <img src="@avatarUrl" alt="@displayName" class="kullanici-kart__avatar" />
+                        }
+                        else
+                        {
+                            <div class="kullanici-kart__avatar kullanici-kart__avatar--placeholder"
+                                 aria-label="@displayName">
+                                @(displayName.Length > 0
+                                    ? displayName.Substring(0, 1).ToUpperInvariant()
+                                    : "?")
+                            </div>
+                        }
+                    </div>
+
+                    <div class="kullanici-kart__info">
+                        @if (!string.IsNullOrEmpty(slug))
+                        {
+                            <a href="/uye/@slug" class="kullanici-kart__name">@displayName</a>
+                        }
+                        else
+                        {
+                            <span class="kullanici-kart__name">@displayName</span>
+                        }
+
+                        <div class="kullanici-kart__meta-row">
+                            @if (!string.IsNullOrEmpty(meslek))
+                            {
+                                <span class="kullanici-kart__meta">@meslek</span>
+                            }
+                            @if (!string.IsNullOrEmpty(other.Profile?.City))
+                            {
+                                <span class="kullanici-kart__meta">@other.Profile.City</span>
+                            }
+                        </div>
+
+                        <span class="kullanici-kart__date">
+                            Bağlandı: @(conn.RespondedAt?.ToLocalTime().ToString("d MMMM yyyy") ?? "-")
+                        </span>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</section>

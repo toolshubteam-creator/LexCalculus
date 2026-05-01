@@ -110,6 +110,9 @@ public class ProfilModel : PageModel
         [Display(Name = "Hukuk büromu profilimde göster")]
         public bool ShowTenant { get; set; }
 
+        [Display(Name = "Bağlantı listemi profilimde göster")]
+        public bool ShowConnections { get; set; }
+
         [StringLength(2000)]
         [Display(Name = "Hakkınızda")]
         public string? Bio { get; set; }
@@ -159,6 +162,7 @@ public class ProfilModel : PageModel
             NotificationsEmailEnabled = user.NotificationsEmailEnabled,
             IsPublicProfile = profile.IsPublicProfile,
             ShowTenant = profile.ShowTenant && HasTenant,
+            ShowConnections = profile.ShowConnections,
             Bio = profile.Bio,
             City = profile.City
         };
@@ -269,6 +273,7 @@ public class ProfilModel : PageModel
         profile.IsPublicProfile = Input.IsPublicProfile;
         // ShowTenant defansif: kullanıcı tenant üyesi değilse her zaman false
         profile.ShowTenant = HasTenant && Input.ShowTenant;
+        profile.ShowConnections = Input.ShowConnections;
 
         // Slug yönetimi (Faz 4.1 P2-fix — Yaklaşım 4 görünmez kimlik):
         // Slug kayıt anında EnsureProfileExistsAsync ile üretilir, kullanıcı UI'da

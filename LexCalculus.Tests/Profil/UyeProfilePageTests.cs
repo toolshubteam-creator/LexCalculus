@@ -36,6 +36,7 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
         bool isPublic,
         bool isActive = true,
         bool showTenant = false,
+        bool showConnections = false,
         int? tenantId = null,
         string? bio = null,
         string? city = null,
@@ -70,6 +71,7 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
             PublicSlug = slug,
             IsPublicProfile = isPublic,
             ShowTenant = showTenant,
+            ShowConnections = showConnections,
             Bio = bio,
             City = city,
             MeslekTuru = meslek,
@@ -492,6 +494,60 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
         }
         finally
         {
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    // Faz 4.2 P3b/3 — count tıklanabilir koşulu
+    [Fact]
+    public async Task OnGet_ShowConnectionsTrue_RendersCountAsLink()
+    {
+        var viewer = await CreateUserAsync("uye-cl-viewer@example.com", "Viewer");
+        var slug = "uye-cl-target";
+        var (target, _) = await SeedAsync("uye-cl-target@example.com", "Target", slug,
+            isPublic: true, showConnections: true);
+        try
+        {
+            await SeedConnectionAsync(viewer.Id, target.Id,
+                LexCalculus.Core.Entities.Social.UserConnectionStatus.Accepted);
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("uye-profil__connection-count--link",
+                "ShowConnections=true → link variant render");
+            body.Should().Contain($"href=\"/uye/{slug}/baglantilar\"");
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_ShowConnectionsFalse_RendersCountAsStaticDiv()
+    {
+        var viewer = await CreateUserAsync("uye-cs-viewer@example.com", "Viewer");
+        var slug = "uye-cs-target";
+        var (target, _) = await SeedAsync("uye-cs-target@example.com", "Target", slug,
+            isPublic: true, showConnections: false);
+        try
+        {
+            await SeedConnectionAsync(viewer.Id, target.Id,
+                LexCalculus.Core.Entities.Social.UserConnectionStatus.Accepted);
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("uye-profil__connection-count");
+            body.Should().NotContain("uye-profil__connection-count--link",
+                "ShowConnections=false → statik div, link değil");
+            body.Should().NotContain($"href=\"/uye/{slug}/baglantilar\"");
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
             await CleanupAsync(target.Email!, slug);
         }
     }

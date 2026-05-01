@@ -1,8 +1,10 @@
 using LexCalculus.Core.Entities.Social;
+using LexCalculus.Core.Notifications;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace LexCalculus.Infrastructure.Services;
 
@@ -16,11 +18,19 @@ public sealed class ConnectionService : IConnectionService
 
     private readonly ApplicationDbContext _ctx;
     private readonly IActivityLogService _activityLog;
+    private readonly INotificationService _notifications;
+    private readonly ILogger<ConnectionService>? _logger;
 
-    public ConnectionService(ApplicationDbContext ctx, IActivityLogService activityLog)
+    public ConnectionService(
+        ApplicationDbContext ctx,
+        IActivityLogService activityLog,
+        INotificationService notifications,
+        ILogger<ConnectionService>? logger = null)
     {
         _ctx = ctx;
         _activityLog = activityLog;
+        _notifications = notifications;
+        _logger = logger;
     }
 
     public async Task<ConnectionResult> SendAsync(
@@ -86,6 +96,21 @@ public sealed class ConnectionService : IConnectionService
             metadata: new { RequesterId = requesterId, TargetId = targetId },
             ct: ct);
 
+        // Faz 4.2 P3b — bildirim (target alır). Defansif: fail asıl işlemi bozmaz.
+        await SafeNotifyAsync(async () =>
+        {
+            var requesterName = await GetDisplayNameAsync(requesterId, ct);
+            await _notifications.CreateAsync(
+                type: NotificationType.ConnectionRequest,
+                userId: targetId,
+                title: "Yeni bağlantı isteği",
+                body: $"{requesterName} size bağlantı isteği gönderdi.",
+                link: "/baglantilarim?tab=bekleyen",
+                relatedEntityType: nameof(UserConnection),
+                relatedEntityId: conn.Id,
+                ct: ct);
+        });
+
         return new ConnectionResult(true, null, conn);
     }
 
@@ -111,6 +136,24 @@ public sealed class ConnectionService : IConnectionService
             description: $"Bağlantı isteği kabul edildi: {conn.RequesterId} → {conn.TargetId}",
             metadata: new { RequesterId = conn.RequesterId, TargetId = conn.TargetId },
             ct: ct);
+
+        // Faz 4.2 P3b — bildirim (requester alır). Defansif: fail asıl işlemi bozmaz.
+        await SafeNotifyAsync(async () =>
+        {
+            var accepterName = await GetDisplayNameAsync(conn.TargetId, ct);
+            var requesterSlug = await GetPublicSlugAsync(conn.RequesterId, ct);
+            await _notifications.CreateAsync(
+                type: NotificationType.ConnectionAccepted,
+                userId: conn.RequesterId,
+                title: "Bağlantı isteğiniz kabul edildi",
+                body: $"{accepterName} bağlantı isteğinizi kabul etti.",
+                link: !string.IsNullOrEmpty(requesterSlug)
+                    ? "/baglantilarim?tab=aktif"
+                    : "/baglantilarim?tab=aktif",
+                relatedEntityType: nameof(UserConnection),
+                relatedEntityId: conn.Id,
+                ct: ct);
+        });
 
         return new ConnectionResult(true, null, conn);
     }
@@ -276,5 +319,43 @@ public sealed class ConnectionService : IConnectionService
             .Where(c => c.RequesterId == userId && c.Status == UserConnectionStatus.Pending)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync(ct);
+    }
+
+    private async Task<string> GetDisplayNameAsync(int userId, CancellationToken ct)
+    {
+        var name = await _ctx.UserProfiles.AsAdminQuery()
+            .Where(p => p.UserId == userId)
+            .Select(p => p.DisplayName)
+            .FirstOrDefaultAsync(ct);
+        if (!string.IsNullOrWhiteSpace(name)) return name!;
+
+        var fallback = await _ctx.Users.AsAdminQuery()
+            .Where(u => u.Id == userId)
+            .Select(u => u.FullName ?? u.UserName)
+            .FirstOrDefaultAsync(ct);
+        return string.IsNullOrWhiteSpace(fallback) ? "Bir kullanıcı" : fallback!;
+    }
+
+    private Task<string?> GetPublicSlugAsync(int userId, CancellationToken ct)
+        => _ctx.UserProfiles.AsAdminQuery()
+            .Where(p => p.UserId == userId)
+            .Select(p => p.PublicSlug)
+            .FirstOrDefaultAsync(ct);
+
+    /// <summary>
+    /// Bildirim oluşturma fail olursa asıl işlemi (Pending/Accepted) bozmaz —
+    /// sadece logla. Faz 3.8 defansif pattern.
+    /// </summary>
+    private async Task SafeNotifyAsync(Func<Task> work)
+    {
+        try
+        {
+            await work();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex,
+                "ConnectionService notification failed (asıl işlem etkilenmedi).");
+        }
     }
 }
