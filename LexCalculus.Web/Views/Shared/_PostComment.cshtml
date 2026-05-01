@@ -1,0 +1,54 @@
+@model LexCalculus.Web.Models.PostCommentViewModel
+
+<li class="yorum" id="yorum-@Model.Id" data-comment-id="@Model.Id">
+    <header class="yorum__header">
+        @if (!string.IsNullOrEmpty(Model.AuthorAvatarUrl))
+        {
+            <img src="@Model.AuthorAvatarUrl" alt="@Model.AuthorDisplayName"
+                 class="yorum__avatar" />
+        }
+        else
+        {
+            <span class="yorum__avatar yorum__avatar--placeholder" aria-hidden="true">
+                @(Model.AuthorDisplayName.Length > 0
+                    ? Model.AuthorDisplayName.Substring(0, 1).ToUpperInvariant()
+                    : "?")
+            </span>
+        }
+        <div class="yorum__meta">
+            @if (!string.IsNullOrEmpty(Model.AuthorSlug))
+            {
+                <a href="/uye/@Model.AuthorSlug" class="yorum__author-name">@Model.AuthorDisplayName</a>
+            }
+            else
+            {
+                <span class="yorum__author-name">@Model.AuthorDisplayName</span>
+            }
+            <span class="yorum__date">
+                @Model.CreatedAt.ToLocalTime().ToString("d MMMM yyyy HH:mm")
+                @if (Model.IsEdited)
+                {
+                    <span class="yorum__edited">· düzenlendi</span>
+                }
+            </span>
+        </div>
+    </header>
+
+    <div class="yorum__body" data-yorum-body>
+        @Html.Raw(Model.Body)
+    </div>
+
+    @if (Model.CanEdit || Model.CanDelete)
+    {
+        <div class="yorum__actions">
+            @if (Model.CanEdit)
+            {
+                <button type="button" class="yorum__action-link" data-yorum-edit>Düzenle</button>
+            }
+            @if (Model.CanDelete)
+            {
+                <button type="button" class="yorum__action-link yorum__action-link--danger" data-yorum-delete>Sil</button>
+            }
+        </div>
+    }
+</li>

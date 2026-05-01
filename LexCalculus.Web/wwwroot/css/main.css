@@ -27,6 +27,8 @@
 @import url('02-components/makalelerim.css');
 @import url('02-components/makale-kart.css');
 @import url('02-components/makale.css');
+@import url('02-components/begeni.css');
+@import url('02-components/yorum.css');
 /* makale-form.css yalnızca /makalelerim/yeni ve /duzenle sayfalarında
    @section Head ile (Quill ile birlikte) yüklenir. */
 

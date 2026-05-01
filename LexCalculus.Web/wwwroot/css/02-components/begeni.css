@@ -1,0 +1,53 @@
+/* /uye/{slug}/makale/{slug} beğeni butonu — Faz 4.9 P2.
+   Anonim: <a> (login redirect), authenticated: <button> (AJAX toggle). */
+
+.makale__like {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px var(--sp-3);
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.makale__like:hover,
+.makale__like:focus-visible {
+  border-color: var(--gold-pale);
+  color: var(--ink);
+}
+
+.makale__like--active {
+  background: var(--gold-pale);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.makale__like--active .makale__like-icon {
+  color: var(--gold);
+}
+
+.makale__like-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.makale__like-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.makale__like:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.makale__like--anon {
+  /* anonim için cursor: pointer (link); kalan stiller aynı */
+}

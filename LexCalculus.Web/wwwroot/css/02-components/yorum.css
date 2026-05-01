@@ -1,0 +1,236 @@
+/* Yorumlar bölümü ve yorum kart'ı — Faz 4.9 P2.
+   /uye/{slug}/makale/{slug} sayfasında, disclaimer ile yazar bloğu arasında. */
+
+.yorumlar {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--rule);
+}
+
+.yorumlar__title {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 var(--sp-5);
+}
+
+.yorumlar__count {
+  color: var(--muted);
+  font-size: 0.85em;
+  font-weight: 400;
+  margin-left: var(--sp-2);
+}
+
+.yorumlar__empty {
+  color: var(--muted);
+  font-style: italic;
+  text-align: center;
+  padding: var(--sp-6);
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  margin: 0;
+}
+
+/* Yorum form */
+.yorum-form {
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+
+.yorum-form__textarea {
+  width: 100%;
+  padding: var(--sp-3);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: var(--fs-base, 0.95rem);
+  line-height: 1.5;
+  resize: vertical;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.yorum-form__textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.yorum-form__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--sp-3);
+  gap: var(--sp-3);
+}
+
+.yorum-form__counter {
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.yorum-form__error {
+  color: var(--danger, #c0392b);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-meta);
+}
+
+.yorum-form__login {
+  text-align: center;
+  padding: var(--sp-5);
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--muted);
+  margin-bottom: var(--sp-5);
+}
+
+.yorum-form__login a {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
+/* Yorum listesi + kart */
+.yorum-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.yorum {
+  padding: var(--sp-4);
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+.yorum__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.yorum__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  border: 1px solid var(--gold-pale);
+}
+
+.yorum__avatar--placeholder {
+  background: var(--ink);
+  color: var(--parchment);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-transform: uppercase;
+  border: none;
+}
+
+.yorum__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.yorum__author-name {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.yorum__author-name:hover,
+.yorum__author-name:focus-visible {
+  text-decoration: underline;
+}
+
+.yorum__date {
+  color: var(--muted);
+  font-size: var(--fs-meta);
+}
+
+.yorum__edited {
+  font-style: italic;
+  margin-left: var(--sp-1);
+}
+
+.yorum__body {
+  color: var(--ink);
+  line-height: 1.6;
+  font-size: 0.95rem;
+  margin: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.yorum__body a {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
+.yorum__body a:hover {
+  color: var(--ink);
+}
+
+.yorum__actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.yorum__action-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  text-decoration: underline;
+}
+
+.yorum__action-link:hover,
+.yorum__action-link:focus-visible {
+  color: var(--ink);
+}
+
+.yorum__action-link--danger {
+  color: var(--danger, #c0392b);
+}
+
+.yorum__action-link--danger:hover,
+.yorum__action-link--danger:focus-visible {
+  color: var(--ink);
+}
+
+.yorum__edit-actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+@media (max-width: 700px) {
+  .yorum__header {
+    flex-wrap: wrap;
+  }
+  .yorum-form__footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sp-2);
+  }
+}

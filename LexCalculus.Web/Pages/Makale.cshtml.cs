@@ -6,8 +6,10 @@ using System.Text.RegularExpressions;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Models.Seo;
+using LexCalculus.Core.Services;
 using LexCalculus.Core.Storage;
 using LexCalculus.Infrastructure.Data;
+using LexCalculus.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -29,17 +31,23 @@ public sealed class MakaleModel : PageModel
     private readonly ApplicationDbContext _ctx;
     private readonly IMediaStorage _storage;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPostCommentService _comments;
+    private readonly IPostLikeService _likes;
     private readonly SeoSettings _seo;
 
     public MakaleModel(
         ApplicationDbContext ctx,
         IMediaStorage storage,
         UserManager<ApplicationUser> userManager,
+        IPostCommentService comments,
+        IPostLikeService likes,
         IOptions<SeoSettings> seoOptions)
     {
         _ctx = ctx;
         _storage = storage;
         _userManager = userManager;
+        _comments = comments;
+        _likes = likes;
         _seo = seoOptions.Value ?? new SeoSettings();
     }
 
@@ -54,6 +62,14 @@ public sealed class MakaleModel : PageModel
 
     /// <summary>Sahip kendi taslağını ön izliyor.</summary>
     public bool IsOwnerPreview { get; private set; }
+
+    // Faz 4.9 P2 — yorum + beğeni
+    public IReadOnlyList<PostCommentViewModel> Comments { get; private set; }
+        = Array.Empty<PostCommentViewModel>();
+    public int CommentCount { get; private set; }
+    public int LikeCount { get; private set; }
+    public bool IsLikedByViewer { get; private set; }
+    public bool ViewerCanComment { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string userSlug, string postSlug, CancellationToken ct = default)
     {
@@ -107,6 +123,40 @@ public sealed class MakaleModel : PageModel
 
         if (IsOwnerPreview)
             ViewData["NoIndex"] = true;
+
+        // Faz 4.9 P2 — yorum + beğeni state
+        if (post.IsPublished)
+        {
+            CommentCount = await _comments.GetCountForPostAsync(post.Id, ct);
+            LikeCount = await _likes.GetCountForPostAsync(post.Id, ct);
+            IsLikedByViewer = viewerId.HasValue
+                && await _likes.IsLikedByAsync(post.Id, viewerId.Value, ct);
+            ViewerCanComment = viewerId.HasValue;
+
+            var commentEntities = await _comments.GetByPostIdAsync(post.Id, ct);
+            var isAdmin = User.IsInRole("Admin");
+            var postOwnerId = post.UserId;
+            Comments = commentEntities.Select(c => new PostCommentViewModel
+            {
+                Id = c.Id,
+                PostId = c.PostId,
+                Body = c.Body,
+                CreatedAt = c.CreatedAt,
+                IsEdited = c.IsEdited,
+                AuthorDisplayName = !string.IsNullOrWhiteSpace(c.User?.Profile?.DisplayName)
+                    ? c.User!.Profile!.DisplayName
+                    : (c.User?.UserName ?? "Kullanıcı"),
+                AuthorSlug = c.User?.Profile?.PublicSlug,
+                AuthorAvatarUrl = string.IsNullOrEmpty(c.User?.Profile?.AvatarUrl)
+                    ? null
+                    : _storage.GetPublicUrl(c.User.Profile.AvatarUrl),
+                CanEdit = viewerId.HasValue && c.UserId == viewerId.Value,
+                CanDelete = viewerId.HasValue && (
+                    c.UserId == viewerId.Value
+                    || postOwnerId == viewerId.Value
+                    || isAdmin)
+            }).ToList();
+        }
 
         ViewData["Title"] = $"{post.Title} — {AuthorDisplayName}";
 

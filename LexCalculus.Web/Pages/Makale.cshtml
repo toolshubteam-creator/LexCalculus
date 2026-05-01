@@ -1,6 +1,10 @@
 @page "/uye/{userSlug}/makale/{postSlug}"
 @model LexCalculus.Web.Pages.MakaleModel
 
+@section Scripts {
+    <script src="~/js/makale-page.js" asp-append-version="true"></script>
+}
+
 <article class="makale">
     @if (Model.IsOwnerPreview)
     {
@@ -63,6 +67,33 @@
             {
                 <span class="makale__views">@Model.Post.ViewCount görüntülenme</span>
             }
+
+            @* Faz 4.9 P2 — beğeni butonu *@
+            @if (Model.Post.IsPublished)
+            {
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <button type="button"
+                            class="makale__like @(Model.IsLikedByViewer ? "makale__like--active" : "")"
+                            data-post-id="@Model.Post.Id"
+                            aria-pressed="@(Model.IsLikedByViewer ? "true" : "false")"
+                            aria-label="Beğen">
+                        <span class="makale__like-icon" aria-hidden="true">@(Model.IsLikedByViewer ? "❤" : "♡")</span>
+                        <span class="makale__like-count" data-like-count>@Model.LikeCount</span>
+                        <span class="makale__like-label">beğeni</span>
+                    </button>
+                }
+                else
+                {
+                    <a href="/Identity/Account/Login?ReturnUrl=@Uri.EscapeDataString($"/uye/{Model.AuthorSlug}/makale/{Model.Post.Slug}")"
+                       class="makale__like makale__like--anon"
+                       aria-label="Beğenmek için giriş yapın">
+                        <span class="makale__like-icon" aria-hidden="true">♡</span>
+                        <span class="makale__like-count">@Model.LikeCount</span>
+                        <span class="makale__like-label">beğeni</span>
+                    </a>
+                }
+            }
         </div>
     </header>
 
@@ -86,6 +117,57 @@
         değerlendirmesidir. Hukuki tavsiye niteliği taşımaz. Spesifik durumunuz
         için lütfen yetkili bir hukuk profesyoneline danışınız.
     </aside>
+
+    @* Faz 4.9 P2 — Yorum bölümü *@
+    @if (Model.Post.IsPublished)
+    {
+        <section class="yorumlar" id="yorumlar">
+            <h2 class="yorumlar__title">
+                Yorumlar <span class="yorumlar__count">@Model.CommentCount</span>
+            </h2>
+
+            @if (Model.ViewerCanComment)
+            {
+                <form id="yorum-form" class="yorum-form" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="postId" value="@Model.Post.Id" />
+                    <textarea name="body" maxlength="1000"
+                              placeholder="Yorumunuzu yazın..."
+                              class="yorum-form__textarea"
+                              rows="4"
+                              aria-label="Yorum içeriği"></textarea>
+                    <div class="yorum-form__footer">
+                        <span class="yorum-form__counter" data-counter>0 / 1000</span>
+                        <button type="submit" class="btn btn--primary">Yorumu Gönder</button>
+                    </div>
+                    <div class="yorum-form__error" data-error hidden role="alert"></div>
+                </form>
+            }
+            else if (User.Identity?.IsAuthenticated != true)
+            {
+                <p class="yorum-form__login">
+                    Yorum yapmak için
+                    <a href="/Identity/Account/Login?ReturnUrl=@Uri.EscapeDataString($"/uye/{Model.AuthorSlug}/makale/{Model.Post.Slug}")">giriş yapın</a>.
+                </p>
+            }
+
+            @if (Model.Comments.Count > 0)
+            {
+                <ul class="yorum-list" id="yorum-list">
+                    @foreach (var comment in Model.Comments)
+                    {
+                        <partial name="_PostComment" model="comment" />
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="yorumlar__empty" id="yorum-list-empty">
+                    Henüz yorum yok. İlk yorumu siz yapın.
+                </p>
+            }
+        </section>
+    }
 
     @if (!string.IsNullOrEmpty(Model.AuthorSlug))
     {

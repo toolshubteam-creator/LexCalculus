@@ -329,6 +329,70 @@ public class MakalePageTests : IClassFixture<TestAuthWebApplicationFactory>
     }
 
     [Fact]
+    public async Task OnGet_PublishedPost_RendersCommentSection()
+    {
+        var (u, _) = await SeedAuthorAsync("mak-cs@example.com", "CS Author", "mak-cs-1");
+        var catId = await EnsureCategoryAsync();
+        try
+        {
+            await SeedPostAsync(u.Id, catId, "CS Test", "cs-1", isPublished: true);
+
+            using var client = CreateAnonClient();
+            var body = await (await client.GetAsync("/uye/mak-cs-1/makale/cs-1")).Content.ReadAsStringAsync();
+            body.Should().Contain("yorumlar", "Yorumlar bölümü id");
+            body.Should().Contain("yorumlar__title");
+            body.Should().Contain("Henüz yorum yok");
+        }
+        finally
+        {
+            await CleanupAsync(u.Email!, "mak-cs-1");
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_AnonymousViewer_ShowsLoginLinkInsteadOfCommentForm()
+    {
+        var (u, _) = await SeedAuthorAsync("mak-anon@example.com", "Anon Author", "mak-anon-1");
+        var catId = await EnsureCategoryAsync();
+        try
+        {
+            await SeedPostAsync(u.Id, catId, "Anon Test", "anon-1", isPublished: true);
+
+            using var client = CreateAnonClient();
+            var body = await (await client.GetAsync("/uye/mak-anon-1/makale/anon-1")).Content.ReadAsStringAsync();
+
+            body.Should().Contain("yorum-form__login");
+            body.Should().NotContain("id=\"yorum-form\"", "anonim form göstermez");
+        }
+        finally
+        {
+            await CleanupAsync(u.Email!, "mak-anon-1");
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_AuthenticatedViewer_ShowsCommentForm()
+    {
+        var (author, _) = await SeedAuthorAsync("mak-auth@example.com", "Auth Author", "mak-auth-1");
+        var catId = await EnsureCategoryAsync();
+        try
+        {
+            await SeedPostAsync(author.Id, catId, "Auth Test", "auth-1", isPublished: true);
+
+            using var client = CreateAuthClient(author.Id, author.Email!);
+            var body = await (await client.GetAsync("/uye/mak-auth-1/makale/auth-1")).Content.ReadAsStringAsync();
+
+            body.Should().Contain("id=\"yorum-form\"");
+            body.Should().Contain("Yorumu Gönder");
+            body.Should().Contain("makale__like", "beğeni butonu authenticated");
+        }
+        finally
+        {
+            await CleanupAsync(author.Email!, "mak-auth-1");
+        }
+    }
+
+    [Fact]
     public async Task OnGet_PublishedPost_RendersDisclaimerAndAuthorFooter()
     {
         var (u, _) = await SeedAuthorAsync("mak-disc@example.com", "Disclaimer Author", "mak-d-1");

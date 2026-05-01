@@ -295,6 +295,11 @@ try
     builder.Services.AddScoped<IPostCommentService, PostCommentService>();
     builder.Services.AddScoped<IPostLikeService, PostLikeService>();
 
+    // Faz 4.9 P2 — AJAX endpoint'lerin Razor partial render etmesi için
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<LexCalculus.Web.Infrastructure.Rendering.IPartialRenderer,
+        LexCalculus.Web.Infrastructure.Rendering.PartialRenderer>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {
