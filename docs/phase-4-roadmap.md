@@ -7,24 +7,25 @@
 
 ## Durum
 
-⏳ Faz 4 başladı — 0/14 adım tamamlandı
+🟢 **Dalga A tamamlandı (1 Mayıs 2026)** — 4/14 adım. Tag: `phase-4-wave-a-complete`.
+Dalga B (UGC) sıraya alındı.
 
 ## Dalga Yapısı
 
-| Dalga | Konu | Adım Aralığı | Süre |
-|---|---|---|---|
-| A | Profil + Bağlantı + Engelleme + Notification | 4.1 - 4.4 | ~3 hafta |
-| B | UGC: Makale + Yorum + Beğeni + Şikayet + Moderasyon | 4.5 - 4.11 | ~6 hafta |
-| C | Mesajlaşma: SignalR + Conversation + Messages | 4.12 - 4.14 | ~3 hafta |
+| Dalga | Konu | Adım Aralığı | Süre (tahmin → gerçek) | Durum |
+|---|---|---|---|---|
+| A | Profil + Bağlantı + Engelleme + Notification | 4.1 - 4.4 | ~3 hafta → ~1 gün | ✅ |
+| B | UGC: Makale + Yorum + Beğeni + Şikayet + Moderasyon | 4.5 - 4.11 | ~6 hafta | ⏳ |
+| C | Mesajlaşma: SignalR + Conversation + Messages | 4.12 - 4.14 | ~3 hafta | ⏳ |
 
 ## Adımlar
 
 | Adım | Konu | Durum |
 |---|---|---|
-| 4.1  | Public profile UI binding | ⏳ |
-| 4.2  | UserConnections altyapısı | ⏳ |
-| 4.3  | UserBlock + Notification genişletme | ⏳ |
-| 4.4  | Dalga A closeout | ⏳ |
+| 4.1  | Public profile UI binding | ✅ |
+| 4.2  | UserConnections altyapısı (P1+P2+P3a+P3b) | ✅ |
+| 4.3  | UserBlock + Notification genişletme | ✅ |
+| 4.4  | Dalga A closeout | ✅ (4.3 ile birleştirildi) |
 | 4.5  | PostCategory + PostTag altyapısı | ⏳ |
 | 4.6  | UserPost entity + temel CRUD + editör | ⏳ |
 | 4.7  | Public makale görüntüleme + SEO | ⏳ |

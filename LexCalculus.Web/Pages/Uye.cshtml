@@ -48,6 +48,21 @@
         {
             <a href="/profil" class="btn btn--ghost">Profilinizi Düzenle</a>
         }
+        else if (Model.IsBlockedByMe)
+        {
+            @* Faz 4.3 — engelleyen perspektifi *@
+            <span class="uye-profil__connection-status uye-profil__connection-status--blocked">
+                Bu kullanıcıyı engellediniz
+            </span>
+            <form method="post" asp-page-handler="Unblock" class="uye-profil__action-form">
+                <button type="submit" class="btn btn--ghost">Engellemeyi Kaldır</button>
+            </form>
+        }
+        else if (Model.BlockedByOther)
+        {
+            @* Faz 4.3 — engellenen perspektifi: sessiz pattern (Karar 4).
+               Hiçbir CTA gösterme — engellenen sessizce fark eder. *@
+        }
         else if (Model.ConnectionState is { } state)
         {
             switch (state.State)
@@ -110,6 +125,15 @@
                     }
                     break;
             }
+
+            @* Faz 4.3 — Engelle butonu (BlockedByMe/BlockedByOther dışındaki tüm
+               state'lerde görünür). Mevcut bağlantı varsa cascade ile silinir. *@
+            <form method="post" asp-page-handler="Block" class="uye-profil__action-form">
+                <button type="submit" class="btn btn--danger"
+                        onclick="return confirm('Bu kullanıcıyı engellemek istediğinizden emin misiniz? Mevcut bağlantınız varsa kaldırılacak.')">
+                    Engelle
+                </button>
+            </form>
         }
     </div>
 

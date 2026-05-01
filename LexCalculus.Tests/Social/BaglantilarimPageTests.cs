@@ -81,6 +81,11 @@ public class BaglantilarimPageTests : IClassFixture<TestAuthWebApplicationFactor
             .ToListAsync();
         ctx.UserConnections.RemoveRange(conns);
 
+        var blocks = await ctx.UserBlocks
+            .Where(b => b.BlockerId == u.Id || b.BlockedId == u.Id)
+            .ToListAsync();
+        ctx.UserBlocks.RemoveRange(blocks);
+
         var profile = await ctx.UserProfiles.IgnoreQueryFilters()
             .FirstOrDefaultAsync(p => p.UserId == u.Id);
         if (profile is not null) ctx.UserProfiles.Remove(profile);
@@ -292,6 +297,94 @@ public class BaglantilarimPageTests : IClassFixture<TestAuthWebApplicationFactor
             var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var exists = await ctx.UserConnections.AnyAsync(c => c.Id == connId);
             exists.Should().BeFalse("Remove hard delete olmalı");
+        }
+        finally
+        {
+            await CleanupUserAsync(u1.Email!);
+            await CleanupUserAsync(u2.Email!);
+        }
+    }
+
+    // Faz 4.3 — Engellenenler sekmesi + Unblock handler
+
+    private async Task SeedBlockAsync(int blockerId, int blockedId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        ctx.UserBlocks.Add(new UserBlock
+        {
+            BlockerId = blockerId, BlockedId = blockedId,
+            CreatedAt = DateTime.UtcNow
+        });
+        await ctx.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task OnGet_EngellenenlerTab_ListsBlockedUsers()
+    {
+        var u1 = await SeedUserAsync("bag-eng-1@example.com", "Engelleyen");
+        var u2 = await SeedUserAsync("bag-eng-2@example.com", "Engellenen");
+        try
+        {
+            await SeedBlockAsync(u1.Id, u2.Id);
+
+            using var client = CreateAuthClient(u1.Id, u1.Email!);
+            var response = await client.GetAsync("/baglantilarim?tab=engellenenler");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("Engellenenler");
+            body.Should().Contain("Engellenen", "kart'ta engellenen kullanıcı görünmeli");
+            body.Should().Contain("Engellemeyi Kald", "Unblock butonu");
+            body.Should().Contain("baglantilarim__tab--active",
+                "engellenenler tab aktif");
+        }
+        finally
+        {
+            await CleanupUserAsync(u1.Email!);
+            await CleanupUserAsync(u2.Email!);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_EngellenenlerTab_NoBlocks_ShowsEmptyMessage()
+    {
+        var u1 = await SeedUserAsync("bag-eng-empty@example.com", "Hic Engellemedi");
+        try
+        {
+            using var client = CreateAuthClient(u1.Id, u1.Email!);
+            var response = await client.GetAsync("/baglantilarim?tab=engellenenler");
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("Engellediğiniz");
+        }
+        finally
+        {
+            await CleanupUserAsync(u1.Email!);
+        }
+    }
+
+    [Fact]
+    public async Task OnPostUnblock_Valid_RemovesBlockAndRedirects()
+    {
+        var u1 = await SeedUserAsync("bag-unblock-1@example.com", "Engelleyen");
+        var u2 = await SeedUserAsync("bag-unblock-2@example.com", "Engellenen");
+        try
+        {
+            await SeedBlockAsync(u1.Id, u2.Id);
+
+            using var client = CreateAuthClient(u1.Id, u1.Email!, allowAutoRedirect: false);
+            var token = await GetAntiforgeryTokenAsync(client, "/baglantilarim?tab=engellenenler");
+            var form = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("__RequestVerificationToken", token),
+                new KeyValuePair<string, string>("blockedUserId", u2.Id.ToString())
+            });
+            var response = await client.PostAsync("/baglantilarim?handler=Unblock", form);
+            ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect);
+
+            using var scope = _factory.Services.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await ctx.UserBlocks.AnyAsync(b => b.BlockerId == u1.Id && b.BlockedId == u2.Id))
+                .Should().BeFalse();
         }
         finally
         {

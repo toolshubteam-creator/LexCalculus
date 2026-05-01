@@ -29,6 +29,7 @@ public sealed class UyeModel : PageModel
     private readonly ApplicationDbContext _ctx;
     private readonly IMediaStorage _storage;
     private readonly IConnectionService _connections;
+    private readonly IUserBlockService _blocks;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SeoSettings _seo;
 
@@ -36,12 +37,14 @@ public sealed class UyeModel : PageModel
         ApplicationDbContext ctx,
         IMediaStorage storage,
         IConnectionService connections,
+        IUserBlockService blocks,
         UserManager<ApplicationUser> userManager,
         IOptions<SeoSettings> seoOptions)
     {
         _ctx = ctx;
         _storage = storage;
         _connections = connections;
+        _blocks = blocks;
         _userManager = userManager;
         _seo = seoOptions.Value ?? new SeoSettings();
     }
@@ -65,6 +68,10 @@ public sealed class UyeModel : PageModel
 
     // Faz 4.2 P3b/3 — bağlantı listesi görünürlüğü (sayı link mi?)
     public bool ShowConnections { get; private set; }
+
+    // Faz 4.3 — engelleme state'leri
+    public bool IsBlockedByMe { get; private set; }
+    public bool BlockedByOther { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, CancellationToken ct = default)
     {
@@ -115,20 +122,27 @@ public sealed class UyeModel : PageModel
 
             if (!IsOwnProfile)
             {
-                ConnectionState = await _connections.GetConnectionStateAsync(viewerId, profile.UserId, ct);
+                IsBlockedByMe = await _blocks.IsBlockedAsync(viewerId, profile.UserId, ct);
+                BlockedByOther = await _blocks.IsBlockedAsync(profile.UserId, viewerId, ct);
 
-                if (ConnectionState.State is UserConnectionState.PendingSent
-                                          or UserConnectionState.PendingReceived
-                                          or UserConnectionState.Accepted)
+                // Engelleme yoksa connection state hesapla.
+                if (!IsBlockedByMe && !BlockedByOther)
                 {
-                    ConnectionId = await _ctx.UserConnections
-                        .Where(c => ((c.RequesterId == viewerId && c.TargetId == profile.UserId)
-                                  || (c.RequesterId == profile.UserId && c.TargetId == viewerId))
-                                 && (c.Status == UserConnectionStatus.Pending
-                                  || c.Status == UserConnectionStatus.Accepted))
-                        .OrderByDescending(c => c.CreatedAt)
-                        .Select(c => (int?)c.Id)
-                        .FirstOrDefaultAsync(ct);
+                    ConnectionState = await _connections.GetConnectionStateAsync(viewerId, profile.UserId, ct);
+
+                    if (ConnectionState.State is UserConnectionState.PendingSent
+                                              or UserConnectionState.PendingReceived
+                                              or UserConnectionState.Accepted)
+                    {
+                        ConnectionId = await _ctx.UserConnections
+                            .Where(c => ((c.RequesterId == viewerId && c.TargetId == profile.UserId)
+                                      || (c.RequesterId == profile.UserId && c.TargetId == viewerId))
+                                     && (c.Status == UserConnectionStatus.Pending
+                                      || c.Status == UserConnectionStatus.Accepted))
+                            .OrderByDescending(c => c.CreatedAt)
+                            .Select(c => (int?)c.Id)
+                            .FirstOrDefaultAsync(ct);
+                    }
                 }
             }
         }
@@ -260,6 +274,44 @@ public sealed class UyeModel : PageModel
         if (!TryGetViewerId(out var viewerId)) return Challenge();
         var result = await _connections.RemoveAsync(connectionId, viewerId, ct);
         SetMessage(result, success: "Bağlantı kaldırıldı.");
+        return RedirectToPage(new { slug });
+    }
+
+    // Faz 4.3 — engelleme handler'ları (cascade Accepted bağlantı silme)
+
+    public async Task<IActionResult> OnPostBlockAsync(string slug, CancellationToken ct = default)
+    {
+        if (!TryGetViewerId(out var viewerId)) return Challenge();
+
+        var targetUserId = await _ctx.UserProfiles
+            .Where(p => p.PublicSlug == slug)
+            .Select(p => (int?)p.UserId)
+            .FirstOrDefaultAsync(ct);
+        if (targetUserId is null) return NotFound();
+
+        var result = await _blocks.BlockAsync(viewerId, targetUserId.Value, ct);
+        if (result.Success)
+            TempData["Success"] = "Kullanıcı engellendi.";
+        else
+            TempData["Error"] = result.ErrorMessage ?? "İşlem başarısız oldu.";
+        return RedirectToPage(new { slug });
+    }
+
+    public async Task<IActionResult> OnPostUnblockAsync(string slug, CancellationToken ct = default)
+    {
+        if (!TryGetViewerId(out var viewerId)) return Challenge();
+
+        var targetUserId = await _ctx.UserProfiles
+            .Where(p => p.PublicSlug == slug)
+            .Select(p => (int?)p.UserId)
+            .FirstOrDefaultAsync(ct);
+        if (targetUserId is null) return NotFound();
+
+        var result = await _blocks.UnblockAsync(viewerId, targetUserId.Value, ct);
+        if (result.Success)
+            TempData["Success"] = "Engelleme kaldırıldı.";
+        else
+            TempData["Error"] = result.ErrorMessage ?? "İşlem başarısız oldu.";
         return RedirectToPage(new { slug });
     }
 

@@ -70,6 +70,11 @@ public class UyeBaglantilarPageTests : IClassFixture<TestAuthWebApplicationFacto
                 .ToListAsync();
             ctx.UserConnections.RemoveRange(conns);
 
+            var blocks = await ctx.UserBlocks
+                .Where(b => b.BlockerId == byEmail.Id || b.BlockedId == byEmail.Id)
+                .ToListAsync();
+            ctx.UserBlocks.RemoveRange(blocks);
+
             var profile = await ctx.UserProfiles.IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.UserId == byEmail.Id);
             if (profile is not null) ctx.UserProfiles.Remove(profile);

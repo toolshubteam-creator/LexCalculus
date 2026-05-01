@@ -32,10 +32,75 @@
            class="baglantilarim__tab@(Model.ActiveTab == "gonderdiklerim" ? " baglantilarim__tab--active" : "")">
             Gönderdiklerim <span class="baglantilarim__tab-count">@Model.SentCount</span>
         </a>
+        <a href="?tab=engellenenler"
+           class="baglantilarim__tab@(Model.ActiveTab == "engellenenler" ? " baglantilarim__tab--active" : "")">
+            Engellenenler <span class="baglantilarim__tab-count">@Model.BlockedCount</span>
+        </a>
     </nav>
 
     <div class="baglantilarim__content">
-        @if (Model.Connections.Count == 0)
+        @if (Model.ActiveTab == "engellenenler")
+        {
+            @* Faz 4.3 — Engellenenler sekmesi *@
+            @if (Model.BlockedUsers.Count == 0)
+            {
+                <p class="baglantilarim__empty">Engellediğiniz bir kullanıcı yok.</p>
+            }
+            else
+            {
+                <ul class="kullanici-kart-list">
+                    @foreach (var block in Model.BlockedUsers)
+                    {
+                        var blocked = block.Blocked;
+                        var avatarUrl = Model.GetAvatarUrl(blocked);
+                        var displayName = !string.IsNullOrWhiteSpace(blocked.Profile?.DisplayName)
+                            ? blocked.Profile!.DisplayName
+                            : (blocked.UserName ?? "Kullanıcı");
+                        var slug = blocked.Profile?.PublicSlug;
+
+                        <li class="kullanici-kart">
+                            <div class="kullanici-kart__avatar-wrap">
+                                @if (!string.IsNullOrEmpty(avatarUrl))
+                                {
+                                    <img src="@avatarUrl" alt="@displayName" class="kullanici-kart__avatar" />
+                                }
+                                else
+                                {
+                                    <div class="kullanici-kart__avatar kullanici-kart__avatar--placeholder"
+                                         aria-label="@displayName">
+                                        @(displayName.Length > 0
+                                            ? displayName.Substring(0, 1).ToUpperInvariant()
+                                            : "?")
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="kullanici-kart__info">
+                                @if (!string.IsNullOrEmpty(slug))
+                                {
+                                    <a href="/uye/@slug" class="kullanici-kart__name">@displayName</a>
+                                }
+                                else
+                                {
+                                    <span class="kullanici-kart__name">@displayName</span>
+                                }
+                                <span class="kullanici-kart__date">
+                                    Engellendi: @block.CreatedAt.ToLocalTime().ToString("d MMMM yyyy")
+                                </span>
+                            </div>
+
+                            <div class="kullanici-kart__actions">
+                                <form method="post" asp-page-handler="Unblock" class="kullanici-kart__action-form">
+                                    <input type="hidden" name="blockedUserId" value="@blocked.Id" />
+                                    <button type="submit" class="btn btn--ghost">Engellemeyi Kaldır</button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+        else if (Model.Connections.Count == 0)
         {
             <p class="baglantilarim__empty">
                 @switch (Model.ActiveTab)

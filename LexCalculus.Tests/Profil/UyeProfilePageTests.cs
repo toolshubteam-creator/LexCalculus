@@ -100,6 +100,11 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
                 .ToListAsync();
             ctx.UserConnections.RemoveRange(conns);
 
+            var blocks = await ctx.UserBlocks
+                .Where(b => b.BlockerId == byEmail.Id || b.BlockedId == byEmail.Id)
+                .ToListAsync();
+            ctx.UserBlocks.RemoveRange(blocks);
+
             var profile = await ctx.UserProfiles.IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.UserId == byEmail.Id);
             if (profile is not null) ctx.UserProfiles.Remove(profile);
@@ -552,6 +557,113 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
         }
     }
 
+    // Faz 4.3 — engelleme entegrasyonu
+
+    [Fact]
+    public async Task OnGet_BlockedByMe_RendersUnblockButton()
+    {
+        var viewer = await CreateUserAsync("uye-bm-viewer@example.com", "Viewer");
+        var slug = "uye-bm-target";
+        var (target, _) = await SeedAsync("uye-bm-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var blockSvc = new LexCalculus.Infrastructure.Services.UserBlockService(
+                    scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(),
+                    new LexCalculus.Tests.TestHelpers.NullActivityLogService());
+                await blockSvc.BlockAsync(viewer.Id, target.Id);
+            }
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("Bu kullan", "BlockedByMe mesajı");
+            body.Should().Contain("Engellemeyi Kald", "Unblock butonu");
+            body.Should().NotContain("Bağlantı İste", "Connect butonu engellemede gizli");
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_BlockedByOther_RendersSilentInteraction()
+    {
+        var viewer = await CreateUserAsync("uye-bo-viewer@example.com", "Viewer");
+        var slug = "uye-bo-target";
+        var (target, _) = await SeedAsync("uye-bo-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            // target → viewer engelliyor; viewer profili ziyaret ediyor
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var blockSvc = new LexCalculus.Infrastructure.Services.UserBlockService(
+                    scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(),
+                    new LexCalculus.Tests.TestHelpers.NullActivityLogService());
+                await blockSvc.BlockAsync(target.Id, viewer.Id);
+            }
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK,
+                "engelleme görünürlüğü etkilemez, sayfa açılır");
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().NotContain("Bağlantı İste",
+                "BlockedByOther: Connect butonu YOK (sessiz pattern)");
+            body.Should().NotContain("Engelle",
+                "BlockedByOther: Engelle butonu YOK");
+            body.Should().NotContain("engelled",
+                "BlockedByOther: 'engellediniz' mesajı da YOK (sessiz)");
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnPostBlock_Valid_CreatesBlockAndRemovesAcceptedConnection()
+    {
+        var viewer = await CreateUserAsync("uye-pb-viewer@example.com", "Viewer");
+        var slug = "uye-pb-target";
+        var (target, _) = await SeedAsync("uye-pb-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            await SeedConnectionAsync(viewer.Id, target.Id,
+                LexCalculus.Core.Entities.Social.UserConnectionStatus.Accepted);
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!, allowAutoRedirect: false);
+            var token = await GetAntiforgeryTokenAsync(client, $"/uye/{slug}");
+            var form = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("__RequestVerificationToken", token)
+            });
+            var response = await client.PostAsync($"/uye/{slug}?handler=Block", form);
+            ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect);
+
+            using var scope = _factory.Services.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            (await ctx.UserBlocks.AnyAsync(b => b.BlockerId == viewer.Id && b.BlockedId == target.Id))
+                .Should().BeTrue();
+            (await ctx.UserConnections.AnyAsync(c =>
+                (c.RequesterId == viewer.Id && c.TargetId == target.Id)
+                || (c.RequesterId == target.Id && c.TargetId == viewer.Id)))
+                .Should().BeFalse("cascade ile bağlantı silindi");
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
     [Fact]
     public async Task OnPostConnect_ValidTarget_CreatesPendingAndRedirects()
     {
@@ -657,6 +769,9 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
         var conns = await ctx.UserConnections
             .Where(c => c.RequesterId == u.Id || c.TargetId == u.Id).ToListAsync();
         ctx.UserConnections.RemoveRange(conns);
+        var blocks = await ctx.UserBlocks
+            .Where(b => b.BlockerId == u.Id || b.BlockedId == u.Id).ToListAsync();
+        ctx.UserBlocks.RemoveRange(blocks);
         var p = await ctx.UserProfiles.IgnoreQueryFilters()
             .FirstOrDefaultAsync(p => p.UserId == u.Id);
         if (p is not null) ctx.UserProfiles.Remove(p);

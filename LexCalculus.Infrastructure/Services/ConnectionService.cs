@@ -19,17 +19,20 @@ public sealed class ConnectionService : IConnectionService
     private readonly ApplicationDbContext _ctx;
     private readonly IActivityLogService _activityLog;
     private readonly INotificationService _notifications;
+    private readonly IUserBlockService _userBlocks;
     private readonly ILogger<ConnectionService>? _logger;
 
     public ConnectionService(
         ApplicationDbContext ctx,
         IActivityLogService activityLog,
         INotificationService notifications,
+        IUserBlockService userBlocks,
         ILogger<ConnectionService>? logger = null)
     {
         _ctx = ctx;
         _activityLog = activityLog;
         _notifications = notifications;
+        _userBlocks = userBlocks;
         _logger = logger;
     }
 
@@ -38,6 +41,11 @@ public sealed class ConnectionService : IConnectionService
     {
         if (requesterId == targetId)
             return new ConnectionResult(false, "Kendinize bağlantı isteği gönderemezsiniz.", null);
+
+        // Faz 4.3 — engelleme defansif kontrolü (her iki yön).
+        // Generic mesaj: "engelleme" deme (sessiz pattern, charter Karar 4).
+        if (await _userBlocks.IsEitherDirectionBlockedAsync(requesterId, targetId, ct))
+            return new ConnectionResult(false, "Bu kullanıcıyla bağlantı kuramazsınız.", null);
 
         var target = await _ctx.Users.AsAdminQuery()
             .Where(u => u.Id == targetId)

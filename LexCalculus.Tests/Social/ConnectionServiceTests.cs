@@ -16,7 +16,8 @@ public class ConnectionServiceTests
     {
         var ctx = TestDbContextFactory.Create();
         var svc = new ConnectionService(ctx, new NullActivityLogService(),
-            new NullNotificationService());
+            new NullNotificationService(),
+            new UserBlockService(ctx, new NullActivityLogService()));
         return (svc, ctx);
     }
 
@@ -24,7 +25,8 @@ public class ConnectionServiceTests
     {
         var ctx = TestDbContextFactory.Create();
         var notif = new RecordingNotificationService();
-        var svc = new ConnectionService(ctx, new NullActivityLogService(), notif);
+        var svc = new ConnectionService(ctx, new NullActivityLogService(), notif,
+            new UserBlockService(ctx, new NullActivityLogService()));
         return (svc, ctx, notif);
     }
 
@@ -462,13 +464,45 @@ public class ConnectionServiceTests
         // Notification fail durumunda asıl Pending kayıt yine de oluşur (defansif).
         var ctx = TestDbContextFactory.Create();
         var failing = new ThrowingNotificationService();
-        var svc = new ConnectionService(ctx, new NullActivityLogService(), failing);
+        var svc = new ConnectionService(ctx, new NullActivityLogService(), failing,
+            new UserBlockService(ctx, new NullActivityLogService()));
         await SeedUsersAsync(ctx, 1, 2);
 
         var result = await svc.SendAsync(1, 2);
 
         result.Success.Should().BeTrue("notification fail asıl işlemi bozmamalı");
         result.Connection!.Status.Should().Be(UserConnectionStatus.Pending);
+    }
+
+    [Fact]
+    public async Task SendAsync_BlockerToBlocked_ReturnsGenericError()
+    {
+        var (svc, ctx) = Setup();
+        await SeedUsersAsync(ctx, 1, 2);
+        var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
+        await blockSvc.BlockAsync(1, 2);
+
+        var result = await svc.SendAsync(1, 2);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("Bu kullanıcıyla bağlantı kuramazsınız.",
+            "sessiz pattern: 'engelleme' deme");
+    }
+
+    [Fact]
+    public async Task SendAsync_BlockedToBlocker_ReturnsGenericError()
+    {
+        // Karşı yön: 2, 1 tarafından engellenmiş; 2 → 1 bağlantı isteği denerse de
+        // engellenir (mutual check).
+        var (svc, ctx) = Setup();
+        await SeedUsersAsync(ctx, 1, 2);
+        var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
+        await blockSvc.BlockAsync(1, 2);
+
+        var result = await svc.SendAsync(2, 1);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Be("Bu kullanıcıyla bağlantı kuramazsınız.");
     }
 
     private sealed class ThrowingNotificationService : LexCalculus.Core.Notifications.INotificationService

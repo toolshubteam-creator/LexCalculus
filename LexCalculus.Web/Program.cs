@@ -246,6 +246,9 @@ try
     // UserConnection (Faz 4.2 P1/3) — LinkedIn-tarzı bağlantı state machine
     builder.Services.AddScoped<IConnectionService, ConnectionService>();
 
+    // UserBlock (Faz 4.3) — sessiz pattern engelleme + cascade
+    builder.Services.AddScoped<IUserBlockService, UserBlockService>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {

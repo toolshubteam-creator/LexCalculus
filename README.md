@@ -171,6 +171,23 @@ Vizyon ilkeleri:
 - Tenant ↔ sosyal bağımsız
 - Default gizli, opt-in açık
 
+### Dalga A — Tamamlandı (1 Mayıs 2026)
+
+**Tag:** `phase-4-wave-a-complete` · **Süre:** ~1 gün (tahmin 3 hafta)
+
+İçerik:
+- Public profil sayfası (`/uye/{slug}`) + Person JSON-LD + sitemap
+- Avatar yükleme altyapısı (MediaFile + IMediaStorage soyutlaması, ImageSharp 256x256 crop)
+- UserConnections — LinkedIn modeli (Pending/Accepted/Rejected/Cancelled, Remove hard delete, 30-gün cooldown)
+- `/baglantilarim` 4 sekme (Aktif / Bekleyen / Gönderdiklerim / Engellenenler)
+- `/uye/{slug}/baglantilar` public bağlantı listesi (ShowConnections opt-in)
+- UserBlock — sessiz pattern engelleme + cascade Accepted bağlantı silme
+- Notification altyapısı genişletme (`ConnectionRequest` + `ConnectionAccepted`)
+- Test: 396 → 491 (+95)
+- Migration: 4 yeni (PublicProfileFields, MediaFiles, UserConnections, UserBlocks)
+
+Sonraki: Dalga B — UGC (makale + yorum + beğeni + şikayet, ~6 hafta).
+
 ---
 
 LexCalculus, Türk hukukunun karmaşık hesaplamalarını şeffaf ve denetlenebilir kılmak için tasarlandı.

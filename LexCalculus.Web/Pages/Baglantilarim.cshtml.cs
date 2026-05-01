@@ -20,24 +20,29 @@ namespace LexCalculus.Web.Pages;
 public sealed class BaglantilarimModel : PageModel
 {
     private readonly IConnectionService _connections;
+    private readonly IUserBlockService _blocks;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IMediaStorage _storage;
 
     public BaglantilarimModel(
         IConnectionService connections,
+        IUserBlockService blocks,
         UserManager<ApplicationUser> userManager,
         IMediaStorage storage)
     {
         _connections = connections;
+        _blocks = blocks;
         _userManager = userManager;
         _storage = storage;
     }
 
     public string ActiveTab { get; private set; } = "aktif";
     public IReadOnlyList<UserConnection> Connections { get; private set; } = Array.Empty<UserConnection>();
+    public IReadOnlyList<UserBlock> BlockedUsers { get; private set; } = Array.Empty<UserBlock>();
     public int ActiveCount { get; private set; }
     public int PendingCount { get; private set; }
     public int SentCount { get; private set; }
+    public int BlockedCount { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string? tab, CancellationToken ct = default)
     {
@@ -47,6 +52,7 @@ public sealed class BaglantilarimModel : PageModel
         {
             "bekleyen" => "bekleyen",
             "gonderdiklerim" => "gonderdiklerim",
+            "engellenenler" => "engellenenler",
             _ => "aktif"
         };
 
@@ -56,13 +62,21 @@ public sealed class BaglantilarimModel : PageModel
         var sent = await _connections.GetSentByUserAsync(uid, ct);
         PendingCount = pending.Count;
         SentCount = sent.Count;
+        BlockedCount = await _blocks.GetBlockedCountAsync(uid, ct);
 
-        Connections = ActiveTab switch
+        if (ActiveTab == "engellenenler")
         {
-            "bekleyen" => pending,
-            "gonderdiklerim" => sent,
-            _ => await _connections.GetActiveForUserAsync(uid, ct)
-        };
+            BlockedUsers = await _blocks.GetBlockedByUserAsync(uid, ct);
+        }
+        else
+        {
+            Connections = ActiveTab switch
+            {
+                "bekleyen" => pending,
+                "gonderdiklerim" => sent,
+                _ => await _connections.GetActiveForUserAsync(uid, ct)
+            };
+        }
 
         return Page();
     }
@@ -97,6 +111,18 @@ public sealed class BaglantilarimModel : PageModel
         var result = await _connections.RemoveAsync(id, uid, ct);
         SetMessage(result, success: "Bağlantı kaldırıldı.");
         return RedirectToPage(new { tab = "aktif" });
+    }
+
+    // Faz 4.3 — Engellenenler sekmesi unblock handler
+    public async Task<IActionResult> OnPostUnblockAsync(int blockedUserId, CancellationToken ct = default)
+    {
+        if (!TryGetUserId(out var uid)) return Challenge();
+        var result = await _blocks.UnblockAsync(uid, blockedUserId, ct);
+        if (result.Success)
+            TempData["Success"] = "Engelleme kaldırıldı.";
+        else
+            TempData["Error"] = result.ErrorMessage ?? "İşlem başarısız oldu.";
+        return RedirectToPage(new { tab = "engellenenler" });
     }
 
     /// <summary>View'dan çağrılır — bağlantıdaki "öteki" kullanıcıyı döner.</summary>

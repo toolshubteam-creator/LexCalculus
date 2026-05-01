@@ -41,6 +41,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
     public DbSet<UserConnection> UserConnections => Set<UserConnection>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -162,6 +163,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             e.HasIndex(c => new { c.RequesterId, c.TargetId })
              .IsUnique()
              .HasFilter("[Status] = 0");
+        });
+
+        builder.Entity<UserBlock>(e =>
+        {
+            e.HasKey(b => b.Id);
+
+            e.HasOne(b => b.Blocker)
+             .WithMany()
+             .HasForeignKey(b => b.BlockerId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(b => b.Blocked)
+             .WithMany()
+             .HasForeignKey(b => b.BlockedId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(b => b.BlockerId);
+            e.HasIndex(b => b.BlockedId);
+
+            // Aynı yönde tek block (BlockerId → BlockedId) — DB seviyesinde garanti.
+            e.HasIndex(b => new { b.BlockerId, b.BlockedId }).IsUnique();
         });
 
         builder.Entity<ActivityLog>(e =>
