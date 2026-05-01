@@ -93,12 +93,47 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
         if (bySlug is not null) ctx.UserProfiles.Remove(bySlug);
         if (byEmail is not null)
         {
+            var conns = await ctx.UserConnections
+                .Where(c => c.RequesterId == byEmail.Id || c.TargetId == byEmail.Id)
+                .ToListAsync();
+            ctx.UserConnections.RemoveRange(conns);
+
             var profile = await ctx.UserProfiles.IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.UserId == byEmail.Id);
             if (profile is not null) ctx.UserProfiles.Remove(profile);
             ctx.Users.Remove(byEmail);
         }
         await ctx.SaveChangesAsync();
+    }
+
+    private HttpClient CreateAuthClient(int userId, string email, bool allowAutoRedirect = true)
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = allowAutoRedirect
+        });
+        client.DefaultRequestHeaders.Add("X-Test-User", email);
+        client.DefaultRequestHeaders.Add("X-Test-UserId", userId.ToString());
+        return client;
+    }
+
+    private async Task<int> SeedConnectionAsync(int requesterId, int targetId,
+        LexCalculus.Core.Entities.Social.UserConnectionStatus status)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var c = new LexCalculus.Core.Entities.Social.UserConnection
+        {
+            RequesterId = requesterId,
+            TargetId = targetId,
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            RespondedAt = status != LexCalculus.Core.Entities.Social.UserConnectionStatus.Pending
+                ? DateTime.UtcNow : null
+        };
+        ctx.UserConnections.Add(c);
+        await ctx.SaveChangesAsync();
+        return c.Id;
     }
 
     [Fact]
@@ -298,5 +333,290 @@ public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
         {
             await CleanupAsync(user.Email!, slug);
         }
+    }
+
+    // ───────── Faz 4.2 P3a/3 — bağlantı butonu state-aware testler ─────────
+
+    [Fact]
+    public async Task OnGet_AnonymousViewer_RendersLoginCta()
+    {
+        var slug = "uye-anon-cta";
+        var (user, _) = await SeedAsync("uye-anon-cta@example.com", "Anon CTA Test", slug,
+            isPublic: true);
+        try
+        {
+            using var client = CreateAnonClient();
+            client.DefaultRequestHeaders.Remove("X-Test-User");
+            // AllowAutoRedirect default false → 200 OK with anonymous body
+            var response = await _factory.CreateClient(new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false
+            }).GetAsync($"/uye/{slug}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("giriş yap", "anonim viewer için CTA gösterilir");
+            body.Should().Contain("ReturnUrl");
+        }
+        finally
+        {
+            await CleanupAsync(user.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_OwnProfile_RendersEditLink()
+    {
+        var slug = "uye-own-edit";
+        var (user, _) = await SeedAsync("uye-own@example.com", "Own Profile Test", slug,
+            isPublic: true);
+        try
+        {
+            using var client = CreateAuthClient(user.Id, user.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("Profilinizi D", "kendi profilim için edit link");
+            body.Should().NotContain("Bağlantı İste");
+        }
+        finally
+        {
+            await CleanupAsync(user.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_OtherUser_NoneState_RendersConnectButton()
+    {
+        var viewer = await CreateUserAsync("uye-c-viewer@example.com", "Viewer");
+        var slug = "uye-c-target";
+        var (target, _) = await SeedAsync("uye-c-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("Bağlantı İste");
+            body.Should().Contain("handler=Connect", "POST handler form attr");
+        }
+        finally
+        {
+            await CleanupAsync(viewer.Email!, $"slug-{viewer.Id}");
+            // viewer'ın slug'ı bilinmediği için hem mail hem (best effort) slug temizliği
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var stale = await ctx.Users.FirstOrDefaultAsync(u => u.Email == viewer.Email);
+                if (stale is not null)
+                {
+                    var p = await ctx.UserProfiles.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.UserId == stale.Id);
+                    if (p is not null) ctx.UserProfiles.Remove(p);
+                    ctx.Users.Remove(stale);
+                    await ctx.SaveChangesAsync();
+                }
+            }
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_OtherUser_PendingSent_RendersCancelWithConnectionId()
+    {
+        var viewer = await CreateUserAsync("uye-ps-viewer@example.com", "Viewer");
+        var slug = "uye-ps-target";
+        var (target, _) = await SeedAsync("uye-ps-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            var connId = await SeedConnectionAsync(viewer.Id, target.Id,
+                LexCalculus.Core.Entities.Social.UserConnectionStatus.Pending);
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("İstek g", "PendingSent status mesajı");
+            body.Should().Contain("İptal Et");
+            body.Should().Contain($"value=\"{connId}\"", "ConnectionId hidden input'ta");
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_OtherUser_Accepted_ShowsConnectionCount()
+    {
+        var viewer = await CreateUserAsync("uye-ac-viewer@example.com", "Viewer");
+        var slug = "uye-ac-target";
+        var (target, _) = await SeedAsync("uye-ac-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            await SeedConnectionAsync(viewer.Id, target.Id,
+                LexCalculus.Core.Entities.Social.UserConnectionStatus.Accepted);
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            var response = await client.GetAsync($"/uye/{slug}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("Bağl", "Accepted state mesajı");
+            body.Should().Contain("Bağlantıyı Kald", "Remove butonu");
+            body.Should().Contain("uye-profil__connection-count", "sayı bloğu render");
+            body.Should().Contain(">1<", "1 bağlantı sayısı");
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_PrivateProfile_DoesNotRenderConnectionCount()
+    {
+        var slug = "uye-private-no-count";
+        var (target, _) = await SeedAsync("uye-pc@example.com", "Private Count", slug,
+            isPublic: false);
+        try
+        {
+            using var client = CreateAnonClient();
+            var response = await client.GetAsync($"/uye/{slug}");
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().NotContain("uye-profil__connection-count",
+                "private profile'da bağlantı sayısı gösterilmez (Karar 5)");
+        }
+        finally
+        {
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnPostConnect_ValidTarget_CreatesPendingAndRedirects()
+    {
+        var viewer = await CreateUserAsync("uye-pc-viewer@example.com", "Viewer");
+        var slug = "uye-pc-target";
+        var (target, _) = await SeedAsync("uye-pc-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!, allowAutoRedirect: false);
+            var token = await GetAntiforgeryTokenAsync(client, $"/uye/{slug}");
+
+            var form = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("__RequestVerificationToken", token)
+            });
+            var response = await client.PostAsync($"/uye/{slug}?handler=Connect", form);
+            ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect);
+
+            using var scope = _factory.Services.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var conn = await ctx.UserConnections.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.RequesterId == viewer.Id && c.TargetId == target.Id);
+            conn.Should().NotBeNull();
+            conn!.Status.Should().Be(LexCalculus.Core.Entities.Social.UserConnectionStatus.Pending);
+        }
+        finally
+        {
+            await CleanupRawUserAsync(viewer.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    [Fact]
+    public async Task OnPostAccept_PendingReceived_SetsAcceptedInDb()
+    {
+        var sender = await CreateUserAsync("uye-ap-sender@example.com", "Sender");
+        var slug = "uye-ap-target";
+        var (target, _) = await SeedAsync("uye-ap-target@example.com", "Target", slug,
+            isPublic: true);
+        try
+        {
+            var connId = await SeedConnectionAsync(sender.Id, target.Id,
+                LexCalculus.Core.Entities.Social.UserConnectionStatus.Pending);
+
+            using var client = CreateAuthClient(target.Id, target.Email!, allowAutoRedirect: false);
+            var token = await GetAntiforgeryTokenAsync(client, "/profil");
+
+            var form = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("__RequestVerificationToken", token),
+                new KeyValuePair<string, string>("connectionId", connId.ToString())
+            });
+            var response = await client.PostAsync($"/uye/{slug}?handler=Accept", form);
+            ((int)response.StatusCode).Should().Be((int)HttpStatusCode.Redirect);
+
+            using var scope = _factory.Services.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var conn = await ctx.UserConnections.AsNoTracking().FirstAsync(c => c.Id == connId);
+            conn.Status.Should().Be(LexCalculus.Core.Entities.Social.UserConnectionStatus.Accepted);
+        }
+        finally
+        {
+            await CleanupRawUserAsync(sender.Email!);
+            await CleanupAsync(target.Email!, slug);
+        }
+    }
+
+    // ─── helpers ──────────────────────────────────────────────────────────
+
+    private async Task<ApplicationUser> CreateUserAsync(string email, string fullName)
+    {
+        await CleanupRawUserAsync(email);
+        using var scope = _factory.Services.CreateScope();
+        var um = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = new ApplicationUser
+        {
+            UserName = email, Email = email, FullName = fullName,
+            CreatedAt = DateTime.UtcNow, IsActive = true, EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        var r = await um.CreateAsync(user, "ValidPass123!");
+        r.Succeeded.Should().BeTrue();
+        // Profile lazy create — /profil OnGet bunu yapacak; testte direkt ekleyelim
+        // (PublicSlug null kalsın ki sadece /baglantilarim'a girince oluşacağı tipik
+        //  davranışı simüle edelim).
+        ctx.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id, DisplayName = fullName,
+            PublicSlug = $"viewer-{Guid.NewGuid():N}".Substring(0, 20)
+        });
+        await ctx.SaveChangesAsync();
+        return user;
+    }
+
+    private async Task CleanupRawUserAsync(string email)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var u = await ctx.Users.FirstOrDefaultAsync(x => x.Email == email);
+        if (u is null) return;
+        var conns = await ctx.UserConnections
+            .Where(c => c.RequesterId == u.Id || c.TargetId == u.Id).ToListAsync();
+        ctx.UserConnections.RemoveRange(conns);
+        var p = await ctx.UserProfiles.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.UserId == u.Id);
+        if (p is not null) ctx.UserProfiles.Remove(p);
+        var roles = ctx.UserRoles.Where(ur => ur.UserId == u.Id);
+        ctx.UserRoles.RemoveRange(roles);
+        ctx.Users.Remove(u);
+        await ctx.SaveChangesAsync();
+    }
+
+    private static async Task<string> GetAntiforgeryTokenAsync(HttpClient client, string url)
+    {
+        var html = await client.GetStringAsync(url);
+        var match = System.Text.RegularExpressions.Regex.Match(html,
+            "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"");
+        if (!match.Success)
+            throw new InvalidOperationException($"Antiforgery token not found at {url}");
+        return match.Groups[1].Value;
     }
 }

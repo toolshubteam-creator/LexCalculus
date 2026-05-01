@@ -63,8 +63,7 @@
                         ? other.Profile.DisplayName
                         : (other.UserName ?? "Kullanıcı");
                     var slug = other.Profile?.PublicSlug;
-                    var meslek = LexCalculus.Web.Pages.BaglantilarimModel.FormatMeslek(
-                        other.Profile?.MeslekTuru, other.Profile?.MeslekTuruDiger);
+                    var meslek = other.Profile?.MeslekTuru.ToTurkish(other.Profile?.MeslekTuruDiger);
 
                     <li class="kullanici-kart">
                         <div class="kullanici-kart__avatar-wrap">

@@ -95,3 +95,61 @@
   color: var(--ink);
   margin: 0;
 }
+
+/* Faz 4.2 P3a/3 — bağlantı butonu state-aware bölüm */
+.uye-profil__interaction {
+  margin: var(--sp-5) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.uye-profil__action-form {
+  display: inline;
+  margin: 0;
+}
+
+.uye-profil__connection-status {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  color: var(--muted);
+}
+
+.uye-profil__connection-status--accepted {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.uye-profil__connection-status--cooldown {
+  color: var(--muted);
+  font-style: italic;
+  width: 100%;
+  margin: 0;
+}
+
+.uye-profil__connection-count {
+  margin: var(--sp-4) 0;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--parchment);
+  border: 1px solid var(--gold-pale);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.uye-profil__connection-count-number {
+  font-family: var(--font-heading);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.uye-profil__connection-count-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  color: var(--muted);
+}

@@ -26,6 +26,101 @@
         }
     </header>
 
+    @* Faz 4.2 P3a/3 — bağlantı butonu state-aware *@
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div class="form-section__message form-section__message--success" role="status">@successMsg</div>
+    }
+    @if (TempData["Error"] is string errorMsg)
+    {
+        <div class="form-section__message form-section__message--error" role="alert">@errorMsg</div>
+    }
+
+    <div class="uye-profil__interaction">
+        @if (Model.IsViewerAnonymous)
+        {
+            <a href="/Identity/Account/Login?ReturnUrl=@Uri.EscapeDataString($"/uye/{Model.Slug}")"
+               class="btn btn--primary">
+                Bağlantı kurmak için giriş yapın
+            </a>
+        }
+        else if (Model.IsOwnProfile)
+        {
+            <a href="/profil" class="btn btn--ghost">Profilinizi Düzenle</a>
+        }
+        else if (Model.ConnectionState is { } state)
+        {
+            switch (state.State)
+            {
+                case UserConnectionState.None:
+                    <form method="post" asp-page-handler="Connect" class="uye-profil__action-form">
+                        <button type="submit" class="btn btn--primary">Bağlantı İste</button>
+                    </form>
+                    break;
+
+                case UserConnectionState.PendingSent:
+                    <span class="uye-profil__connection-status">İstek gönderildi, beklemede</span>
+                    <form method="post" asp-page-handler="Cancel" class="uye-profil__action-form">
+                        <input type="hidden" name="connectionId" value="@Model.ConnectionId" />
+                        <button type="submit" class="btn btn--ghost">İsteği İptal Et</button>
+                    </form>
+                    break;
+
+                case UserConnectionState.PendingReceived:
+                    <span class="uye-profil__connection-status">Size bağlantı isteği gönderildi</span>
+                    <form method="post" asp-page-handler="Accept" class="uye-profil__action-form">
+                        <input type="hidden" name="connectionId" value="@Model.ConnectionId" />
+                        <button type="submit" class="btn btn--primary">Kabul Et</button>
+                    </form>
+                    <form method="post" asp-page-handler="Reject" class="uye-profil__action-form">
+                        <input type="hidden" name="connectionId" value="@Model.ConnectionId" />
+                        <button type="submit" class="btn btn--ghost">Reddet</button>
+                    </form>
+                    break;
+
+                case UserConnectionState.Accepted:
+                    <span class="uye-profil__connection-status uye-profil__connection-status--accepted">
+                        ✓ Bağlısınız
+                    </span>
+                    <form method="post" asp-page-handler="Remove" class="uye-profil__action-form">
+                        <input type="hidden" name="connectionId" value="@Model.ConnectionId" />
+                        <button type="submit" class="btn btn--ghost"
+                                onclick="return confirm('Bağlantıyı kaldırmak istediğinizden emin misiniz?')">
+                            Bağlantıyı Kaldır
+                        </button>
+                    </form>
+                    break;
+
+                case UserConnectionState.CooldownAfterReject:
+                    {
+                        var daysLeft = state.CooldownExpiresAt.HasValue
+                            ? Math.Max(0, (int)Math.Ceiling((state.CooldownExpiresAt.Value - DateTime.UtcNow).TotalDays))
+                            : 0;
+                        <p class="uye-profil__connection-status uye-profil__connection-status--cooldown">
+                            Bu kullanıcıya yakın zamanda istek gönderdiniz.
+                            @if (daysLeft > 0)
+                            {
+                                <text> @daysLeft gün sonra tekrar deneyebilirsiniz.</text>
+                            }
+                            else
+                            {
+                                <text> Yakında tekrar deneyebilirsiniz.</text>
+                            }
+                        </p>
+                    }
+                    break;
+            }
+        }
+    </div>
+
+    @if (Model.IsPublic && Model.ConnectionCount > 0)
+    {
+        <div class="uye-profil__connection-count">
+            <span class="uye-profil__connection-count-number">@Model.ConnectionCount</span>
+            <span class="uye-profil__connection-count-label">bağlantı</span>
+        </div>
+    }
+
     @if (Model.IsPublic)
     {
         <div class="uye-profil__details">

@@ -265,7 +265,8 @@ public class ConnectionServiceTests
         await SeedUsersAsync(ctx, 1, 2);
 
         var state = await svc.GetConnectionStateAsync(1, 2);
-        state.Should().Be(UserConnectionState.None);
+        state.State.Should().Be(UserConnectionState.None);
+        state.CooldownExpiresAt.Should().BeNull();
     }
 
     [Fact]
@@ -276,21 +277,24 @@ public class ConnectionServiceTests
 
         // 1→2 Pending
         await svc.SendAsync(1, 2);
-        (await svc.GetConnectionStateAsync(1, 2)).Should().Be(UserConnectionState.PendingSent);
-        (await svc.GetConnectionStateAsync(2, 1)).Should().Be(UserConnectionState.PendingReceived);
+        (await svc.GetConnectionStateAsync(1, 2)).State.Should().Be(UserConnectionState.PendingSent);
+        (await svc.GetConnectionStateAsync(2, 1)).State.Should().Be(UserConnectionState.PendingReceived);
 
         // 3→4 Accepted
         var s34 = await svc.SendAsync(3, 4);
         await svc.AcceptAsync(s34.Connection!.Id, actingUserId: 4);
-        (await svc.GetConnectionStateAsync(3, 4)).Should().Be(UserConnectionState.Accepted);
-        (await svc.GetConnectionStateAsync(4, 3)).Should().Be(UserConnectionState.Accepted);
+        (await svc.GetConnectionStateAsync(3, 4)).State.Should().Be(UserConnectionState.Accepted);
+        (await svc.GetConnectionStateAsync(4, 3)).State.Should().Be(UserConnectionState.Accepted);
 
         // 5→6 Rejected (cooldown aktif — yeni reject)
         var s56 = await svc.SendAsync(5, 6);
         await svc.RejectAsync(s56.Connection!.Id, actingUserId: 6);
-        (await svc.GetConnectionStateAsync(5, 6)).Should().Be(UserConnectionState.CooldownAfterReject,
+        var rejected56 = await svc.GetConnectionStateAsync(5, 6);
+        rejected56.State.Should().Be(UserConnectionState.CooldownAfterReject,
             "viewer=requester + cooldown aktif");
-        (await svc.GetConnectionStateAsync(6, 5)).Should().Be(UserConnectionState.None,
+        rejected56.CooldownExpiresAt.Should().NotBeNull();
+        rejected56.CooldownExpiresAt!.Value.Should().BeAfter(DateTime.UtcNow);
+        (await svc.GetConnectionStateAsync(6, 5)).State.Should().Be(UserConnectionState.None,
             "viewer=target → kendi reddi cooldown'a takılmaz");
     }
 

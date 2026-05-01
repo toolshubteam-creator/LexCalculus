@@ -2,7 +2,6 @@
 
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Social;
-using LexCalculus.Core.Enums;
 using LexCalculus.Core.Services;
 using LexCalculus.Core.Storage;
 using Microsoft.AspNetCore.Authorization;
@@ -113,23 +112,6 @@ public sealed class BaglantilarimModel : PageModel
     {
         var path = user.Profile?.AvatarUrl;
         return string.IsNullOrEmpty(path) ? null : _storage.GetPublicUrl(path);
-    }
-
-    /// <summary>Meslek formatlama — UyeModel.FormatMeslek ile aynı pattern.</summary>
-    public static string? FormatMeslek(MeslekTuru? tur, string? diger)
-    {
-        if (tur is null) return null;
-        if (tur == MeslekTuru.Diger)
-            return string.IsNullOrWhiteSpace(diger) ? "Diğer" : diger;
-        return tur switch
-        {
-            MeslekTuru.Avukat => "Avukat",
-            MeslekTuru.Hakim => "Hâkim",
-            MeslekTuru.Savci => "Savcı",
-            MeslekTuru.Bilirkisi => "Bilirkişi",
-            MeslekTuru.MaliMusavir => "Mali Müşavir",
-            _ => null
-        };
     }
 
     private bool TryGetUserId(out int userId)

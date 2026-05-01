@@ -18,7 +18,7 @@ public interface IConnectionService
     Task<ConnectionResult> CancelAsync(int connectionId, int actingUserId, CancellationToken ct = default);
     Task<ConnectionResult> RemoveAsync(int connectionId, int actingUserId, CancellationToken ct = default);
 
-    Task<UserConnectionState> GetConnectionStateAsync(int viewerUserId, int targetUserId, CancellationToken ct = default);
+    Task<ConnectionStateResult> GetConnectionStateAsync(int viewerUserId, int targetUserId, CancellationToken ct = default);
     Task<int> GetConnectionCountAsync(int userId, CancellationToken ct = default);
 
     Task<IReadOnlyList<UserConnection>> GetActiveForUserAsync(int userId, CancellationToken ct = default);
@@ -27,6 +27,12 @@ public interface IConnectionService
 }
 
 public sealed record ConnectionResult(bool Success, string? ErrorMessage, UserConnection? Connection);
+
+/// <summary>
+/// GetConnectionStateAsync sonucu. CooldownExpiresAt sadece State =
+/// CooldownAfterReject iken dolu — UI kalan gün sayısını hesaplamak için kullanır.
+/// </summary>
+public sealed record ConnectionStateResult(UserConnectionState State, DateTime? CooldownExpiresAt = null);
 
 public enum UserConnectionState
 {

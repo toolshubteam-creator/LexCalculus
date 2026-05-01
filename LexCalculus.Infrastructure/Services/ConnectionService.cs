@@ -197,11 +197,11 @@ public sealed class ConnectionService : IConnectionService
         return new ConnectionResult(true, null, null);
     }
 
-    public async Task<UserConnectionState> GetConnectionStateAsync(
+    public async Task<ConnectionStateResult> GetConnectionStateAsync(
         int viewerUserId, int targetUserId, CancellationToken ct = default)
     {
         if (viewerUserId == targetUserId)
-            return UserConnectionState.None;
+            return new ConnectionStateResult(UserConnectionState.None);
 
         // En son ilgili kayıt (her iki yön)
         var existing = await _ctx.UserConnections
@@ -210,31 +210,33 @@ public sealed class ConnectionService : IConnectionService
             .OrderByDescending(c => c.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
-        if (existing is null) return UserConnectionState.None;
+        if (existing is null) return new ConnectionStateResult(UserConnectionState.None);
 
         switch (existing.Status)
         {
             case UserConnectionStatus.Accepted:
-                return UserConnectionState.Accepted;
+                return new ConnectionStateResult(UserConnectionState.Accepted);
 
             case UserConnectionStatus.Pending:
-                return existing.RequesterId == viewerUserId
-                    ? UserConnectionState.PendingSent
-                    : UserConnectionState.PendingReceived;
+                return new ConnectionStateResult(
+                    existing.RequesterId == viewerUserId
+                        ? UserConnectionState.PendingSent
+                        : UserConnectionState.PendingReceived);
 
             case UserConnectionStatus.Rejected:
                 // Cooldown sadece viewer→target yönündeki Rejected için
-                if (existing.RequesterId == viewerUserId
-                    && existing.RespondedAt.HasValue
-                    && existing.RespondedAt.Value.AddDays(RejectionCooldownDays) > DateTime.UtcNow)
+                if (existing.RequesterId == viewerUserId && existing.RespondedAt.HasValue)
                 {
-                    return UserConnectionState.CooldownAfterReject;
+                    var expiresAt = existing.RespondedAt.Value.AddDays(RejectionCooldownDays);
+                    if (expiresAt > DateTime.UtcNow)
+                        return new ConnectionStateResult(
+                            UserConnectionState.CooldownAfterReject, expiresAt);
                 }
-                return UserConnectionState.None;
+                return new ConnectionStateResult(UserConnectionState.None);
 
             case UserConnectionStatus.Cancelled:
             default:
-                return UserConnectionState.None;
+                return new ConnectionStateResult(UserConnectionState.None);
         }
     }
 
