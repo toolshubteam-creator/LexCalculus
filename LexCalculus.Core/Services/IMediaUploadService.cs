@@ -18,6 +18,19 @@ public interface IMediaUploadService
         string contentType,
         long sizeBytes,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Makale kapak görseli yükleme. 1200x630 (Open Graph 1.91:1) crop, WebP,
+    /// EXIF strip, max 5 MB. Avatar'dan farklı: post per-image (eski silinmez,
+    /// post update kararı üst handler'a).
+    /// </summary>
+    Task<MediaUploadResult> UploadFeaturedImageAsync(
+        int userId,
+        Stream content,
+        string originalFileName,
+        string contentType,
+        long sizeBytes,
+        CancellationToken ct = default);
 }
 
 public sealed record MediaUploadResult(

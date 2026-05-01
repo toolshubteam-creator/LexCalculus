@@ -8,6 +8,11 @@
 }
 
 .makalelerim__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
   margin-bottom: var(--sp-6);
 }
 

@@ -12,12 +12,42 @@ namespace LexCalculus.Tests.Content;
 
 public class UserPostServiceTests
 {
+    /// <summary>
+    /// Test sanitizer — Program.cs'teki konfig ile aynı (sıkı whitelist).
+    /// Default HtmlSanitizer style attribute'a izin veriyor; bu testlerde
+    /// production davranışını test ediyoruz, default kullanılamaz.
+    /// </summary>
+    private static Ganss.Xss.HtmlSanitizer CreateSanitizer()
+    {
+        var s = new Ganss.Xss.HtmlSanitizer();
+        s.AllowedTags.Clear();
+        s.AllowedTags.UnionWith(new[]
+        {
+            "p", "br", "strong", "em", "u", "s",
+            "h2", "h3", "h4",
+            "ul", "ol", "li",
+            "a", "blockquote", "code", "pre",
+            "img", "figure", "figcaption"
+        });
+        s.AllowedAttributes.Clear();
+        s.AllowedAttributes.UnionWith(new[]
+        {
+            "href", "title", "src", "alt", "width", "height", "class"
+        });
+        s.AllowedCssProperties.Clear();
+        s.AllowedAtRules.Clear();
+        s.AllowedSchemes.Clear();
+        s.AllowedSchemes.UnionWith(new[] { "http", "https", "mailto" });
+        return s;
+    }
+
     private static (UserPostService svc, ApplicationDbContext ctx, PostTagService tagSvc) Setup(
         bool seedCategory = true)
     {
         var ctx = TestDbContextFactory.Create();
         var tagSvc = new PostTagService(ctx);
-        var svc = new UserPostService(ctx, tagSvc, new NullActivityLogService());
+        var sanitizer = CreateSanitizer();
+        var svc = new UserPostService(ctx, tagSvc, new NullActivityLogService(), sanitizer);
         if (seedCategory)
         {
             ctx.PostCategories.Add(new PostCategory
@@ -357,5 +387,94 @@ public class UserPostServiceTests
         fetched!.Category.Should().NotBeNull();
         fetched.TagLinks.Should().HaveCount(1);
         fetched.TagLinks.First().Tag.Slug.Should().Be("kvkk");
+    }
+
+    // ─── Sanitize (Faz 4.6 P3) ───────────────────────────────────────────
+
+    [Fact]
+    public async Task CreateDraft_BodyWithScript_StripsScriptTag()
+    {
+        var (svc, ctx, _) = Setup();
+        await SeedUserAsync(ctx, 1);
+
+        var result = await svc.CreateDraftAsync(1, Input(
+            body: "<p>Güvenli</p><script>alert('xss')</script><p>Devam</p>"));
+
+        result.Success.Should().BeTrue();
+        result.Post!.Body.Should().NotContain("<script");
+        result.Post.Body.Should().NotContain("alert");
+        result.Post.Body.Should().Contain("Güvenli");
+        result.Post.Body.Should().Contain("Devam");
+    }
+
+    [Fact]
+    public async Task CreateDraft_BodyWithImg_KeepsImgWithSafeAttrs()
+    {
+        var (svc, ctx, _) = Setup();
+        await SeedUserAsync(ctx, 1);
+
+        var result = await svc.CreateDraftAsync(1, Input(
+            body: "<p><img src=\"https://example.com/x.jpg\" alt=\"test\" /></p>"));
+
+        result.Success.Should().BeTrue();
+        result.Post!.Body.Should().Contain("<img");
+        result.Post.Body.Should().Contain("src=\"https://example.com/x.jpg\"");
+        result.Post.Body.Should().Contain("alt=\"test\"");
+    }
+
+    [Fact]
+    public async Task CreateDraft_BodyWithStyleAttribute_StripsStyle()
+    {
+        var (svc, ctx, _) = Setup();
+        await SeedUserAsync(ctx, 1);
+
+        var result = await svc.CreateDraftAsync(1, Input(
+            body: "<p style=\"color:red;background:yellow\">renkli</p>"));
+
+        result.Success.Should().BeTrue();
+        result.Post!.Body.Should().NotContain("style=");
+        result.Post.Body.Should().Contain("renkli");
+    }
+
+    [Fact]
+    public async Task CreateDraft_BodyWithJavascriptHref_StripsHref()
+    {
+        var (svc, ctx, _) = Setup();
+        await SeedUserAsync(ctx, 1);
+
+        var result = await svc.CreateDraftAsync(1, Input(
+            body: "<p><a href=\"javascript:alert(1)\">tıkla</a></p>"));
+
+        result.Success.Should().BeTrue();
+        result.Post!.Body.ToLowerInvariant().Should().NotContain("javascript:");
+    }
+
+    [Fact]
+    public async Task CreateDraft_BodyWithOnclickHandler_StripsHandler()
+    {
+        var (svc, ctx, _) = Setup();
+        await SeedUserAsync(ctx, 1);
+
+        var result = await svc.CreateDraftAsync(1, Input(
+            body: "<p onclick=\"alert('x')\">tıkla beni</p>"));
+
+        result.Success.Should().BeTrue();
+        result.Post!.Body.Should().NotContain("onclick");
+        result.Post.Body.Should().NotContain("alert");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_BodyWithScript_StripsScriptTag()
+    {
+        var (svc, ctx, _) = Setup();
+        await SeedUserAsync(ctx, 1);
+        var draft = await svc.CreateDraftAsync(1, Input("Original"));
+
+        var updated = await svc.UpdateAsync(draft.Post!.Id, 1, Input(
+            "Updated", body: "<p>safe</p><script>evil</script>"));
+
+        updated.Success.Should().BeTrue();
+        updated.Post!.Body.Should().NotContain("<script");
+        updated.Post.Body.Should().NotContain("evil");
     }
 }

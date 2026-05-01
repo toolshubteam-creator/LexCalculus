@@ -8,6 +8,7 @@
 <section class="makalelerim">
     <header class="makalelerim__header">
         <h1 class="makalelerim__title">Makalelerim</h1>
+        <a href="/makalelerim/yeni" class="btn btn--primary">+ Yeni Makale</a>
     </header>
 
     @if (TempData["Success"] is string successMsg)
@@ -87,6 +88,7 @@
                         </div>
 
                         <div class="makale-kart__actions">
+                            <a href="/makalelerim/duzenle/@post.Id" class="btn btn--ghost">Düzenle</a>
                             @if (post.IsPublished)
                             {
                                 <form method="post" asp-page-handler="Unpublish" class="makale-kart__action-form">

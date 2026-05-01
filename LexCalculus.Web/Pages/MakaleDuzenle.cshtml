@@ -1,0 +1,95 @@
+@page "/makalelerim/duzenle/{id:int}"
+@model LexCalculus.Web.Pages.MakaleDuzenleModel
+@{
+    ViewData["Title"] = "Makaleyi Düzenle";
+    ViewData["NoIndex"] = true;
+}
+
+@section Head {
+    <link rel="stylesheet" href="~/lib/quill/quill.snow.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/02-components/makale-form.css" asp-append-version="true" />
+}
+
+<section class="makale-form">
+    <header class="makale-form__header">
+        <h1 class="makale-form__title">Makaleyi Düzenle</h1>
+        <a href="/makalelerim" class="makale-form__back">← Makalelerim</a>
+    </header>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div asp-validation-summary="All" class="form-section__message form-section__message--error"></div>
+    }
+
+    <form method="post" enctype="multipart/form-data" class="makale-form__form">
+        <div class="field">
+            <label asp-for="Input.Title" class="field__label">Başlık</label>
+            <input asp-for="Input.Title" class="field__input" maxlength="200" autocomplete="off" />
+            <span asp-validation-for="Input.Title" class="field-validation-error"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.CategoryId" class="field__label">Kategori</label>
+            <select asp-for="Input.CategoryId" class="field__input">
+                <option value="">— Seçiniz —</option>
+                @foreach (var cat in Model.Categories)
+                {
+                    <option value="@cat.Id">@cat.Name</option>
+                }
+            </select>
+            <span asp-validation-for="Input.CategoryId" class="field-validation-error"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label" for="Input_FeaturedImageFile">Kapak Görseli</label>
+            @if (!string.IsNullOrEmpty(Model.Input.FeaturedImageUrl))
+            {
+                <img src="@Model.Input.FeaturedImageUrl" alt="Mevcut kapak"
+                     class="featured-preview" />
+            }
+            <input type="file" name="Input.FeaturedImageFile" id="Input_FeaturedImageFile"
+                   accept="image/jpeg,image/png,image/webp"
+                   class="field__input field__input--file" />
+            <input type="hidden" asp-for="Input.FeaturedImageUrl" />
+            <small class="field-hint">Yeni dosya yüklerseniz mevcut kapak değişir. Boş bırakırsanız mevcut korunur.</small>
+        </div>
+
+        <div class="field">
+            <label class="field__label">İçerik</label>
+            <div id="quill-editor"></div>
+            <input type="hidden" asp-for="Input.Body" id="quill-body-input" />
+            <span asp-validation-for="Input.Body" class="field-validation-error"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label" for="tag-chip-input">Etiketler (en fazla 5)</label>
+            <div id="tag-chip-container" class="tag-chip-container">
+                <input type="text" id="tag-chip-input" placeholder="Etiket yaz, Enter veya virgül ile ekle" />
+            </div>
+            <input type="hidden" asp-for="Input.TagsCsv" id="tags-csv-input" />
+        </div>
+
+        <div class="makale-form__actions">
+            @if (Model.IsAlreadyPublished)
+            {
+                <button type="submit" asp-page-handler="Save" asp-route-id="@Model.PostId"
+                        class="btn btn--primary">Kaydet</button>
+                <button type="submit" asp-page-handler="SaveDraft" asp-route-id="@Model.PostId"
+                        class="btn btn--ghost">Taslağa Al</button>
+            }
+            else
+            {
+                <button type="submit" asp-page-handler="SaveDraft" asp-route-id="@Model.PostId"
+                        class="btn btn--ghost">Taslak Kaydet</button>
+                <button type="submit" asp-page-handler="Publish" asp-route-id="@Model.PostId"
+                        class="btn btn--primary">Yayınla</button>
+            }
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/quill/quill.js" asp-append-version="true"></script>
+    <script src="~/js/makale-editor.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,150 @@
+/* Yeni Makale + Düzenle form — Faz 4.6 P3/3.
+   Quill snow theme override + tag chip + featured preview. */
+
+.makale-form {
+  max-width: 920px;
+  margin: var(--sp-8) auto;
+  padding: 0 var(--sp-5);
+}
+
+.makale-form__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+  padding-bottom: var(--sp-4);
+  border-bottom: var(--border-thin-parchment);
+  flex-wrap: wrap;
+}
+
+.makale-form__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.makale-form__back {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-wide);
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.makale-form__back:hover,
+.makale-form__back:focus-visible {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.makale-form__form .field {
+  margin-bottom: var(--sp-5);
+}
+
+.makale-form__actions {
+  display: flex;
+  gap: var(--sp-3);
+  justify-content: flex-end;
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+
+.featured-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 4px;
+  margin-bottom: var(--sp-2);
+  border: 1px solid var(--rule);
+  object-fit: contain;
+}
+
+/* Quill snow theme override — proje rengine uyum */
+.ql-toolbar.ql-snow {
+  border: 1px solid var(--rule);
+  border-radius: 4px 4px 0 0;
+  background: var(--parchment);
+}
+
+.ql-container.ql-snow {
+  border: 1px solid var(--rule);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  min-height: 320px;
+  font-family: var(--font-body);
+  font-size: var(--fs-base, 1rem);
+}
+
+.ql-editor {
+  min-height: 300px;
+  line-height: 1.6;
+}
+
+/* Tag chip input + listesi */
+.tag-chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: #fff;
+  align-items: center;
+  min-height: 44px;
+}
+
+.tag-chip-container:focus-within {
+  border-color: var(--gold);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 3px var(--sp-2) 3px var(--sp-3);
+  background: var(--parchment);
+  border: 1px solid var(--gold-pale);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.tag-chip button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 16px;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.tag-chip button:hover,
+.tag-chip button:focus-visible {
+  color: var(--ink);
+}
+
+#tag-chip-input {
+  border: none;
+  outline: none;
+  flex: 1 1 auto;
+  min-width: 140px;
+  font-size: var(--fs-base);
+  background: transparent;
+  font-family: inherit;
+}
+
+@media (max-width: 700px) {
+  .makale-form__actions {
+    flex-direction: column-reverse;
+  }
+  .makale-form__actions .btn {
+    width: 100%;
+  }
+}

@@ -482,7 +482,11 @@ $RECYCLE.BIN/
 *.swp
 
 # LexCalculus custom
+# wwwroot/lib NuGet libman ile gelen jquery vs için ignore;
+# Quill 2.x manuel indirildi (Adım 4.6 P3) — istisna olarak commit edilir.
 **/wwwroot/lib/
+!**/wwwroot/lib/quill/
+!**/wwwroot/lib/quill/**
 **/Logs/
 
 # User-generated content (avatars, post images, etc.) — Faz 4 ve sonrası

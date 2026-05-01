@@ -253,6 +253,40 @@ try
     builder.Services.AddScoped<IPostCategoryService, PostCategoryService>();
     builder.Services.AddScoped<IPostTagService, PostTagService>();
 
+    // İçerik HTML sanitizer (Faz 4.6 P3) — Quill output Body için sıkı whitelist
+    builder.Services.AddSingleton<Ganss.Xss.IHtmlSanitizer>(_ =>
+    {
+        var s = new Ganss.Xss.HtmlSanitizer();
+
+        s.AllowedTags.Clear();
+        s.AllowedTags.UnionWith(new[]
+        {
+            "p", "br", "strong", "em", "u", "s",
+            "h2", "h3", "h4",
+            "ul", "ol", "li",
+            "a", "blockquote", "code", "pre",
+            "img", "figure", "figcaption"
+        });
+
+        s.AllowedAttributes.Clear();
+        s.AllowedAttributes.UnionWith(new[]
+        {
+            "href", "title",
+            "src", "alt", "width", "height",
+            "class"
+        });
+
+        // Inline CSS YASAK
+        s.AllowedCssProperties.Clear();
+        s.AllowedAtRules.Clear();
+
+        // URL şeması whitelist
+        s.AllowedSchemes.Clear();
+        s.AllowedSchemes.UnionWith(new[] { "http", "https", "mailto" });
+
+        return s;
+    });
+
     // Kullanıcı makalesi (Faz 4.6 P1) — Draft/Published state machine + tag sync
     builder.Services.AddScoped<IUserPostService, UserPostService>();
 

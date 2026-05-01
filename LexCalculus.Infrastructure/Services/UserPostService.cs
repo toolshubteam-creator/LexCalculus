@@ -1,3 +1,4 @@
+using Ganss.Xss;
 using LexCalculus.Core.Common;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Services;
@@ -14,15 +15,18 @@ public sealed class UserPostService : IUserPostService
     private readonly ApplicationDbContext _ctx;
     private readonly IPostTagService _tagService;
     private readonly IActivityLogService _activityLog;
+    private readonly IHtmlSanitizer _sanitizer;
 
     public UserPostService(
         ApplicationDbContext ctx,
         IPostTagService tagService,
-        IActivityLogService activityLog)
+        IActivityLogService activityLog,
+        IHtmlSanitizer sanitizer)
     {
         _ctx = ctx;
         _tagService = tagService;
         _activityLog = activityLog;
+        _sanitizer = sanitizer;
     }
 
     public async Task<UserPostResult> CreateDraftAsync(
@@ -40,7 +44,7 @@ public sealed class UserPostService : IUserPostService
             CategoryId = input.CategoryId,
             Slug = slug,
             Title = input.Title.Trim(),
-            Body = input.Body,
+            Body = _sanitizer.Sanitize(input.Body ?? string.Empty),
             FeaturedImageUrl = string.IsNullOrWhiteSpace(input.FeaturedImageUrl)
                 ? null : input.FeaturedImageUrl.Trim(),
             IsPublished = false,
@@ -82,7 +86,7 @@ public sealed class UserPostService : IUserPostService
 
         // Slug REGEN ETME (Yaklaşım 4) — Title değişse de slug sabit kalır
         post.Title = input.Title.Trim();
-        post.Body = input.Body;
+        post.Body = _sanitizer.Sanitize(input.Body ?? string.Empty);
         post.CategoryId = input.CategoryId;
         post.FeaturedImageUrl = string.IsNullOrWhiteSpace(input.FeaturedImageUrl)
             ? null : input.FeaturedImageUrl.Trim();
