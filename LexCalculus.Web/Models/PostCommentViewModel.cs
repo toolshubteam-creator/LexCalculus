@@ -25,4 +25,11 @@ public sealed class PostCommentViewModel
 
     /// <summary>Sahip || post sahibi || admin (silme).</summary>
     public bool CanDelete { get; set; }
+
+    /// <summary>
+    /// Şikayet edilebilir mi (Faz 4.10 P1). Login + sahip değil.
+    /// Mükerrer engel server-side; UI'da link her zaman gözükür ama
+    /// "zaten şikayet ettiniz" hatası dönerse modal kapanmaz.
+    /// </summary>
+    public bool CanReport { get; set; }
 }

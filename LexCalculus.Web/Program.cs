@@ -295,6 +295,9 @@ try
     builder.Services.AddScoped<IPostCommentService, PostCommentService>();
     builder.Services.AddScoped<IPostLikeService, PostLikeService>();
 
+    // İçerik şikayet (Faz 4.10 P1)
+    builder.Services.AddScoped<IContentReportService, ContentReportService>();
+
     // Faz 4.9 P2 — AJAX endpoint'lerin Razor partial render etmesi için
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddScoped<LexCalculus.Web.Infrastructure.Rendering.IPartialRenderer,

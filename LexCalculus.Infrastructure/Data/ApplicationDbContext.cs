@@ -2,6 +2,7 @@ using LexCalculus.Core.Entities;
 using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
+using LexCalculus.Core.Entities.Moderation;
 using LexCalculus.Core.Entities.Notifications;
 using LexCalculus.Core.Entities.Social;
 using LexCalculus.Core.Services;
@@ -48,6 +49,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<PostTagLink> PostTagLinks => Set<PostTagLink>();
     public DbSet<PostComment> PostComments => Set<PostComment>();
     public DbSet<PostLike> PostLikes => Set<PostLike>();
+    public DbSet<ContentReport> ContentReports => Set<ContentReport>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -297,6 +299,35 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             // Bir kullanıcı bir post'u sadece bir kez beğenir
             e.HasIndex(l => new { l.PostId, l.UserId }).IsUnique();
             e.HasIndex(l => l.PostId);
+        });
+
+        builder.Entity<ContentReport>(e =>
+        {
+            e.HasKey(r => r.Id);
+
+            e.Property(r => r.TargetType).HasConversion<int>();
+            e.Property(r => r.Reason).HasConversion<int>();
+            e.Property(r => r.Status).HasConversion<int>();
+
+            e.Property(r => r.Note).HasMaxLength(500);
+            e.Property(r => r.ReviewNote).HasMaxLength(500);
+
+            e.HasOne(r => r.Reporter)
+             .WithMany()
+             .HasForeignKey(r => r.ReporterId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(r => r.ReviewedBy)
+             .WithMany()
+             .HasForeignKey(r => r.ReviewedByUserId)
+             .OnDelete(DeleteBehavior.SetNull);
+
+            // Mükerrer engel: bir user aynı içeriği bir kez şikayet eder
+            e.HasIndex(r => new { r.ReporterId, r.TargetType, r.TargetId }).IsUnique();
+
+            // Admin paneli queries
+            e.HasIndex(r => new { r.Status, r.CreatedAt });
+            e.HasIndex(r => new { r.TargetType, r.TargetId });
         });
 
         builder.Entity<ActivityLog>(e =>

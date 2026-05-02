@@ -38,7 +38,7 @@
         @Html.Raw(Model.Body)
     </div>
 
-    @if (Model.CanEdit || Model.CanDelete)
+    @if (Model.CanEdit || Model.CanDelete || Model.CanReport)
     {
         <div class="yorum__actions">
             @if (Model.CanEdit)
@@ -48,6 +48,15 @@
             @if (Model.CanDelete)
             {
                 <button type="button" class="yorum__action-link yorum__action-link--danger" data-yorum-delete>Sil</button>
+            }
+            @if (Model.CanReport)
+            {
+                <button type="button"
+                        class="yorum__action-link"
+                        data-report-target-type="2"
+                        data-report-target-id="@Model.Id">
+                    Şikayet Et
+                </button>
             }
         </div>
     }

@@ -139,7 +139,8 @@ public sealed class PostCommentsController : ControllerBase
             CanEdit = data.UserId == viewerId,
             CanDelete = data.UserId == viewerId
                 || data.PostOwnerId == viewerId
-                || isAdmin
+                || isAdmin,
+            CanReport = data.UserId != viewerId
         };
     }
 }

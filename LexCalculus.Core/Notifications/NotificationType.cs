@@ -27,5 +27,11 @@ public enum NotificationType
     PostComment = 102,
 
     /// <summary>Faz 4.2 P3b — gönderilen bağlantı isteği kabul edildi.</summary>
-    ConnectionAccepted = 103
+    ConnectionAccepted = 103,
+
+    /// <summary>Faz 4.10 — şikayet edilen içerik admin tarafından incelendi (Dismiss). P2'de kullanılır.</summary>
+    ContentReportResolved = 104,
+
+    /// <summary>Faz 4.10 — kullanıcının içeriği şikayet üzerine kaldırıldı. P2'de kullanılır.</summary>
+    ContentRemoved = 105
 }

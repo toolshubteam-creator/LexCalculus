@@ -29,6 +29,7 @@
 @import url('02-components/makale.css');
 @import url('02-components/begeni.css');
 @import url('02-components/yorum.css');
+@import url('02-components/report-modal.css');
 /* makale-form.css yalnızca /makalelerim/yeni ve /duzenle sayfalarında
    @section Head ile (Quill ile birlikte) yüklenir. */
 

@@ -71,6 +71,10 @@ public sealed class MakaleModel : PageModel
     public bool IsLikedByViewer { get; private set; }
     public bool ViewerCanComment { get; private set; }
 
+    // Faz 4.10 P1 — şikayet
+    public int? ViewerId { get; private set; }
+    public bool CanReportPost { get; private set; }
+
     public async Task<IActionResult> OnGetAsync(string userSlug, string postSlug, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(userSlug) || string.IsNullOrWhiteSpace(postSlug))
@@ -90,6 +94,7 @@ public sealed class MakaleModel : PageModel
 
         var viewerIdRaw = _userManager.GetUserId(User);
         var viewerId = int.TryParse(viewerIdRaw, out var vid) ? (int?)vid : null;
+        ViewerId = viewerId;
 
         IsOwnerPreview = !post.IsPublished && viewerId == post.UserId;
 
@@ -133,6 +138,9 @@ public sealed class MakaleModel : PageModel
                 && await _likes.IsLikedByAsync(post.Id, viewerId.Value, ct);
             ViewerCanComment = viewerId.HasValue;
 
+            // Faz 4.10 P1 — şikayet linki: login + sahip değil
+            CanReportPost = viewerId.HasValue && viewerId.Value != post.UserId;
+
             var commentEntities = await _comments.GetByPostIdAsync(post.Id, ct);
             var isAdmin = User.IsInRole("Admin");
             var postOwnerId = post.UserId;
@@ -154,7 +162,8 @@ public sealed class MakaleModel : PageModel
                 CanDelete = viewerId.HasValue && (
                     c.UserId == viewerId.Value
                     || postOwnerId == viewerId.Value
-                    || isAdmin)
+                    || isAdmin),
+                CanReport = viewerId.HasValue && c.UserId != viewerId.Value
             }).ToList();
         }
 

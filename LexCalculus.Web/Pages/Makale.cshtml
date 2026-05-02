@@ -112,6 +112,19 @@
         </div>
     }
 
+    @* Faz 4.10 P1 — şikayet linki (post için) *@
+    @if (Model.CanReportPost)
+    {
+        <div class="makale__report">
+            <button type="button"
+                    class="makale__report-link"
+                    data-report-target-type="1"
+                    data-report-target-id="@Model.Post.Id">
+                Şikayet Et
+            </button>
+        </div>
+    }
+
     <aside class="makale__disclaimer" role="note">
         <strong>Önemli:</strong> Bu içerik tamamen yazarın kişisel görüşü ve
         değerlendirmesidir. Hukuki tavsiye niteliği taşımaz. Spesifik durumunuz
@@ -167,6 +180,12 @@
                 </p>
             }
         </section>
+    }
+
+    @* Faz 4.10 P1 — şikayet modal'i (login user için) *@
+    @if (User.Identity?.IsAuthenticated == true && Model.Post.IsPublished)
+    {
+        <partial name="_ReportModal" />
     }
 
     @if (!string.IsNullOrEmpty(Model.AuthorSlug))

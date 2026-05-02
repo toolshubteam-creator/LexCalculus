@@ -1,0 +1,136 @@
+/* İçerik şikayet modal'i — Faz 4.10 P1.
+   Native <dialog> + backdrop. /uye/{slug}/makale/{slug} sayfasında bir kez
+   render edilir; JS data-report-target-* ile hedef set edip showModal() çağırır. */
+
+.report-modal {
+  border: none;
+  padding: 0;
+  border-radius: 6px;
+  max-width: 500px;
+  width: 90%;
+  background: var(--parchment);
+  color: var(--ink);
+  box-shadow: 0 8px 32px rgba(10, 20, 40, 0.4);
+}
+
+.report-modal::backdrop {
+  background: rgba(10, 20, 40, 0.55);
+}
+
+.report-modal__form {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.report-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--rule);
+  background: var(--parchment-deep);
+}
+
+.report-modal__header h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.report-modal__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 1.6rem;
+  line-height: 1;
+  padding: var(--sp-1) var(--sp-2);
+  transition: var(--transition-fast);
+}
+
+.report-modal__close:hover,
+.report-modal__close:focus {
+  color: var(--ink);
+  outline: none;
+}
+
+.report-modal__body {
+  padding: var(--sp-5);
+}
+
+.report-modal__body .field {
+  margin-bottom: var(--sp-4);
+}
+
+.report-modal__body .field:last-child {
+  margin-bottom: 0;
+}
+
+.report-modal__note-required {
+  color: var(--burgundy);
+  font-size: 0.85rem;
+  margin-left: var(--sp-1);
+  font-weight: 600;
+}
+
+.report-modal__error {
+  color: var(--burgundy);
+  font-size: 0.9rem;
+  margin-top: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: rgba(107, 31, 46, 0.08);
+  border-left: 3px solid var(--burgundy);
+  border-radius: 2px;
+}
+
+.report-modal__actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+  padding: var(--sp-4) var(--sp-5);
+  border-top: 1px solid var(--rule);
+  background: var(--parchment-deep);
+}
+
+/* Makale altındaki şikayet linki */
+.makale__report {
+  margin-top: var(--sp-3);
+  text-align: right;
+}
+
+.makale__report-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: var(--sp-2) 0;
+  text-decoration: underline;
+  font-family: inherit;
+  transition: var(--transition-fast);
+}
+
+.makale__report-link:hover,
+.makale__report-link:focus {
+  color: var(--burgundy);
+  outline: none;
+}
+
+/* Mobile: full-width modal, dikey buton */
+@media (max-width: 600px) {
+  .report-modal {
+    width: 95%;
+    max-width: 95%;
+  }
+
+  .report-modal__actions {
+    flex-direction: column-reverse;
+  }
+
+  .report-modal__actions .btn {
+    width: 100%;
+  }
+}

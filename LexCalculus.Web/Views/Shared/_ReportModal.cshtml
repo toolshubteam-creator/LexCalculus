@@ -1,0 +1,50 @@
+@*
+    İçerik şikayet modal'i. Native <dialog> + AntiForgery token.
+    Sayfada bir kez render edilir; JS data-report-target-type/id ile hedefi
+    set eder ve dialog.showModal() ile açar. Faz 4.10 P1.
+*@
+<dialog id="report-modal" class="report-modal" aria-labelledby="report-modal-title">
+    <form class="report-modal__form" id="report-form" novalidate>
+        @Html.AntiForgeryToken()
+
+        <header class="report-modal__header">
+            <h2 id="report-modal-title">İçeriği Şikayet Et</h2>
+            <button type="button" class="report-modal__close" data-report-cancel aria-label="Kapat">×</button>
+        </header>
+
+        <div class="report-modal__body">
+            <input type="hidden" id="report-target-type" />
+            <input type="hidden" id="report-target-id" />
+
+            <div class="field">
+                <label class="field__label" for="report-reason">Sebep</label>
+                <select id="report-reason" class="field__input" required>
+                    <option value="">— Seçiniz —</option>
+                    <option value="1">Spam veya reklam</option>
+                    <option value="2">Taciz veya nefret söylemi</option>
+                    <option value="3">Yanıltıcı veya yanlış bilgi</option>
+                    <option value="4">Hukuki sorun (telif, ifade)</option>
+                    <option value="5">Müstehcen içerik</option>
+                    <option value="99">Diğer</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label class="field__label" for="report-note">
+                    Açıklama
+                    <span class="report-modal__note-required" id="report-note-required" hidden>(zorunlu)</span>
+                </label>
+                <textarea id="report-note" class="field__input" maxlength="500" rows="4"
+                          placeholder="Şikayet hakkında ek detay (opsiyonel)..."></textarea>
+                <small class="field-hint" id="report-note-counter">0 / 500</small>
+            </div>
+
+            <div class="report-modal__error" id="report-error" hidden role="alert"></div>
+        </div>
+
+        <div class="report-modal__actions">
+            <button type="button" class="btn btn--ghost" data-report-cancel>İptal</button>
+            <button type="submit" class="btn btn--danger">Şikayeti Gönder</button>
+        </div>
+    </form>
+</dialog>
