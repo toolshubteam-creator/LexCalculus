@@ -4,6 +4,9 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
+**Faz 5 — Real-time + Olgunlaştırma + KVKK başladı (2 Mayıs 2026).**
+[Charter](./docs/phase-5-charter.md) · [Roadmap](./docs/phase-5-roadmap.md)
+
 **Faz 4 — Sosyal Platform + UGC tamamlandı (2 Mayıs 2026).**
 
 - 17/17 hesaplayıcı aktif
