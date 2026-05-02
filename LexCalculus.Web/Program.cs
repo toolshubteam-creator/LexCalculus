@@ -223,6 +223,9 @@ try
     // Admin: kullanıcı yönetimi (Faz 3.6)
     builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 
+    // KVKK hesap anonimize (Faz 5.1, charter Karar 6)
+    builder.Services.AddScoped<IUserAnonymizationService, UserAnonymizationService>();
+
     // Admin: tenant yönetimi (Faz 3.7 P2a/5)
     builder.Services.AddScoped<ITenantAdminService, TenantAdminService>();
 

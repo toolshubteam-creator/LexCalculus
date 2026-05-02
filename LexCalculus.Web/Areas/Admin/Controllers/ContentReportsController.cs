@@ -1,5 +1,6 @@
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Moderation;
+using LexCalculus.Core.Extensions;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Web.Areas.Admin.Models.ContentReports;
@@ -182,7 +183,7 @@ public sealed class ContentReportsController : Controller
             Reports = reports.Select(r => new ContentReportListReport
             {
                 Id = r.Id,
-                ReporterDisplayName = r.Reporter?.UserName ?? "(silinmiş kullanıcı)",
+                ReporterDisplayName = r.Reporter.GetDisplayNameOrAnonymized(),
                 Reason = r.Reason,
                 ReasonLabel = ReasonToLabel(r.Reason),
                 Note = r.Note,

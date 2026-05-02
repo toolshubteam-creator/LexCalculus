@@ -13,11 +13,16 @@ namespace LexCalculus.Web.Areas.Admin.Controllers;
 public sealed class UsersController : Controller
 {
     private readonly IUserAdminService _users;
+    private readonly IUserAnonymizationService _anonymization;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public UsersController(IUserAdminService users, UserManager<ApplicationUser> userManager)
+    public UsersController(
+        IUserAdminService users,
+        IUserAnonymizationService anonymization,
+        UserManager<ApplicationUser> userManager)
     {
         _users = users;
+        _anonymization = anonymization;
         _userManager = userManager;
     }
 
@@ -132,6 +137,28 @@ public sealed class UsersController : Controller
         TempData[ok ? "AdminSuccess" : "AdminError"] = ok
             ? "✓ Şifre sıfırlama maili gönderildi."
             : "Şifre sıfırlama maili gönderilemedi.";
+        return RedirectToAction(nameof(Detail), new { id });
+    }
+
+    [HttpPost("{id:int}/anonimize")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Anonimize(int id, CancellationToken ct = default)
+    {
+        if (IsCurrentUser(id))
+        {
+            TempData["AdminError"] = "Kendi hesabınızı bu panelden anonimize edemezsiniz.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
+        var rawAdmin = _userManager.GetUserId(User);
+        if (!int.TryParse(rawAdmin, out var adminId))
+            return Unauthorized();
+
+        var result = await _anonymization.AnonymizeAsync(id, adminId, ct);
+        TempData[result.Success ? "AdminSuccess" : "AdminError"] = result.Success
+            ? "✓ Kullanıcı anonimize edildi. İçerikleri korundu, yazar 'Silinmiş Kullanıcı' olarak görünüyor."
+            : (result.ErrorMessage ?? "Anonimize işlemi başarısız.");
+
         return RedirectToAction(nameof(Detail), new { id });
     }
 

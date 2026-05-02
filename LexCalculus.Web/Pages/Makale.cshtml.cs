@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
+using LexCalculus.Core.Extensions;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Services;
 using LexCalculus.Core.Storage;
@@ -151,11 +152,9 @@ public sealed class MakaleModel : PageModel
                 Body = c.Body,
                 CreatedAt = c.CreatedAt,
                 IsEdited = c.IsEdited,
-                AuthorDisplayName = !string.IsNullOrWhiteSpace(c.User?.Profile?.DisplayName)
-                    ? c.User!.Profile!.DisplayName
-                    : (c.User?.UserName ?? "Kullanıcı"),
-                AuthorSlug = c.User?.Profile?.PublicSlug,
-                AuthorAvatarUrl = string.IsNullOrEmpty(c.User?.Profile?.AvatarUrl)
+                AuthorDisplayName = c.User.GetDisplayNameOrAnonymized(),
+                AuthorSlug = c.User.GetPublicSlugOrNull(),
+                AuthorAvatarUrl = c.User.IsAnonymizedOrInactive() || string.IsNullOrEmpty(c.User?.Profile?.AvatarUrl)
                     ? null
                     : _storage.GetPublicUrl(c.User.Profile.AvatarUrl),
                 CanEdit = viewerId.HasValue && c.UserId == viewerId.Value,

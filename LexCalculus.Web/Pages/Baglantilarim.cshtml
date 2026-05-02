@@ -1,4 +1,5 @@
 @page "/baglantilarim"
+@using LexCalculus.Core.Extensions
 @model LexCalculus.Web.Pages.BaglantilarimModel
 @{
     ViewData["Title"] = "Bağlantılarım";
@@ -52,11 +53,9 @@
                     @foreach (var block in Model.BlockedUsers)
                     {
                         var blocked = block.Blocked;
-                        var avatarUrl = Model.GetAvatarUrl(blocked);
-                        var displayName = !string.IsNullOrWhiteSpace(blocked.Profile?.DisplayName)
-                            ? blocked.Profile!.DisplayName
-                            : (blocked.UserName ?? "Kullanıcı");
-                        var slug = blocked.Profile?.PublicSlug;
+                        var avatarUrl = blocked.IsAnonymizedOrInactive() ? null : Model.GetAvatarUrl(blocked);
+                        var displayName = blocked.GetDisplayNameOrAnonymized();
+                        var slug = blocked.GetPublicSlugOrNull();
 
                         <li class="kullanici-kart">
                             <div class="kullanici-kart__avatar-wrap">
@@ -123,12 +122,10 @@
                 @foreach (var conn in Model.Connections)
                 {
                     var other = Model.GetOtherUser(conn);
-                    var avatarUrl = Model.GetAvatarUrl(other);
-                    var displayName = !string.IsNullOrWhiteSpace(other.Profile?.DisplayName)
-                        ? other.Profile.DisplayName
-                        : (other.UserName ?? "Kullanıcı");
-                    var slug = other.Profile?.PublicSlug;
-                    var meslek = other.Profile?.MeslekTuru.ToTurkish(other.Profile?.MeslekTuruDiger);
+                    var avatarUrl = other.IsAnonymizedOrInactive() ? null : Model.GetAvatarUrl(other);
+                    var displayName = other.GetDisplayNameOrAnonymized();
+                    var slug = other.GetPublicSlugOrNull();
+                    var meslek = other.IsAnonymizedOrInactive() ? null : other.Profile?.MeslekTuru.ToTurkish(other.Profile?.MeslekTuruDiger);
 
                     <li class="kullanici-kart">
                         <div class="kullanici-kart__avatar-wrap">

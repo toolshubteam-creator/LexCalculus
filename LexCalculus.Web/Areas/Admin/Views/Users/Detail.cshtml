@@ -88,6 +88,17 @@
                 @Html.AntiForgeryToken()
                 <button type="submit" class="admin-btn admin-btn--secondary">Şifre Sıfırlama Maili Gönder</button>
             </form>
+
+            @* KVKK anonimize — sadece aktif kullanıcılar için *@
+            @if (Model.IsActive)
+            {
+                <form method="post" asp-action="Anonimize" asp-route-id="@Model.Id"
+                      class="admin-inline-form admin-inline-form--block"
+                      onsubmit="return confirm('KVKK anonimize: bu kullanıcının kişisel verileri silinecek (e-posta, isim, profil), hesabı kilitlenecek. İçerikleri (makale, yorum) KORUNUR ama yazar &quot;Silinmiş Kullanıcı&quot; olarak görünür. Bu işlem GERİ ALINAMAZ. Emin misiniz?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="admin-btn admin-btn--danger">KVKK Anonimize</button>
+                </form>
+            }
         </section>
     </div>
 
