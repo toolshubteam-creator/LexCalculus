@@ -4,15 +4,19 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
-**Faz 3 — Admin Paneli + Multi-tenant + Audit tamamlandı (Nisan 2026).**
+**Faz 4 — Sosyal Platform + UGC tamamlandı (2 Mayıs 2026).**
 
 - 17/17 hesaplayıcı aktif
-- 396/396 test geçiyor
-- Admin paneli: parametre/LifeTable/kullanıcı/tenant/talep/davet CRUD, activity log
+- 666/666 test geçiyor
+- Public profil + bağlantı + engelleme + notification (Dalga A)
+- Kullanıcı içerik üretimi: makale + yorum + beğeni + şikayet + admin moderasyon (Dalga B)
+- Görsel altyapısı: featured + inline image, AJAX upload, ImageSharp + WebP
+- Admin paneli: parametre/LifeTable/kullanıcı/tenant/talep/davet/kategori/şikayet CRUD, activity log
 - Multi-tenant altyapı (hukuk büroları); bireysel vatandaş kullanıcıları etkilenmiyor (TenantId nullable)
 - 2 Hangfire recurring job (veri tazelik kontrolü, davet expire)
 - 9 hukuk kategorisinden 3'ü (İş Hukuku, Aktüerya, Faiz) hesaplayıcı olarak hazır
-- Kalan 6 kategori (Vergi, Aile, Miras, vb.) Faz 5'te eklenecek
+- Mesajlaşma katmanı (Dalga C 4.12-4.14) → Faz 5
+- Kalan 6 hukuk kategorisi (Vergi, Aile, Miras, vb.) Faz 5+'ta eklenecek
 
 ## Hesaplayıcılar
 
@@ -155,15 +159,17 @@ Detay: `docs/phase-3-roadmap.md`.
 - Madde 4: Hangfire 401/403 (düşük öncelik, teorik)
 - Madde 9: ActivityLog retention policy (KVKK/hukuk dış bağımlılık)
 
-## Faz 4 — Sosyal Platform (Devam Ediyor)
+## Faz 4 — Sosyal Platform (Tamamlandı: 2 Mayıs 2026)
 
 **Başlangıç:** 30 Nisan 2026
+**Bitiş:** 2 Mayıs 2026
 **Tahmini süre:** ~14 hafta (3 dalga, 14 alt adım)
+**Gerçek süre:** ~2 gün (Dalga A + B; Dalga C → Faz 5)
 **Charter:** [docs/phase-4-charter.md](./docs/phase-4-charter.md)
 **Roadmap:** [docs/phase-4-roadmap.md](./docs/phase-4-roadmap.md)
 
 Sosyal katman: profil, bağlantı, engelleme, kullanıcı içerik üretimi
-(makale + yorum + beğeni + şikayet + moderasyon), real-time mesajlaşma.
+(makale + yorum + beğeni + şikayet + moderasyon).
 
 Vizyon ilkeleri:
 - Plansız (ücretsiz, herkes)
@@ -186,7 +192,55 @@ Vizyon ilkeleri:
 - Test: 396 → 491 (+95)
 - Migration: 4 yeni (PublicProfileFields, MediaFiles, UserConnections, UserBlocks)
 
-Sonraki: Dalga B — UGC (makale + yorum + beğeni + şikayet, ~6 hafta).
+### Dalga B — Tamamlandı (2 Mayıs 2026)
+
+**Tag:** `phase-4-wave-b-complete` · **Süre:** ~1 gün (tahmin 6 hafta)
+
+İçerik:
+- PostCategory + PostTag altyapısı (admin yönetimli kategoriler + kullanıcı serbest tag, popüler tag query)
+- UserPost CRUD + Quill editor (rich text, featured image, tag chip, slug `/uye/{user}/makale/{post}`)
+- Public makale görüntüleme + Article JSON-LD + Open Graph + sitemap entegrasyonu + disclaimer
+- Görsel altyapısı: featured (1200×630 OG) + inline (1200 max) image
+  AJAX upload + CSRF + ImageSharp + WebP + EXIF strip + 5 MB limit
+- Yorum sistemi (sanitize + auto-link + AJAX + sahip/post sahibi/admin yetki)
+- Beğeni sistemi (toggle, anonim okur görüntüler)
+- Moderasyon: ContentReport + admin paneli (`/admin/sikayetler`) + Reddet/Sil
+- Notification entegrasyonu: PostComment, ContentReportResolved, ContentRemoved
+
+Test: 491 → 666 (+175 yeni, ~%36)
+Migration: 4 yeni (PostCategoriesAndTags, UserPosts, PostInteractions, ContentReports)
+Yeni entity: 7 (PostCategory, PostTag, UserPost, PostTagLink, PostComment, PostLike, ContentReport)
+Yeni Razor Page: 4 (Makalelerim, MakaleYeni, MakaleDuzenle, Makale)
+Yeni AJAX endpoint: 4 (PostImages, PostComments, PostLikes, ContentReports)
+Yeni admin paneli: ContentReports moderasyon
+
+### Faz 4 Final
+
+**Tag:** `phase-4-complete` · **Süre:** ~2 gün (tahmin 13 hafta)
+
+Faz 4 = Dalga A (sosyal yüzey) + Dalga B (UGC).
+Dalga C (mesajlaşma 4.12-4.14) kapsam yoğunluğu nedeniyle Faz 5'e taşındı.
+
+| Metrik | Faz başı | Faz sonu | Delta |
+|---|---|---|---|
+| Test | 396 | 666 | +270 (+%68) |
+| Migration | 22 | 30 | +8 |
+| Yeni entity | — | 9 | UserConnection, UserBlock, MediaFile, PostCategory, PostTag, UserPost, PostTagLink, PostComment, PostLike, ContentReport |
+| Yeni Razor Page | — | 6 | /uye/{slug}, /uye/{slug}/baglantilar, /baglantilarim, /makalelerim, /makale-yeni, /makale-duzenle |
+| Yeni public route | — | 1 | /uye/{slug}/makale/{post} |
+| Yeni AJAX endpoint | — | 4 | PostImages, PostComments, PostLikes, ContentReports |
+| Yeni admin paneli | — | 2 | PostCategories, ContentReports |
+| Yeni NotificationType | — | 5 | ConnectionRequest, ConnectionAccepted, PostComment, ContentReportResolved, ContentRemoved |
+
+### Açık tech-debt (Faz 5'e devredildi)
+
+Faz 4 boyunca biriken 13 yeni madde (`docs/tech-debt.md` 11-23):
+InMemory test sınırları, media GC, Hide vs Delete moderation, hierarchical
+reply, tag autocomplete, view count dedupe, tag helper extract, image
+responsive variants, hesap silme/anonimize, bot/spam rate limiting,
+comment edit history, notification email kanalı, NoIndex bayraktarması.
+
+Önceki açık (Faz 3'ten devren): Madde 1, 3, 4, 9 — durumları değişmedi.
 
 ---
 

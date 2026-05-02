@@ -293,3 +293,310 @@ gerçek kullanıcı geri bildirimine göre öncelik belirlenir.
 mapping eklemek 1 gün daha).
 
 **Önceliklendirme:** Faz 4 yayını sonrası kullanıcı geri bildirimine göre.
+
+---
+
+# Faz 4 Dalga B Sırasında Ortaya Çıkan/Ertelenen (2 Mayıs 2026)
+
+Adım 4.5 - 4.10 sırasında bilinçli olarak ertelenen veya keşfedilen
+maddeler. Hepsi Faz 5+ aday — UGC katmanı yayında çalışıyor, bunlar
+"ileride iyileştirme" niteliğinde.
+
+---
+
+## 11. EF Core InMemory provider sınırları (test infrastructure)
+
+**Bağlam:** Adım 4.5 (PostTag UsageCount), 4.7 (UserPost ViewCount),
+4.9 (PostLike toggle), 4.10 P1 (ContentReportGroup) — atomik update veya
+kompleks GroupBy projection istendiğinde InMemory provider'ın eksik
+desteği fark edildi.
+
+**Mevcut durum:** EF Core 10 InMemory provider şu API'leri desteklemiyor:
+- `ExecuteUpdateAsync` / `ExecuteDeleteAsync`
+- `GroupBy` + projection ile `ToDictionaryAsync` (bazı kombinasyonlar)
+
+Etki: tracked entity + SaveChanges fallback'i kullanıldı. Semantik
+doğru, perf etkisi tek-satır seviyesinde küçük. Production SQL Server
+ExecuteUpdate kullanır.
+
+**İdeal çözüm:** Test altyapısını SQL Server LocalDB veya Testcontainers
+(gerçek SQL Server) ile besleyip InMemory'den ayrılmak. Yaklaşım seçenekleri:
+- **Seçenek 1:** Tüm integration testleri LocalDB'ye geçir (CI'da Docker
+  SQL Server container)
+- **Seçenek 2:** Sadece atomik update gerektiren testleri ayır
+  (`[Trait("Provider","Sql")]`), pipeline iki etap
+
+**Önerilen zaman:** Faz 5 başında — yeni atomik update senaryoları
+(Faz 5 KVKK silme, Faz 5 advanced UGC) testlerin doğruluğunu zayıflatır.
+
+---
+
+## 12. Media garbage collection (orphan upload temizleme)
+
+**Bağlam:** Adım 4.8 (görsel altyapısı) ve 4.10 (içerik silme). UserPost
+silindiğinde featured image dosyası diskte kalır; UserPost.Body içindeki
+inline image'lar (`/uploads/posts/{userId}/{guid}.webp`) post silinince
+disk üzerinde orphan kalır.
+
+**Mevcut durum:** Disk şişmesi uzun vadede risk. Adım 4.10 P2'de
+ContentReportService.ActionAsync da aynı: post sildi ama dosya kaldı.
+PostComment'te embed image yok (sadece text + auto-link), o yüzden
+yorum silmede sorun yok.
+
+**İdeal çözüm:** Hangfire recurring job (`MediaGcJob`):
+1. DB'deki tüm UserPost.Body + UserPost.FeaturedImageUrl'lerden img src çıkar
+2. Avatar URL'leri (UserProfile.AvatarUrl) çıkar
+3. Disk'i tara (`wwwroot/uploads/posts/`, `wwwroot/uploads/avatars/`)
+4. Disk'te olup DB'de referans verilmemiş, 30+ gün önce yüklenmiş
+   dosyaları sil
+5. ActivityLog: `MediaGc.Run` (silinen dosya sayısı + toplam byte)
+
+**Önerilen zaman:** Faz 5 — disk monitoring eşiği koyup gerçek
+şişme görülünce. Tahmini iş: ~1 gün.
+
+---
+
+## 13. Hide vs Delete moderation (ContentReportService)
+
+**Bağlam:** Adım 4.10 P2'de ActionAsync sadece "Sil" yapabiliyor.
+Geri alınamaz, yanlış silme riski. UserPostService.DeleteAsync ile
+aynı API yüzeyi.
+
+**Mevcut durum:** Admin "İçeriği Sil" butonu confirm dialog'u var ama
+yanlış karar geri alınamaz. Sahip da bilgilendirildiği için itiraz
+edemez (Notification gönderildi ama içerik gerçekten gitti).
+
+**İdeal çözüm:** Hide pattern ekle:
+- `UserPost.IsModeratorHidden` (bool, default false)
+- `PostComment.IsModeratorHidden` (bool, default false)
+- Public query'ler `IsModeratorHidden = false` filter'ı uygular
+  (sahip için bypass — kendi içeriğini "moderasyona alındı" görür)
+- Admin paneli "Gizle" + "Sil" iki ayrı buton; "Gizle" geri alınabilir
+- ActivityLog: `Post.AdminHide`, `Post.AdminUnhide`
+
+**Önerilen zaman:** Faz 5 — yanlış silme gerçekten yaşanırsa öncelik
+artar. Tahmini iş: ~1-2 gün (entity + servis + view + test).
+
+---
+
+## 14. Hierarchical comment reply (PostComment.ParentCommentId)
+
+**Bağlam:** Adım 4.9 P1/2 entity tasarımı sırasında karar verildi —
+yorumlar düz, "yoruma yorum" yok. Charter §3.3'te ParentCommentId
+nullable olarak listelenmişti ama scope minimize için eklenmedi.
+
+**Mevcut durum:** Tartışmalar tek seviye. Birden fazla yorum aynı
+makaleye gelirse hangi yorum hangine yanıt belli değil; mention
+da yok.
+
+**İdeal çözüm:** `PostComment.ParentCommentId` nullable + 1 seviye
+nesting (Reddit-style sınırsız değil; LinkedIn pattern):
+- Migration: kolon ekle, mevcut yorumlar null
+- Servis: CreateAsync `parentCommentId` parametresi
+- UI: "Yanıtla" butonu, yanıt formu nested
+- NotificationType.CommentReply (zaten enum'da yok ama 4.9'da düşünülmüştü)
+
+**Önerilen zaman:** Faz 5 advanced UGC. Kullanıcı talebine göre
+öncelik. Tahmini iş: ~1-2 gün.
+
+---
+
+## 15. Tag autocomplete (kullanıcı yazımı esnasında)
+
+**Bağlam:** Adım 4.6 P3'te tag chip vanilla JS, kullanıcı serbest yazıyor.
+Mevcut popüler tag'ler önerilmiyor.
+
+**Mevcut durum:** Kullanıcı "iş hukuku" yazar, başka kullanıcı "iş hukukuk"
+typo yapar — iki ayrı tag oluşur. Slug normalize çakışmayı engelliyor
+ama önerme yok.
+
+**İdeal çözüm:**
+- `IPostTagService.GetPopularAsync` zaten hazır
+- Vanilla JS suggestions UI (datalist veya custom dropdown)
+- Input change → debounced query → matching tag'ler dropdown
+- Kullanıcı klavye veya tıklama ile seçer
+
+**Önerilen zaman:** Faz 5 advanced UGC. Tahmini iş: ~0.5 gün
+(servis hazır, UI önemli).
+
+---
+
+## 16. View count dedupe (bot/refresh shielding)
+
+**Bağlam:** Adım 4.7'de her GET +1 ViewCount. Bot trafiği veya
+kullanıcının F5 ile refresh etmesi sayacı şişirir.
+
+**Mevcut durum:** ViewCount gerçekçi olmayan değerler alabilir.
+Yazar UI'da ViewCount görüyorsa ("12 okuma") gerçek metriği yansıtmaz.
+
+**İdeal çözüm seçenekleri:**
+1. **Cookie-based dedupe (basit):** ViewCount artırmadan önce
+   `viewed_post_{id}` cookie kontrolü, 30 dk TTL
+2. **IP+UserAgent fingerprint (orta):** Hash + 24 saat dedupe
+3. **robots.txt + UA filter (defansif):** Bilinen bot UA pattern'lerinde
+   ViewCount artırma
+
+Seçenek 1 + 3 kombinasyonu yeterli olur.
+
+**Önerilen zaman:** Faz 5 — ViewCount UI'a gerçekten yansıyana kadar
+(şu an entity field, yazar görmüyor). Tahmini iş: ~0.5 gün.
+
+---
+
+## 17. Tag UsageCount decrement helper extract (refactor)
+
+**Bağlam:** Adım 4.10 P2'de `ContentReportService.ActionAsync`
+`UserPostService.DeleteAsync` ile aynı tag UsageCount decrement mantığını
+duplike içeriyor. DRY ihlali — ama bilinçli (admin context'inde
+servis-arası bağımlılık eklemek istenmedi).
+
+**Mevcut durum:** İki yerde benzer kod:
+- `UserPostService.DeleteAsync`: `_tagService.DecrementUsageAsync` çağrıları
+- `ContentReportService.ActionAsync`: inline `tag.UsageCount--`
+
+**İdeal çözüm:** `IPostTagService.DecrementForPostAsync(UserPost post,
+CancellationToken ct)` helper extract. İki çağıran da bunu kullanır.
+
+**Önerilen zaman:** Üçüncü çağıran çıkınca (örn. Faz 5 KVKK
+"hesabımı sil" akışında kullanıcının tüm post'larını silmek). Tahmini
+iş: ~30 dk.
+
+---
+
+## 18. Image responsive variants (srcset)
+
+**Bağlam:** Adım 4.8'de görsel yükleme tek 1200x1200 sürüm üretiyor
+(featured: 1200x630 OG, inline: 1200 max). Mobile cihazlarda gereksiz
+büyük dosya indiriliyor.
+
+**Mevcut durum:** Mobile cihazda da 1200px görsel iniyor. CDN yok,
+sıkıştırma WebP olsa bile 100-200 KB. Sayfa hızı (LCP) etkili.
+
+**İdeal çözüm:** ImageSharp ile multiple varyant:
+- Mobile: 600px max
+- Desktop: 1200px max
+- HTML `<picture>` + `<source media>` + `srcset` ile responsive
+
+**Önerilen zaman:** Faz 5 — Core Web Vitals optimize edilirken.
+Tahmini iş: ~1 gün (servis + storage path naming + view helper).
+
+---
+
+## 19. Hesap silme + KVKK anonimize
+
+**Bağlam:** Adım 4.6-4.10 boyunca biriken FK yapısı: ApplicationUser →
+UserPost, PostComment, PostLike, ContentReport (Reporter +
+ReviewedBy), UserConnection, UserBlock — tüm FK'ler User Restrict.
+Hesap silme imkansız (DB integrity).
+
+**Mevcut durum:** Kullanıcı "hesabımı sil" diyemez. KVKK 7. madde
+gereği unutulma hakkı var ama mimari engel oluyor.
+
+**İdeal çözüm:** Anonimize stratejisi (soft delete):
+- `User.IsActive = false`
+- `User.UserName = "silinmis-kullanici-{id}"`
+- `User.Email = null` (veya `deleted-{id}@local`)
+- `UserProfile.DisplayName = "Silinmiş Kullanıcı"`
+- `UserProfile.PublicSlug = null`
+- `UserProfile.Bio/AvatarUrl/...` temizle
+- İçerik (post, yorum) korunur ama yazar "Silinmiş Kullanıcı" görünür
+- Public profile sayfası 404 döner
+- ActivityLog: `User.Anonymize` (audit + integrity için kayıt kalır)
+
+**Önerilen zaman:** Faz 5 — KVKK uyum şartı, hukuki süre baskısı
+varsa öncelik. Tahmini iş: ~2 gün (servis + UI + test + e-posta
+onay flow).
+
+---
+
+## 20. Bot/spam detection (yorum + şikayet rate limiting)
+
+**Bağlam:** Adım 4.9 (yorum AJAX) ve 4.10 P1 (şikayet AJAX) anti-forgery
+korumalı ama rate limiting yok.
+
+**Mevcut durum:** Bir kullanıcı saniyeler içinde 100 yorum yazabilir
+veya 100 farklı içeriği şikayet edebilir. Mükerrer şikayet engelli
+(ReporterId+TargetType+TargetId unique) ama farklı targetlere şikayet
+sınırsız.
+
+**İdeal çözüm:**
+- ASP.NET Core Rate Limiting (built-in `Microsoft.AspNetCore.RateLimiting`):
+  - Kullanıcı başına dakikada 5 yorum
+  - Kullanıcı başına saatte 10 şikayet
+- Honeypot field (bot otomatik dolduran trap input) — spam pattern
+  detection
+- Şüpheli pattern (örn. 3 şikayet 10 dk içinde → admin notification)
+
+**Önerilen zaman:** Faz 5 başı — public traffic artmadan önce.
+Tahmini iş: ~1 gün.
+
+---
+
+## 21. Comment edit history
+
+**Bağlam:** Adım 4.9'da `PostComment.IsEdited` flag eklendi
+(UI "düzenlendi" rozet) ama eski içerik kaybediliyor.
+
+**Mevcut durum:** Yorum düzenlenirse eski hâli yok. Moderasyon
+veya tartışma için "yorum eskiden ne diyordu?" cevabı verilemez
+(spam yorumu sahip düzenleyip benign hâle getirmiş olabilir).
+
+**İdeal çözüm:** `PostCommentRevision` tablosu:
+- `Id, CommentId, OldBody, EditedAt, EditedByUserId`
+- `PostCommentService.UpdateAsync` her güncelleme öncesi revision yazar
+- Admin UI: yorum detayında "geçmiş" linki (son 5 revision)
+
+**Önerilen zaman:** Faz 5 — moderasyon kararı yanlış yöne giderse
+öncelik artar. Tahmini iş: ~1 gün.
+
+---
+
+## 22. Notification email kanalı
+
+**Bağlam:** Faz 3.3'te bell icon notification var, Faz 4'te yeni
+tipler eklendi (Connection, Comment, Like, ContentRemoved, ...).
+Kullanıcı her zaman platformda olmuyor — önemli olaylar email ile
+de gitsin.
+
+**Mevcut durum:** Notification sadece bell icon. Kullanıcı bağlantı
+isteği aldığında email gelmiyor. Karşılaştırma: LinkedIn email
+notifications güçlü.
+
+**İdeal çözüm:**
+- `IEmailService` Faz 3'te zaten var (LoggingEmailService +
+  production SMTP adapter)
+- `NotificationService.CreateAsync` sonrası kullanıcının email
+  tercihine göre email tetikle
+- Kullanıcı tercih ayarı: `UserNotificationPreferences` entity
+  - `EmailOnConnectionRequest` (default true)
+  - `EmailOnComment` (default false — gürültü)
+  - `EmailOnContentRemoved` (default true)
+  - vs.
+- Hangfire job (immediate veya 15 dk batch)
+
+**Önerilen zaman:** Faz 5 — kullanıcı geri çağırma ihtiyacı belirginleşince
+(retention metric). Tahmini iş: ~2-3 gün.
+
+---
+
+## 23. Authorize sayfaları için otomatik NoIndex
+
+**Bağlam:** Adım 4.6 P2'de `/makalelerim` için NoIndex meta tag eklendi
+(robots.txt indeks önler ama view-source temizliği için meta de).
+Diğer `[Authorize]` sayfalar (`/baglantilarim`, `/profil`, `/admin/*`)
+kontrol edilmedi.
+
+**Mevcut durum:** Bazı authenticated sayfalarda NoIndex meta yok.
+Robots.txt zaten engelliyor ama defense-in-depth eksik.
+
+**İdeal çözüm:** `_Layout.cshtml`'de otomatik NoIndex:
+```razor
+@if (User.Identity?.IsAuthenticated == true && ViewData["IsAuthenticatedPage"] != null)
+{
+    <meta name="robots" content="noindex, nofollow" />
+}
+```
+Veya middleware/filter pattern: `[Authorize]` attribute olan
+sayfalar otomatik `X-Robots-Tag: noindex` header.
+
+**Önerilen zaman:** Faz 5 minor cleanup. Tahmini iş: ~30 dk.

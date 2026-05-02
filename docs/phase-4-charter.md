@@ -361,3 +361,88 @@ Bunların hiçbiri Faz 4 kapsamında değildir.
 ---
 
 *Charter sürümü 1.0 — 30 Nisan 2026. Faz 4 boyunca güncel kalır; charter değişiklikleri commit'lerle işlenir.*
+
+---
+
+## 10. Implementation Status (Kapanış Notu — 2 Mayıs 2026)
+
+Faz 4 = Dalga A + Dalga B (10 alt adım, 4.1-4.10 + 4.11 closeout) tamamlandı.
+Dalga C (mesajlaşma, 4.12-4.14) kapsam yoğunluğu nedeniyle Faz 5'e taşındı.
+
+### Charter Karar Implementation Sonuçları
+
+**Kullanıcı Erişim Kararları (§2.1):**
+
+| # | Karar | Durum | Adım |
+|---|---|---|---|
+| 1 | İki ayrı toggle (profil + tenant görünürlüğü) | ✅ | 4.1 P1 |
+| 2 | LinkedIn modeli bağlantı | ✅ | 4.2 P1+P2+P3a+P3b |
+| 3 | Tenant ↔ sosyal bağımsız | ✅ | 4.1, 4.2 boyunca |
+| 4 | Vatandaş 1. sınıf | ✅ | tüm Faz 4 |
+| 5 | UserBlock var | ✅ | 4.3 |
+
+**İçerik Üretimi (UGC) Kararları (§2.2):**
+
+| # | Karar | Durum | Adım |
+|---|---|---|---|
+| 6 | İki katmanlı moderasyon | ✅ | 4.9 (sahip), 4.10 (admin) |
+| 7 | Şikayet + admin onay sırası | ✅ | 4.10 P1+P2 |
+| 8 | Otomatik disclaimer footer | ✅ | 4.7 |
+| 9 | Taslak/Yayında (IsPublished) | ✅ | 4.6 P1+P2 |
+| 10 | Yayın sonrası serbest düzenleme | ✅ | 4.6 P3 |
+| 11 | Slug `/uye/{user}/makale/{post}` | ✅ | 4.6 P1, 4.7 |
+| 12 | Karma tag stratejisi | ✅ | 4.5, 4.6 P3 |
+| 13 | Görsel: yerel disk + 5 MB + JPG/PNG/WebP | ✅ | 4.8 |
+| 14 | Avatar = aynı görsel altyapısı | ✅ | 4.1 P3 + 4.8 |
+
+**Mesajlaşma Kararları (§2.3):** ↪️ Faz 5 (15-18 arası kararlar Faz 5'e devredildi)
+
+**Genel Pattern Kararları (§2.4):**
+
+| # | Karar | Durum | Adım |
+|---|---|---|---|
+| 19 | Notification altyapısı genişletildi (yeniden yazılmadı) | ✅ | 4.3, 4.9, 4.10 |
+| 20 | Bağlantı state machine TenantInvitation pattern reuse | ✅ | 4.2 P1 |
+| 21 | UGC + sosyal eylemler ActivityLog'a yazılır | ✅ | 4.5-4.10 boyunca |
+| 22 | Vatandaş UI gürültüsüzlüğü (gizli iken her yerde gizli) | ✅ | 4.1 + 4.7 (like sessiz) |
+
+### Tamamlanma Kriterleri (§8)
+
+| # | Kriter | Durum |
+|---|---|---|
+| 1 | 14 alt adım tümü tamamlandı | ⚠️ Kısmen — 4.1-4.11 ✅ (10 adım), 4.12-4.14 → Faz 5 |
+| 2 | Test sayısı 600+ (regresyon: 0) | ✅ 666 (hedef 600+ aşıldı) |
+| 3 | Tüm dalgalar manuel doğrulamadan geçti | ✅ Dalga A + B (Dalga C → Faz 5) |
+| 4 | README'de Faz 4 closeout bölümü | ✅ |
+| 5 | `docs/phase-4-roadmap.md` adımlar ✅/↪️ | ✅ |
+| 6 | `phase-4-complete` annotated tag | ✅ Adım 4.11'de |
+| 7 | `docs/tech-debt.md` Faz 4 maddeleri | ✅ Madde 11-23 (13 yeni) |
+
+**Karar:** Faz 4 kapanışı **scope-revize** sayılır — orijinal 14 adımdan
+10'u tamamlandı, 4'ü (mesajlaşma) Faz 5'e taşındı. Sosyal platform + UGC
+yayında çalışıyor; mesajlaşma bağımsız bir kapsam, ertelemenin teknik
+maliyeti yok.
+
+### Faz 5'e Devredilen Kararlar
+
+- Karar 15-18 (Mesajlaşma, §2.3): SignalR, mesaj retention, engelleme
+  entegrasyonu — Faz 5 başlığı altında ele alınacak
+- Faz 4 Dalga B'de biriken 13 tech-debt maddesi (`docs/tech-debt.md`
+  madde 11-23): Faz 5'te öncelikleri değerlendirilir
+
+### Süre Karşılaştırması
+
+| Kapsam | Tahmin | Gerçek | Oran |
+|---|---|---|---|
+| Dalga A (4 adım, ~3 hafta) | 3 hafta | ~1 gün | ~21x |
+| Dalga B (7 adım, ~6 hafta) | 6 hafta | ~1 gün | ~42x |
+| Faz 4 (Dalga A + B, 10 adım) | ~9 hafta | ~2 gün | ~32x |
+
+Bu oran Faz 5 planlamasında baseline değildir — Faz 4'ün hızı
+LLM-asistasyonlu development'ın boyut tahminini sarsıcı şekilde
+küçülttüğünü göstermekle birlikte, Faz 5 (real-time, KVKK) farklı
+karmaşıklık profili taşıdığından yeni baseline'a ihtiyaç var.
+
+---
+
+*Implementation Status notu — 2 Mayıs 2026, Adım 4.11 closeout commit'i.*

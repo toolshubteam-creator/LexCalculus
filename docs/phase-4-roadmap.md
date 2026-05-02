@@ -1,22 +1,26 @@
 # Faz 4 — Sosyal Platform
 
 **Başlangıç:** 30 Nisan 2026
-**Tahmini süre:** ~14 hafta (3 dalga)
+**Bitiş:** 2 Mayıs 2026 (Dalga A + B; Dalga C → Faz 5)
+**Tahmini süre:** ~14 hafta (3 dalga, orijinal)
+**Gerçek süre:** ~2 gün (Dalga A + B)
 **Charter:** [docs/phase-4-charter.md](./phase-4-charter.md)
 **Tag (kapanış):** `phase-4-complete`
 
 ## Durum
 
-🟢 **Dalga A tamamlandı (1 Mayıs 2026)** — 4/14 adım. Tag: `phase-4-wave-a-complete`.
-Dalga B (UGC) sıraya alındı.
+🟢 **Dalga A tamamlandı (1 Mayıs 2026)** — Tag: `phase-4-wave-a-complete`
+🟢 **Dalga B tamamlandı (2 Mayıs 2026)** — Tag: `phase-4-wave-b-complete`
+🟢 **Faz 4 kapandı (2 Mayıs 2026)** — Tag: `phase-4-complete`
+↪️ **Dalga C (mesajlaşma 4.12-4.14) → Faz 5'e taşındı** (kapsam yoğunluğu)
 
 ## Dalga Yapısı
 
 | Dalga | Konu | Adım Aralığı | Süre (tahmin → gerçek) | Durum |
 |---|---|---|---|---|
 | A | Profil + Bağlantı + Engelleme + Notification | 4.1 - 4.4 | ~3 hafta → ~1 gün | ✅ |
-| B | UGC: Makale + Yorum + Beğeni + Şikayet + Moderasyon | 4.5 - 4.11 | ~6 hafta | ⏳ |
-| C | Mesajlaşma: SignalR + Conversation + Messages | 4.12 - 4.14 | ~3 hafta | ⏳ |
+| B | UGC: Makale + Yorum + Beğeni + Şikayet + Moderasyon | 4.5 - 4.11 | ~6 hafta → ~1 gün | ✅ |
+| C | Mesajlaşma: SignalR + Conversation + Messages | 4.12 - 4.14 | ~3 hafta | ↪️ Faz 5 |
 
 ## Adımlar
 
@@ -26,16 +30,35 @@ Dalga B (UGC) sıraya alındı.
 | 4.2  | UserConnections altyapısı (P1+P2+P3a+P3b) | ✅ |
 | 4.3  | UserBlock + Notification genişletme | ✅ |
 | 4.4  | Dalga A closeout | ✅ (4.3 ile birleştirildi) |
-| 4.5  | PostCategory + PostTag altyapısı | ⏳ |
-| 4.6  | UserPost entity + temel CRUD + editör | ⏳ |
-| 4.7  | Public makale görüntüleme + SEO | ⏳ |
-| 4.8  | Görsel yükleme altyapısı | ⏳ |
-| 4.9  | PostComment + PostLike | ⏳ |
-| 4.10 | Şikayet sistemi + admin moderasyon | ⏳ |
-| 4.11 | Dalga B closeout | ⏳ |
-| 4.12 | SignalR altyapı + Conversation/Message entity'leri | ⏳ |
-| 4.13 | Mesajlaşma UI (real-time) | ⏳ |
-| 4.14 | Faz 4 closeout (Notification.Message + bell + tag) | ⏳ |
+| 4.5  | PostCategory + PostTag altyapısı | ✅ |
+| 4.6  | UserPost entity + temel CRUD + editör | ✅ |
+| 4.7  | Public makale görüntüleme + SEO | ✅ |
+| 4.8  | Görsel yükleme altyapısı (featured + inline + AJAX + WebP) | ✅ |
+| 4.9  | PostComment + PostLike | ✅ |
+| 4.10 | Şikayet sistemi + admin moderasyon | ✅ |
+| 4.11 | Dalga B closeout + Faz 4 kapanışı | ✅ |
+| 4.12 | SignalR altyapı + Conversation/Message entity'leri | ↪️ Faz 5 |
+| 4.13 | Mesajlaşma UI (real-time) | ↪️ Faz 5 |
+| 4.14 | Faz 4 closeout (Notification.Message + bell + tag) | ↪️ Faz 5 |
+
+## Dalga C → Faz 5
+
+Charter §2.3'te tanımlanan mesajlaşma katmanı (4.12-4.14) Faz 5'e
+taşındı. Gerekçe: Dalga A + B ile sosyal yüzey + UGC tamamlandı,
+mesajlaşma bağımsız bir kapsam — Faz 5 başlığı altında diğer
+real-time + advanced UGC iyileştirmeleriyle birlikte ele alınması
+mantıklı.
+
+Faz 5 başlığı (öneri): **"Real-time + advanced UGC + KVKK"**
+
+İçerik (önizleme):
+- 4.12 Direct Messaging entity + servis (Conversation, Message)
+- 4.13 SignalR + real-time UI
+- 4.14 Mesajlaşma altyapısı kapanış (retention, search, moderation)
+- Faz 4 Dalga B tech-debt sıraya alınır (madde 11-23)
+
+Süre tahmini Faz 5 başında ölçülür; Faz 4 tahmin/gerçek oranı (13 hafta
+→ 2 gün, ~30x) yanıltıcı olabilir, Faz 5 kendi ölçümüyle plan yapılacak.
 
 ## Adım Detayları
 
@@ -173,17 +196,20 @@ Dalga B (UGC) sıraya alındı.
 
 **Süre:** ~5-7 gün
 
-### Adım 4.11 — Dalga B closeout
+### Adım 4.11 — Dalga B closeout + Faz 4 kapanışı ✅
 
 **Kapsam:**
-- Manuel doğrulama (tüm UGC senaryoları)
-- README'de Dalga B özeti
-- `docs/phase-4-roadmap.md` güncellemesi
-- Mini tag: `phase-4-wave-b-complete`
+- Manuel doğrulama (Dalga A + B senaryoları integration testlerle)
+- README'de Dalga B + Faz 4 final özeti
+- `docs/phase-4-roadmap.md` (bu dosya) güncellemesi
+- `docs/tech-debt.md` Dalga B'de keşfedilen 13 madde (11-23)
+- `docs/phase-4-charter.md` Implementation Status notu
+- 2 annotated tag: `phase-4-wave-b-complete` + `phase-4-complete`
+- Dalga C → Faz 5 taşıma kararı belgelendi
 
-**Süre:** ~1-2 gün
+**Süre:** ~1 gün (gerçek)
 
-### Adım 4.12 — SignalR altyapı + entity'ler
+### Adım 4.12 — SignalR altyapı + entity'ler (↪️ Faz 5)
 
 **Kapsam:**
 - SignalR NuGet (`Microsoft.AspNetCore.SignalR`)
@@ -196,7 +222,7 @@ Dalga B (UGC) sıraya alındı.
 
 **Süre:** ~5-7 gün
 
-### Adım 4.13 — Mesajlaşma UI (real-time)
+### Adım 4.13 — Mesajlaşma UI (real-time) (↪️ Faz 5)
 
 **Kapsam:**
 - `/mesajlar` sayfası (sohbet listesi + aktif sohbet panel)
@@ -209,7 +235,7 @@ Dalga B (UGC) sıraya alındı.
 
 **Süre:** ~5-7 gün
 
-### Adım 4.14 — Faz 4 closeout
+### Adım 4.14 — Faz 4 closeout (↪️ Faz 5)
 
 **Kapsam:**
 - NotificationType.`Message` ekle
