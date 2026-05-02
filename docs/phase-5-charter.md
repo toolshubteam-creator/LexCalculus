@@ -84,15 +84,29 @@ yazma istemeyiz. Tek instance başlangıç (Redis backplane Faz 6+).
 
 **Gerekçe:** Charter Faz 4 §2.3 Karar 15 burada uygulanıyor.
 
-### Karar 3 — Mesajlaşma yetkisi: bağlı kullanıcılar + tenant
+### Karar 3 — Mesajlaşma yetkisi
 
-A ve B Accepted UserConnection'a sahipse mesajlaşabilir (LinkedIn pattern).
-**İstisna:** Aynı tenant üyeleri otomatik mesajlaşabilir (bağlantı
-zorunlu değil) — büro içi iletişim.
+İki yol var; A ve B mesajlaşabilir eğer:
+
+1. **Accepted UserConnection** (LinkedIn pattern, vatandaşlar için
+   genel kural) — aralarında Status=Accepted bağlantı var, **VEYA**
+2. **Aynı tenant üyesi** (intra-org communication) — `User.TenantId`
+   aynı + her ikisi de aktif tenant member (`TenantUser.IsActive=true`),
+   bağlantı zorunlu değil
+
+**UserBlock entegrasyonu (Karar 4) tenant içinde de geçerli** —
+engellenmiş kullanıcı tenant arkadaşı bile olsa mesaj atamaz. Yani
+yetki kontrolü:
+
+```
+canMessage = (HasAcceptedConnection(A,B) OR SameActiveTenant(A,B))
+             AND NOT IsBlockedEitherWay(A,B)
+```
 
 **Faz 4 Karar 16 ile sapma:** Faz 4 charter "engelleme dışında serbest"
 diyordu (Facebook pattern). Faz 5'te LinkedIn modeli + tenant istisnası
-benimsendi. Sebep: spam riski + vatandaş gürültüsüzlüğü.
+benimsendi. Sebep: spam riski + vatandaş gürültüsüzlüğü; tenant istisnası
+büro içi iletişim için pratik gereklilik.
 
 ### Karar 4 — Engelleme entegrasyonu
 
