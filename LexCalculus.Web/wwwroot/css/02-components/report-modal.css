@@ -3,11 +3,18 @@
    render edilir; JS data-report-target-* ile hedef set edip showModal() çağırır. */
 
 .report-modal {
+  /* Native <dialog>[open] default centering — bazı UA reset'leri
+     margin/inset'i ezdiği için explicit set ediyoruz. */
+  position: fixed;
+  inset: 0;
+  margin: auto;
+
   border: none;
   padding: 0;
   border-radius: 6px;
   max-width: 500px;
   width: 90%;
+  max-height: calc(100vh - 2rem);
   background: var(--parchment);
   color: var(--ink);
   box-shadow: 0 8px 32px rgba(10, 20, 40, 0.4);
