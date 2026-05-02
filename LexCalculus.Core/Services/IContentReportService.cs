@@ -44,6 +44,9 @@ public interface IContentReportService
     /// <summary>UI helper: kullanıcı bu hedefi zaten şikayet etti mi?</summary>
     Task<bool> HasReportedAsync(
         ContentReportTargetType targetType, int targetId, int userId, CancellationToken ct = default);
+
+    /// <summary>Admin sidebar badge için: bekleyen rapor satır sayısı.</summary>
+    Task<int> GetPendingCountAsync(CancellationToken ct = default);
 }
 
 public sealed record ContentReportResult(bool Success, string? ErrorMessage, ContentReport? Report);

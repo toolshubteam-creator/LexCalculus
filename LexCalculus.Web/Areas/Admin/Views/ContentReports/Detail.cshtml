@@ -1,0 +1,99 @@
+@using LexCalculus.Core.Entities.Moderation
+@model LexCalculus.Web.Areas.Admin.Models.ContentReports.ContentReportDetailVm
+
+<div class="admin-page">
+    <header class="admin-page__header">
+        <div>
+            <h1 class="admin-page__title">Şikayet İncelemesi</h1>
+            <a class="admin-page__back" asp-action="Index">← Tüm şikayetler</a>
+        </div>
+    </header>
+
+    <section class="content-report-detail">
+        <div class="content-report-detail__target">
+            <h2>Şikayet Edilen İçerik</h2>
+            <dl class="content-report-detail__meta">
+                <dt>Tip:</dt>
+                <dd>@(Model.TargetType == ContentReportTargetType.Post ? "Makale" : "Yorum")</dd>
+
+                <dt>Yazar:</dt>
+                <dd>
+                    @if (!string.IsNullOrEmpty(Model.AuthorSlug))
+                    {
+                        <a href="/uye/@Model.AuthorSlug" target="_blank" rel="noopener">@Model.AuthorDisplayName</a>
+                    }
+                    else
+                    {
+                        @Model.AuthorDisplayName
+                    }
+                </dd>
+
+                <dt>Tarih:</dt>
+                <dd>@Model.TargetCreatedAt.ToString("d MMMM yyyy HH:mm")</dd>
+
+                @if (!string.IsNullOrEmpty(Model.TargetPublicUrl))
+                {
+                    <dt>URL:</dt>
+                    <dd><a href="@Model.TargetPublicUrl" target="_blank" rel="noopener">@Model.TargetPublicUrl</a></dd>
+                }
+            </dl>
+
+            <h3>Başlık</h3>
+            <p class="content-report-detail__title">@Model.TargetTitle</p>
+
+            <h3>İçerik</h3>
+            <div class="content-report-detail__body">
+                @Html.Raw(Model.TargetBodyHtml)
+            </div>
+        </div>
+
+        <div class="content-report-detail__reports">
+            <h2>Şikayetler (@Model.Reports.Count)</h2>
+            <ul class="content-report-detail__report-list">
+                @foreach (var r in Model.Reports)
+                {
+                    <li class="content-report-detail__report-item">
+                        <div class="content-report-detail__report-header">
+                            <strong>@r.ReporterDisplayName</strong>
+                            <span class="content-report-detail__report-reason">@r.ReasonLabel</span>
+                            <span class="content-report-detail__report-date">@r.CreatedAt.ToString("d MMMM yyyy HH:mm")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(r.Note))
+                        {
+                            <p class="content-report-detail__report-note">@r.Note</p>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="content-report-detail__actions">
+            <h2>Aksiyon</h2>
+
+            <form method="post" class="content-report-detail__form">
+                @Html.AntiForgeryToken()
+
+                <div class="content-report-detail__field">
+                    <label class="content-report-detail__field-label" for="reviewNote">Admin Notu (opsiyonel)</label>
+                    <textarea name="reviewNote" id="reviewNote" maxlength="500" rows="3"
+                              class="content-report-detail__field-input"
+                              placeholder="İncelemeniz hakkında not..."></textarea>
+                </div>
+
+                <div class="content-report-detail__action-buttons">
+                    <button type="submit"
+                            formaction="@Url.Action("Dismiss", "ContentReports", new { type = (int)Model.TargetType, id = Model.TargetId })"
+                            class="admin-btn admin-btn--secondary">
+                        Şikayetleri Reddet
+                    </button>
+                    <button type="submit"
+                            formaction="@Url.Action("Action", "ContentReports", new { type = (int)Model.TargetType, id = Model.TargetId })"
+                            class="admin-btn admin-btn--danger"
+                            onclick="return confirm('İçeriği SİLECEKSİNİZ. Bu işlem geri alınamaz. Emin misiniz?')">
+                        İçeriği Sil
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>

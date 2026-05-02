@@ -242,6 +242,9 @@ public sealed class ContentReportService : IContentReportService
             && r.TargetId == targetId
             && r.ReporterId == userId, ct);
 
+    public Task<int> GetPendingCountAsync(CancellationToken ct = default)
+        => _ctx.ContentReports.CountAsync(r => r.Status == ContentReportStatus.Pending, ct);
+
     public async Task<ContentReportResult> DismissAsync(
         ContentReportTargetType targetType, int targetId,
         int adminUserId, string? reviewNote, CancellationToken ct = default)
@@ -320,10 +323,27 @@ public sealed class ContentReportService : IContentReportService
         {
             case ContentReportTargetType.Post:
             {
-                var post = await _ctx.UserPosts.FirstOrDefaultAsync(p => p.Id == targetId, ct);
+                var post = await _ctx.UserPosts
+                    .Include(p => p.TagLinks)
+                    .FirstOrDefaultAsync(p => p.Id == targetId, ct);
                 if (post is null)
                     return new ContentReportResult(false, "İçerik zaten kaldırılmış.", null);
                 contentOwnerId = post.UserId;
+
+                // Yayındaysa tag UsageCount'ları azalt (cascade UsageCount güncellemez).
+                // UserPostService.DeleteAsync ile aynı pattern; admin context'te servis-arası
+                // bağımlılık eklemekten kaçınmak için inline.
+                if (post.IsPublished && post.TagLinks.Count > 0)
+                {
+                    var tagIds = post.TagLinks.Select(l => l.TagId).ToList();
+                    var tags = await _ctx.PostTags
+                        .Where(t => tagIds.Contains(t.Id)).ToListAsync(ct);
+                    foreach (var tag in tags)
+                    {
+                        if (tag.UsageCount > 0) tag.UsageCount--;
+                    }
+                }
+
                 _ctx.UserPosts.Remove(post);
                 break;
             }

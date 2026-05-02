@@ -344,4 +344,87 @@ public class ContentReportServiceTests
         notif.Created.Should().Contain(n =>
             n.Type == NotificationType.ContentRemoved && n.UserId == 3);
     }
+
+    [Fact]
+    public async Task DismissAsync_NoPendingReports_ReturnsError()
+    {
+        var (svc, ctx, _) = Setup();
+        var postId = await SeedPostAsync(ctx, userId: 1);
+
+        var result = await svc.DismissAsync(
+            ContentReportTargetType.Post, postId,
+            adminUserId: 4, reviewNote: null);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("bekleyen");
+    }
+
+    [Fact]
+    public async Task ActionAsync_NonExistentTarget_ReturnsError()
+    {
+        var (svc, _, _) = Setup();
+
+        var result = await svc.ActionAsync(
+            ContentReportTargetType.Post, targetId: 99999,
+            adminUserId: 4, reviewNote: null);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("bekleyen");
+    }
+
+    [Fact]
+    public async Task GetPendingCountAsync_ReturnsAccurateCount()
+    {
+        var (svc, ctx, _) = Setup();
+        var postId1 = await SeedPostAsync(ctx, userId: 1, slug: "p1");
+        var postId2 = await SeedPostAsync(ctx, userId: 1, slug: "p2");
+
+        (await svc.GetPendingCountAsync()).Should().Be(0);
+
+        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: 2,
+            ContentReportReason.Spam, null);
+        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: 3,
+            ContentReportReason.Spam, null);
+        await svc.CreateAsync(ContentReportTargetType.Post, postId2, reporterId: 2,
+            ContentReportReason.Misleading, null);
+
+        (await svc.GetPendingCountAsync()).Should().Be(3);
+
+        // Dismiss postId1 → pending count azalır (sadece postId2 kalır)
+        await svc.DismissAsync(ContentReportTargetType.Post, postId1,
+            adminUserId: 4, reviewNote: null);
+
+        (await svc.GetPendingCountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ActionAsync_DeletesPublishedPostWithTags_DecrementsUsageCount()
+    {
+        var (svc, ctx, _) = Setup();
+        // Tag'ler ve post oluştur (UsageCount=1)
+        var tag1 = new PostTag { Name = "Vergi", Slug = "vergi", UsageCount = 1, CreatedAt = DateTime.UtcNow };
+        var tag2 = new PostTag { Name = "İcra", Slug = "icra", UsageCount = 1, CreatedAt = DateTime.UtcNow };
+        ctx.PostTags.AddRange(tag1, tag2);
+        await ctx.SaveChangesAsync();
+
+        var postId = await SeedPostAsync(ctx, userId: 1);
+        ctx.PostTagLinks.AddRange(
+            new PostTagLink { PostId = postId, TagId = tag1.Id, CreatedAt = DateTime.UtcNow },
+            new PostTagLink { PostId = postId, TagId = tag2.Id, CreatedAt = DateTime.UtcNow });
+        await ctx.SaveChangesAsync();
+
+        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportReason.Spam, null);
+
+        var result = await svc.ActionAsync(
+            ContentReportTargetType.Post, postId,
+            adminUserId: 4, reviewNote: null);
+
+        result.Success.Should().BeTrue();
+
+        var t1 = await ctx.PostTags.FirstAsync(t => t.Id == tag1.Id);
+        var t2 = await ctx.PostTags.FirstAsync(t => t.Id == tag2.Id);
+        t1.UsageCount.Should().Be(0);
+        t2.UsageCount.Should().Be(0);
+    }
 }

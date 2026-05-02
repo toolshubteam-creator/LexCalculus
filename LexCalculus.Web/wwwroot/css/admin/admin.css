@@ -1097,3 +1097,183 @@ button { font: inherit; }
     word-break: break-word;
     overflow-x: auto;
 }
+
+/* ─────────── Content Report (admin moderasyon) — Faz 4.10 P2 ─────────── */
+
+.param-badge--post {
+    background: #d4edda;
+    color: #155724;
+}
+.param-badge--comment {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.content-report-detail {
+    display: grid;
+    gap: 24px;
+    margin-top: 16px;
+}
+
+.content-report-detail__target,
+.content-report-detail__reports,
+.content-report-detail__actions {
+    background: var(--parchment, #f7f1e1);
+    border: 1px solid var(--rule, #c9bf9c);
+    border-radius: 4px;
+    padding: 24px;
+}
+
+.content-report-detail__target h2,
+.content-report-detail__reports h2,
+.content-report-detail__actions h2 {
+    font-family: var(--font-display, 'Cormorant Garamond', serif);
+    font-size: 20px;
+    margin: 0 0 16px;
+}
+
+.content-report-detail__target h3 {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--muted, #6e6a5b);
+    margin: 16px 0 8px;
+}
+
+.content-report-detail__meta {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 4px 12px;
+    margin: 0 0 16px;
+    font-size: 14px;
+}
+
+.content-report-detail__meta dt {
+    color: var(--muted, #6e6a5b);
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    align-self: center;
+}
+
+.content-report-detail__meta dd {
+    margin: 0;
+    color: var(--ink, #1a1a1a);
+}
+
+.content-report-detail__title {
+    font-weight: 600;
+    color: var(--ink, #1a1a1a);
+    margin: 8px 0 16px;
+}
+
+.content-report-detail__body {
+    background: #fff;
+    border: 1px solid var(--rule, #c9bf9c);
+    border-radius: 4px;
+    padding: 16px;
+    line-height: 1.6;
+    max-height: 500px;
+    overflow: auto;
+}
+
+.content-report-detail__body p {
+    margin: 0 0 12px;
+}
+
+.content-report-detail__body img {
+    max-width: 100%;
+    height: auto;
+}
+
+.content-report-detail__report-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.content-report-detail__report-item {
+    background: #fff;
+    border: 1px solid var(--rule, #c9bf9c);
+    border-radius: 4px;
+    padding: 12px 16px;
+}
+
+.content-report-detail__report-header {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.content-report-detail__report-reason {
+    background: var(--gold-pale, #d4c389);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink, #1a1a1a);
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+.content-report-detail__report-date {
+    color: var(--muted, #6e6a5b);
+    font-size: 13px;
+    margin-left: auto;
+}
+
+.content-report-detail__report-note {
+    margin: 0;
+    color: var(--ink, #1a1a1a);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.content-report-detail__form {
+    margin-top: 8px;
+}
+
+.content-report-detail__field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+}
+
+.content-report-detail__field-label {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted, #6e6a5b);
+    margin-bottom: 6px;
+}
+
+.content-report-detail__field-input {
+    background: #fff;
+    border: 1px solid var(--rule, #c9bf9c);
+    border-radius: 3px;
+    padding: 8px 10px;
+    font-family: var(--font-body, 'Cormorant Garamond', serif);
+    font-size: 15px;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.content-report-detail__field-input:focus {
+    outline: none;
+    border-color: var(--gold, #c5a85a);
+}
+
+.content-report-detail__action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
