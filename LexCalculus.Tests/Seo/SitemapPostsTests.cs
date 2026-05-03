@@ -151,4 +151,33 @@ public class SitemapPostsTests
 
         nodes.Should().NotContain(n => n.Url.Contains("/makale/pasif-yazar-makale"));
     }
+
+    [Fact]
+    public async Task Sitemap_ExcludesHiddenPosts()
+    {
+        await using var ctx = TestDbContextFactory.Create();
+        ctx.Users.Add(MakeUser(1, "hid@x.com", isActive: true));
+        ctx.UserProfiles.Add(new UserProfile
+        {
+            UserId = 1, DisplayName = "Hid", PublicSlug = "hid-yazar",
+            IsPublicProfile = true
+        });
+        ctx.PostCategories.Add(new PostCategory
+        {
+            Id = 1, Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await ctx.SaveChangesAsync();
+
+        var hidden = MakePost(50, 1, 1, "gizlenmis-makale", isPublished: true);
+        hidden.IsModeratorHidden = true;
+        ctx.UserPosts.Add(hidden);
+        await ctx.SaveChangesAsync();
+
+        var builder = CreateBuilder(ctx);
+        var nodes = await builder.BuildAsync();
+
+        nodes.Should().NotContain(n => n.Url.Contains("/makale/gizlenmis-makale"),
+            "yönetim tarafından gizlenmiş post sitemap dışı (Faz 5.3 Karar 11)");
+    }
 }

@@ -165,15 +165,18 @@ public sealed class PostCommentService : IPostCommentService
     }
 
     public async Task<IReadOnlyList<PostComment>> GetByPostIdAsync(
-        int postId, CancellationToken ct = default)
-        => await _ctx.PostComments
+        int postId, bool includeHidden = false, CancellationToken ct = default)
+    {
+        var q = _ctx.PostComments
             .Include(c => c.User).ThenInclude(u => u!.Profile)
-            .Where(c => c.PostId == postId)
-            .OrderBy(c => c.CreatedAt)
-            .ToListAsync(ct);
+            .Where(c => c.PostId == postId);
+        if (!includeHidden)
+            q = q.Where(c => !c.IsModeratorHidden);
+        return await q.OrderBy(c => c.CreatedAt).ToListAsync(ct);
+    }
 
     public Task<int> GetCountForPostAsync(int postId, CancellationToken ct = default)
-        => _ctx.PostComments.CountAsync(c => c.PostId == postId, ct);
+        => _ctx.PostComments.CountAsync(c => c.PostId == postId && !c.IsModeratorHidden, ct);
 
     public Task<PostComment?> GetByIdAsync(int commentId, CancellationToken ct = default)
         => _ctx.PostComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);

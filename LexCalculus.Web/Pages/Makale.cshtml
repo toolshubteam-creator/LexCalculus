@@ -14,6 +14,13 @@
             <a href="/makalelerim?tab=taslak">Makalelerim</a>
         </div>
     }
+    @if (Model.IsHiddenPreview)
+    {
+        <div class="makale__preview-banner makale__preview-banner--hidden" role="status">
+            <strong>⚠ Yönetim tarafından gizlendi:</strong> Bu içerik şu anda public erişime kapalı;
+            sadece sahibi ve yöneticiler bu önizlemeyi görebilir.
+        </div>
+    }
 
     @if (!string.IsNullOrEmpty(Model.FeaturedImageAbsoluteUrl))
     {

@@ -415,4 +415,61 @@ public class MakalePageTests : IClassFixture<TestAuthWebApplicationFactory>
             await CleanupAsync(u.Email!, "mak-d-1");
         }
     }
+
+    // ─── Faz 5.3 Hide moderation ──────────────────────────────────────────
+
+    private async Task SetPostHiddenAsync(int postId, bool hidden)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var post = await ctx.UserPosts.FirstAsync(p => p.Id == postId);
+        post.IsModeratorHidden = hidden;
+        await ctx.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task OnGet_HiddenPost_AnonymousReturns404()
+    {
+        var (u, _) = await SeedAuthorAsync("hide-anon@example.com", "Hide Anon", "mak-hidden-anon");
+        var catId = await EnsureCategoryAsync();
+        try
+        {
+            var postId = await SeedPostAsync(u.Id, catId, "H", "h-1", isPublished: true);
+            await SetPostHiddenAsync(postId, true);
+
+            using var client = CreateAnonClient();
+            var response = await client.GetAsync("/uye/mak-hidden-anon/makale/h-1");
+
+            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+        finally
+        {
+            await CleanupAsync(u.Email!, "mak-hidden-anon");
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_HiddenPost_OwnerSeesHiddenBanner()
+    {
+        var (u, _) = await SeedAuthorAsync("hide-own@example.com", "Hide Own", "mak-hidden-own");
+        var catId = await EnsureCategoryAsync();
+        try
+        {
+            var postId = await SeedPostAsync(u.Id, catId, "H", "h-2", isPublished: true);
+            await SetPostHiddenAsync(postId, true);
+
+            using var client = CreateAuthClient(u.Id, u.Email!);
+            var response = await client.GetAsync("/uye/mak-hidden-own/makale/h-2");
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var body = await response.Content.ReadAsStringAsync();
+            body.Should().Contain("makale__preview-banner--hidden",
+                "sahip için 'Yönetim tarafından gizlendi' banner");
+            body.Should().Contain("noindex", "hidden preview noindex meta render");
+        }
+        finally
+        {
+            await CleanupAsync(u.Email!, "mak-hidden-own");
+        }
+    }
 }

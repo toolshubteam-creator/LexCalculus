@@ -64,6 +64,12 @@ public sealed class MakaleModel : PageModel
     /// <summary>Sahip kendi taslağını ön izliyor.</summary>
     public bool IsOwnerPreview { get; private set; }
 
+    /// <summary>
+    /// İçerik admin tarafından gizlenmiş; sahip veya admin "Gizlendi" banner'lı
+    /// önizleme görüyor (Faz 5.3 Karar 11).
+    /// </summary>
+    public bool IsHiddenPreview { get; private set; }
+
     // Faz 4.9 P2 — yorum + beğeni
     public IReadOnlyList<PostCommentViewModel> Comments { get; private set; }
         = Array.Empty<PostCommentViewModel>();
@@ -102,8 +108,15 @@ public sealed class MakaleModel : PageModel
         if (!post.IsPublished && !IsOwnerPreview)
             return NotFound();
 
-        // ViewCount: sadece yayında ve sahip dışı görüntüleyiciler için
-        if (post.IsPublished && viewerId != post.UserId)
+        // Faz 5.3 — Hide moderation: sahip + admin görür (banner ile), diğerleri 404.
+        var isAdmin = User.IsInRole("Admin");
+        var isOwner = viewerId.HasValue && viewerId.Value == post.UserId;
+        if (post.IsModeratorHidden && !isOwner && !isAdmin)
+            return NotFound();
+        IsHiddenPreview = post.IsModeratorHidden && (isOwner || isAdmin);
+
+        // ViewCount: sadece yayında, gizlenmemiş, sahip dışı görüntüleyiciler için
+        if (post.IsPublished && !post.IsModeratorHidden && viewerId != post.UserId)
         {
             post.ViewCount += 1;
             await _ctx.SaveChangesAsync(ct);
@@ -127,11 +140,12 @@ public sealed class MakaleModel : PageModel
         var siteUrl = (_seo.SiteUrl ?? "").TrimEnd('/');
         CanonicalUrl = $"{siteUrl}/uye/{userSlug}/makale/{postSlug}";
 
-        if (IsOwnerPreview)
+        if (IsOwnerPreview || IsHiddenPreview)
             ViewData["NoIndex"] = true;
 
         // Faz 4.9 P2 — yorum + beğeni state
-        if (post.IsPublished)
+        // Faz 5.3 — hidden post'ta yorum/beğeni etkileşimi kapalı (sahip+admin sadece okur).
+        if (post.IsPublished && !post.IsModeratorHidden)
         {
             CommentCount = await _comments.GetCountForPostAsync(post.Id, ct);
             LikeCount = await _likes.GetCountForPostAsync(post.Id, ct);
@@ -142,8 +156,7 @@ public sealed class MakaleModel : PageModel
             // Faz 4.10 P1 — şikayet linki: login + sahip değil
             CanReportPost = viewerId.HasValue && viewerId.Value != post.UserId;
 
-            var commentEntities = await _comments.GetByPostIdAsync(post.Id, ct);
-            var isAdmin = User.IsInRole("Admin");
+            var commentEntities = await _comments.GetByPostIdAsync(post.Id, includeHidden: isAdmin, ct);
             var postOwnerId = post.UserId;
             Comments = commentEntities.Select(c => new PostCommentViewModel
             {

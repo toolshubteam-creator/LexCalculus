@@ -25,4 +25,10 @@ public sealed class PostComment
 
     /// <summary>True ise UI 'düzenlendi' rozeti gösterir.</summary>
     public bool IsEdited { get; set; }
+
+    /// <summary>
+    /// Admin moderasyon: gizle (Faz 5.3 Karar 11). True ise public listede
+    /// görünmez; admin override ile görür. Yorum sayım'ından da düşer.
+    /// </summary>
+    public bool IsModeratorHidden { get; set; }
 }

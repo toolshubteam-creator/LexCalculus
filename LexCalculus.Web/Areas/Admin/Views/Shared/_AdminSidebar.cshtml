@@ -35,10 +35,19 @@
        asp-area="Admin" asp-controller="PostCategories" asp-action="Index">
         <span class="admin-nav-link__label">Kategoriler</span>
     </a>
-    <a class="admin-nav-link @(currentController == "ContentReports" ? "admin-nav-link--active" : "")"
+    @{
+        var isContentReportsActive = currentController == "ContentReports";
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+        var isHiddenList = isContentReportsActive && currentAction == "Hidden";
+    }
+    <a class="admin-nav-link @(isContentReportsActive && !isHiddenList ? "admin-nav-link--active" : "")"
        asp-area="Admin" asp-controller="ContentReports" asp-action="Index">
         <span class="admin-nav-link__label">Şikayetler</span>
         @await Component.InvokeAsync("PendingContentReportsBadge")
+    </a>
+    <a class="admin-nav-link @(isHiddenList ? "admin-nav-link--active" : "")"
+       asp-area="Admin" asp-controller="ContentReports" asp-action="Hidden">
+        <span class="admin-nav-link__label">Gizlenenler</span>
     </a>
     <a class="admin-nav-link @(currentController == "TenantTalepleri" ? "admin-nav-link--active" : "")"
        asp-area="Admin" asp-controller="TenantTalepleri" asp-action="Index">

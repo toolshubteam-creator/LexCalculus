@@ -3,6 +3,15 @@
     var trCulture = new CultureInfo("tr-TR");
     var currentDate = DateTime.Now.ToString("dd MMMM yyyy", trCulture);
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+
+    // Faz 5.3 — NoIndex auto: [Authorize] sayfaları otomatik noindex.
+    // ViewData["NoIndex"]=true manuel mode hâlâ destekli (geriye uyumluluk +
+    // koşullu durumlar — örn. owner preview).
+    var endpoint = Context.GetEndpoint();
+    var hasAuthorize = endpoint?.Metadata
+        .GetMetadata<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>() != null;
+    var manualNoIndex = ViewData["NoIndex"] is bool n && n;
+    var shouldNoIndex = hasAuthorize || manualNoIndex;
 }
 <!DOCTYPE html>
 <html lang="tr">
@@ -12,7 +21,7 @@
 
     @await Component.InvokeAsync("SeoMeta")
 
-    @if (ViewData["NoIndex"] is bool noIndex && noIndex)
+    @if (shouldNoIndex)
     {
         <meta name="robots" content="noindex,nofollow" />
     }

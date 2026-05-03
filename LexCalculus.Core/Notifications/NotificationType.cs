@@ -33,5 +33,11 @@ public enum NotificationType
     ContentReportResolved = 104,
 
     /// <summary>Faz 4.10 — kullanıcının içeriği şikayet üzerine kaldırıldı. P2'de kullanılır.</summary>
-    ContentRemoved = 105
+    ContentRemoved = 105,
+
+    /// <summary>Faz 5.3 — içerik admin tarafından gizlendi (Hide pattern, geri alınabilir).</summary>
+    ContentHidden = 106,
+
+    /// <summary>Faz 5.3 — daha önce gizlenmiş içerik admin tarafından geri yüklendi.</summary>
+    ContentRestored = 107
 }

@@ -47,6 +47,23 @@ public interface IContentReportService
 
     /// <summary>Admin sidebar badge için: bekleyen rapor satır sayısı.</summary>
     Task<int> GetPendingCountAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Hide pattern (Faz 5.3 Karar 11): içerik public görünmez ama silinmez.
+    /// Sahip + admin "Gizlenmiş" banner ile görür. Geri alınabilir
+    /// (UnhideAsync). Pending raporlar Status=Actioned'a geçer.
+    /// </summary>
+    Task<ContentReportResult> HideAsync(
+        ContentReportTargetType targetType, int targetId,
+        int adminUserId, string? reviewNote, CancellationToken ct = default);
+
+    /// <summary>Hide'ı geri al — IsModeratorHidden=false, içerik tekrar public.</summary>
+    Task<ContentReportResult> UnhideAsync(
+        ContentReportTargetType targetType, int targetId,
+        int adminUserId, CancellationToken ct = default);
+
+    /// <summary>Gizli içerik admin listesi (gizlenenler sayfası).</summary>
+    Task<IReadOnlyList<HiddenContentItem>> GetHiddenContentAsync(CancellationToken ct = default);
 }
 
 public sealed record ContentReportResult(bool Success, string? ErrorMessage, ContentReport? Report);
@@ -63,3 +80,14 @@ public sealed record ContentReportGroup(
     DateTime LatestReportAt,
     string? TargetTitle,
     string? AuthorDisplayName);
+
+/// <summary>
+/// Admin "Gizlenenler" listesi item. Faz 5.3.
+/// </summary>
+public sealed record HiddenContentItem(
+    ContentReportTargetType TargetType,
+    int TargetId,
+    string TargetTitle,
+    string AuthorDisplayName,
+    DateTime UpdatedAt,
+    string? TargetUrl);

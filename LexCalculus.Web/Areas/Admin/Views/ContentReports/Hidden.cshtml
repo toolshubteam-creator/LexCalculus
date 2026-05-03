@@ -1,0 +1,86 @@
+@using LexCalculus.Core.Entities.Moderation
+@using LexCalculus.Core.Services
+@model IReadOnlyList<HiddenContentItem>
+
+<div class="admin-page">
+    @if (TempData["AdminSuccess"] is string success)
+    {
+        <div class="admin-banner admin-banner--success" role="status">@success</div>
+    }
+    @if (TempData["AdminError"] is string error)
+    {
+        <div class="admin-banner admin-banner--error" role="alert">@error</div>
+    }
+
+    <header class="admin-page__header">
+        <div>
+            <h1 class="admin-page__title">Gizlenen İçerikler</h1>
+            <p class="admin-page__subtitle">@Model.Count gizlenmiş içerik</p>
+            <a class="admin-page__back" asp-action="Index">← Bekleyen şikayetler</a>
+        </div>
+    </header>
+
+    @if (Model.Count == 0)
+    {
+        <div class="admin-card admin-card--empty">
+            <p class="admin-card__body">Gizlenmiş içerik bulunmuyor.</p>
+        </div>
+    }
+    else
+    {
+        <div class="param-table-wrap">
+            <table class="param-table">
+                <thead>
+                    <tr>
+                        <th>Tip</th>
+                        <th>İçerik</th>
+                        <th>Yazar</th>
+                        <th>Gizlendi</th>
+                        <th class="param-table__actions">Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr class="param-table__row">
+                            <td>
+                                @if (item.TargetType == ContentReportTargetType.Post)
+                                {
+                                    <span class="param-badge param-badge--post">Makale</span>
+                                }
+                                else
+                                {
+                                    <span class="param-badge param-badge--comment">Yorum</span>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.TargetUrl))
+                                {
+                                    <a href="@item.TargetUrl" target="_blank" rel="noopener">@item.TargetTitle</a>
+                                }
+                                else
+                                {
+                                    <span>@item.TargetTitle</span>
+                                }
+                            </td>
+                            <td>@item.AuthorDisplayName</td>
+                            <td>@item.UpdatedAt.ToLocalTime().ToString("d MMMM yyyy HH:mm")</td>
+                            <td class="param-table__actions">
+                                <form method="post" asp-action="Unhide"
+                                      asp-route-type="@((int)item.TargetType)"
+                                      asp-route-id="@item.TargetId"
+                                      class="admin-inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="admin-link"
+                                            onclick="return confirm('İçeriği geri yüklemek istediğinizden emin misiniz?')">
+                                        Göster
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

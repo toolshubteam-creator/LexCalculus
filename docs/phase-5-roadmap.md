@@ -7,13 +7,14 @@
 
 ## Durum
 
-🟡 **Başladı (2 Mayıs 2026)** — 0/9 adım. Dalga A (Olgunlaştırma) sıraya alındı.
+🟢 **Dalga A tamamlandı (3 Mayıs 2026)** — Tag: `phase-5-wave-a-complete`
+🟡 **Dalga B (Mesajlaşma) sırada** — 5.4-5.7
 
 ## Dalga Yapısı
 
 | Dalga | Konu | Adım Aralığı | Tahmin | Durum |
 |---|---|---|---|---|
-| A | Olgunlaştırma (KVKK + güvenlik) | 5.1 - 5.3 | 1.5-2 hafta | ⏳ |
+| A | Olgunlaştırma (KVKK + güvenlik) | 5.1 - 5.3 | 1.5-2 hafta → ~1 gün | ✅ |
 | B | Mesajlaşma altyapısı (Conversation + SignalR) | 5.4 - 5.7 | 3 hafta | ⏳ |
 | C | Test infrastructure + Faz closeout | 5.8 - 5.9 | 1 hafta | ⏳ |
 
@@ -21,9 +22,9 @@
 
 | Adım | Konu | Bağımlılık | Charter Karar | Durum |
 |---|---|---|---|---|
-| 5.1 | Hesap silme + anonimize stratejisi | Faz 4 FK Restrict yapısı | 6 | ⏳ |
-| 5.2 | Rate limiting middleware | — | 7 | ⏳ |
-| 5.3 | Hide moderation + NoIndex auto | Adım 4.10 P2 | 11, 12 | ⏳ |
+| 5.1 | Hesap silme + anonimize stratejisi | Faz 4 FK Restrict yapısı | 6 | ✅ |
+| 5.2 | Rate limiting middleware | — | 7 | ✅ |
+| 5.3 | Hide moderation + NoIndex auto | Adım 4.10 P2 | 11, 12 | ✅ |
 | 5.4 | Conversation + Message entity + servis | Adım 4.2 (UserConnection), 4.3 (UserBlock) | 1, 4, 5 | ⏳ |
 | 5.5 | Mesajlaşma UI (polling fallback) | 5.4 | 9 | ⏳ |
 | 5.6 | SignalR real-time entegrasyonu | 5.5 | 2, 8 | ⏳ |

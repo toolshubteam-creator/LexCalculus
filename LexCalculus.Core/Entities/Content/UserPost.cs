@@ -30,6 +30,14 @@ public sealed class UserPost
     public bool IsPublished { get; set; }
     public DateTime? PublishedAt { get; set; }
 
+    /// <summary>
+    /// Admin moderasyon: gizle (Hide vs Delete pattern, Faz 5.3 Karar 11).
+    /// True ise public sayfalarda 404; sahip + admin "Gizlenmiş" banner ile görür.
+    /// Sitemap dışı. UserPostService.DeleteAsync ile farklı: silme geri alınamaz,
+    /// gizleme geri alınabilir (UnhideAsync).
+    /// </summary>
+    public bool IsModeratorHidden { get; set; }
+
     /// <summary>Görüntülenme sayacı (long: 4B üzeri olası).</summary>
     public long ViewCount { get; set; }
 

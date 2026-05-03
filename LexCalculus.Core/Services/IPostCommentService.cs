@@ -21,8 +21,14 @@ public interface IPostCommentService
     Task<PostCommentResult> DeleteAsync(
         int commentId, int actingUserId, bool isAdmin, CancellationToken ct = default);
 
-    /// <summary>Post yorumları, OrderBy(CreatedAt ASC) — eski → yeni.</summary>
-    Task<IReadOnlyList<PostComment>> GetByPostIdAsync(int postId, CancellationToken ct = default);
+    /// <summary>
+    /// Post yorumları, OrderBy(CreatedAt ASC) — eski → yeni.
+    /// includeHidden=false (default): admin moderasyonla gizlenmiş yorumlar dahil edilmez (public).
+    /// includeHidden=true: admin override — gizlenmiş yorumlar da listede.
+    /// Faz 5.3 Karar 11.
+    /// </summary>
+    Task<IReadOnlyList<PostComment>> GetByPostIdAsync(
+        int postId, bool includeHidden = false, CancellationToken ct = default);
     Task<int> GetCountForPostAsync(int postId, CancellationToken ct = default);
     Task<PostComment?> GetByIdAsync(int commentId, CancellationToken ct = default);
 }

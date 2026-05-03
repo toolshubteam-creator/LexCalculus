@@ -87,6 +87,12 @@
                         Şikayetleri Reddet
                     </button>
                     <button type="submit"
+                            formaction="@Url.Action("Hide", "ContentReports", new { type = (int)Model.TargetType, id = Model.TargetId })"
+                            class="admin-btn admin-btn--secondary"
+                            onclick="return confirm('İçerik gizlenecek. Sahip ve admin görür, diğerleri göremez. Geri alınabilir.')">
+                        İçeriği Gizle
+                    </button>
+                    <button type="submit"
                             formaction="@Url.Action("Action", "ContentReports", new { type = (int)Model.TargetType, id = Model.TargetId })"
                             class="admin-btn admin-btn--danger"
                             onclick="return confirm('İçeriği SİLECEKSİNİZ. Bu işlem geri alınamaz. Emin misiniz?')">

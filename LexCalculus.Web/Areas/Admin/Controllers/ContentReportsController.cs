@@ -140,6 +140,68 @@ public sealed class ContentReportsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost("{type:int}/{id:int}/hide")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Hide(
+        int type, int id, string? reviewNote, CancellationToken ct = default)
+    {
+        if (!Enum.IsDefined(typeof(ContentReportTargetType), type))
+            return NotFound();
+
+        var targetType = (ContentReportTargetType)type;
+        var raw = _userManager.GetUserId(User);
+        if (!int.TryParse(raw, out var adminId))
+            return Unauthorized();
+
+        var result = await _reportService.HideAsync(targetType, id, adminId, reviewNote, ct);
+
+        if (result.Success)
+            TempData["AdminSuccess"] = "✓ İçerik gizlendi. Sahip ve admin görür; geri alınabilir.";
+        else
+            TempData["AdminError"] = result.ErrorMessage ?? "İşlem başarısız.";
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet("gizlenenler")]
+    public async Task<IActionResult> Hidden(CancellationToken ct = default)
+    {
+        var hidden = await _reportService.GetHiddenContentAsync(ct);
+
+        ViewData["Title"] = "Gizlenen İçerikler";
+        ViewData["Breadcrumb"] = new List<(string Label, string? Url)>
+        {
+            ("Dashboard", Url.Action("Index", "Home", new { area = "Admin" })),
+            ("Şikayetler", Url.Action(nameof(Index))),
+            ("Gizlenenler", null)
+        };
+
+        return View("Hidden", hidden);
+    }
+
+    [HttpPost("{type:int}/{id:int}/unhide")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unhide(
+        int type, int id, CancellationToken ct = default)
+    {
+        if (!Enum.IsDefined(typeof(ContentReportTargetType), type))
+            return NotFound();
+
+        var targetType = (ContentReportTargetType)type;
+        var raw = _userManager.GetUserId(User);
+        if (!int.TryParse(raw, out var adminId))
+            return Unauthorized();
+
+        var result = await _reportService.UnhideAsync(targetType, id, adminId, ct);
+
+        if (result.Success)
+            TempData["AdminSuccess"] = "✓ İçerik geri yüklendi.";
+        else
+            TempData["AdminError"] = result.ErrorMessage ?? "İşlem başarısız.";
+
+        return RedirectToAction(nameof(Hidden));
+    }
+
     // ─── helpers ──────────────────────────────────────────────────────────
 
     private async Task<string?> BuildTargetUrlAsync(

@@ -23,6 +23,13 @@
   margin-left: var(--sp-2);
 }
 
+/* Faz 5.3 — Hide moderation banner: sahip/admin gizlenmiş içeriği görür */
+.makale__preview-banner--hidden {
+  background: #f8d7da;
+  border-color: #e3a4ab;
+  color: #5a1a26;
+}
+
 .makale__featured {
   margin: 0 0 var(--sp-6);
   border-radius: 4px;

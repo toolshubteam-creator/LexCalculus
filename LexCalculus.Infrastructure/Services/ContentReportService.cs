@@ -245,6 +245,259 @@ public sealed class ContentReportService : IContentReportService
     public Task<int> GetPendingCountAsync(CancellationToken ct = default)
         => _ctx.ContentReports.CountAsync(r => r.Status == ContentReportStatus.Pending, ct);
 
+    public async Task<ContentReportResult> HideAsync(
+        ContentReportTargetType targetType, int targetId,
+        int adminUserId, string? reviewNote, CancellationToken ct = default)
+    {
+        int? contentOwnerId = null;
+        bool wasAlreadyHidden = false;
+        switch (targetType)
+        {
+            case ContentReportTargetType.Post:
+            {
+                var post = await _ctx.UserPosts.FirstOrDefaultAsync(p => p.Id == targetId, ct);
+                if (post is null)
+                    return new ContentReportResult(false, "İçerik bulunamadı.", null);
+                wasAlreadyHidden = post.IsModeratorHidden;
+                contentOwnerId = post.UserId;
+                post.IsModeratorHidden = true;
+                post.UpdatedAt = DateTime.UtcNow;
+                break;
+            }
+            case ContentReportTargetType.Comment:
+            {
+                var comment = await _ctx.PostComments.FirstOrDefaultAsync(c => c.Id == targetId, ct);
+                if (comment is null)
+                    return new ContentReportResult(false, "İçerik bulunamadı.", null);
+                wasAlreadyHidden = comment.IsModeratorHidden;
+                contentOwnerId = comment.UserId;
+                comment.IsModeratorHidden = true;
+                comment.UpdatedAt = DateTime.UtcNow;
+                break;
+            }
+            default:
+                return new ContentReportResult(false, "Geçersiz hedef tipi.", null);
+        }
+
+        // Pending raporları Actioned'a çek (Hide de aksiyon)
+        var pending = await _ctx.ContentReports
+            .Where(r => r.TargetType == targetType
+                     && r.TargetId == targetId
+                     && r.Status == ContentReportStatus.Pending)
+            .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var trimmedNote = string.IsNullOrWhiteSpace(reviewNote) ? null : reviewNote.Trim();
+        if (trimmedNote is not null && trimmedNote.Length > 500)
+            trimmedNote = trimmedNote.Substring(0, 500);
+
+        foreach (var r in pending)
+        {
+            r.Status = ContentReportStatus.Actioned;
+            r.ReviewedByUserId = adminUserId;
+            r.ReviewedAt = now;
+            r.ReviewNote = trimmedNote;
+        }
+
+        await _ctx.SaveChangesAsync(ct);
+
+        // Notification (idempotent: zaten gizliyse de notify değil — sadece yeni hide)
+        if (!wasAlreadyHidden)
+        {
+            // Reporter'lara "şikayetiniz değerlendirildi, içerik gizlendi"
+            var reporterIds = pending.Select(r => r.ReporterId).Distinct().ToList();
+            foreach (var reporterId in reporterIds)
+            {
+                await SafeNotifyAsync(() => _notifications.CreateAsync(
+                    type: NotificationType.ContentHidden,
+                    userId: reporterId,
+                    title: "Şikayetiniz incelendi",
+                    body: "Bildirdiğiniz içerik moderasyon kuralları gereği gizlendi.",
+                    link: "/bildirimler",
+                    relatedEntityType: nameof(ContentReport),
+                    relatedEntityId: pending.First(r => r.ReporterId == reporterId).Id,
+                    ct: ct));
+            }
+
+            // Content owner'a
+            if (contentOwnerId.HasValue)
+            {
+                await SafeNotifyAsync(() => _notifications.CreateAsync(
+                    type: NotificationType.ContentHidden,
+                    userId: contentOwnerId.Value,
+                    title: "İçeriğiniz gizlendi",
+                    body: targetType == ContentReportTargetType.Post
+                        ? "Makaleniz şikayet üzerine yönetim tarafından gizlendi."
+                        : "Yorumunuz şikayet üzerine yönetim tarafından gizlendi.",
+                    link: "/bildirimler",
+                    relatedEntityType: targetType.ToString(),
+                    relatedEntityId: targetId,
+                    ct: ct));
+            }
+        }
+
+        await _activityLog.LogAsync(
+            action: "ContentReport.Hide",
+            entityType: nameof(ContentReport),
+            entityId: pending.Count > 0 ? pending[0].Id : 0,
+            description: $"İçerik gizlendi: targetType={targetType} targetId={targetId}",
+            metadata: new
+            {
+                TargetType = targetType.ToString(),
+                TargetId = targetId,
+                AdminUserId = adminUserId,
+                ResolvedReportCount = pending.Count,
+                WasAlreadyHidden = wasAlreadyHidden
+            },
+            ct: ct);
+
+        return new ContentReportResult(true, null, pending.Count > 0 ? pending[0] : null);
+    }
+
+    public async Task<ContentReportResult> UnhideAsync(
+        ContentReportTargetType targetType, int targetId,
+        int adminUserId, CancellationToken ct = default)
+    {
+        int? contentOwnerId = null;
+        switch (targetType)
+        {
+            case ContentReportTargetType.Post:
+            {
+                var post = await _ctx.UserPosts.FirstOrDefaultAsync(p => p.Id == targetId, ct);
+                if (post is null)
+                    return new ContentReportResult(false, "İçerik bulunamadı.", null);
+                if (!post.IsModeratorHidden)
+                    return new ContentReportResult(false, "İçerik zaten gizli değil.", null);
+                contentOwnerId = post.UserId;
+                post.IsModeratorHidden = false;
+                post.UpdatedAt = DateTime.UtcNow;
+                break;
+            }
+            case ContentReportTargetType.Comment:
+            {
+                var comment = await _ctx.PostComments.FirstOrDefaultAsync(c => c.Id == targetId, ct);
+                if (comment is null)
+                    return new ContentReportResult(false, "İçerik bulunamadı.", null);
+                if (!comment.IsModeratorHidden)
+                    return new ContentReportResult(false, "İçerik zaten gizli değil.", null);
+                contentOwnerId = comment.UserId;
+                comment.IsModeratorHidden = false;
+                comment.UpdatedAt = DateTime.UtcNow;
+                break;
+            }
+            default:
+                return new ContentReportResult(false, "Geçersiz hedef tipi.", null);
+        }
+
+        await _ctx.SaveChangesAsync(ct);
+
+        if (contentOwnerId.HasValue)
+        {
+            await SafeNotifyAsync(() => _notifications.CreateAsync(
+                type: NotificationType.ContentRestored,
+                userId: contentOwnerId.Value,
+                title: "İçeriğiniz geri yüklendi",
+                body: targetType == ContentReportTargetType.Post
+                    ? "Gizlenmiş makaleniz tekrar yayında."
+                    : "Gizlenmiş yorumunuz tekrar görünür.",
+                link: "/bildirimler",
+                relatedEntityType: targetType.ToString(),
+                relatedEntityId: targetId,
+                ct: ct));
+        }
+
+        await _activityLog.LogAsync(
+            action: "ContentReport.Unhide",
+            entityType: targetType.ToString(),
+            entityId: targetId,
+            description: $"İçerik geri yüklendi: targetType={targetType} targetId={targetId}",
+            metadata: new
+            {
+                TargetType = targetType.ToString(),
+                TargetId = targetId,
+                AdminUserId = adminUserId
+            },
+            ct: ct);
+
+        return new ContentReportResult(true, null, null);
+    }
+
+    public async Task<IReadOnlyList<HiddenContentItem>> GetHiddenContentAsync(
+        CancellationToken ct = default)
+    {
+        var items = new List<HiddenContentItem>();
+
+        var hiddenPosts = await _ctx.UserPosts
+            .AsNoTracking()
+            .Include(p => p.User).ThenInclude(u => u!.Profile)
+            .Where(p => p.IsModeratorHidden)
+            .OrderByDescending(p => p.UpdatedAt)
+            .Select(p => new
+            {
+                p.Id,
+                p.Title,
+                p.Slug,
+                p.UpdatedAt,
+                AuthorName = p.User!.Profile != null
+                    ? p.User.Profile.DisplayName
+                    : p.User.UserName,
+                AuthorSlug = p.User.Profile != null ? p.User.Profile.PublicSlug : null,
+                AuthorActive = p.User.IsActive
+            })
+            .ToListAsync(ct);
+
+        foreach (var p in hiddenPosts)
+        {
+            string? url = null;
+            if (p.AuthorActive && !string.IsNullOrEmpty(p.AuthorSlug))
+                url = $"/uye/{p.AuthorSlug}/makale/{p.Slug}";
+            items.Add(new HiddenContentItem(
+                ContentReportTargetType.Post, p.Id,
+                p.Title ?? "(başlık yok)",
+                p.AuthorName ?? "(yazar bulunamadı)",
+                p.UpdatedAt, url));
+        }
+
+        var hiddenComments = await _ctx.PostComments
+            .AsNoTracking()
+            .Include(c => c.User).ThenInclude(u => u!.Profile)
+            .Include(c => c.Post).ThenInclude(p => p.User).ThenInclude(u => u!.Profile)
+            .Where(c => c.IsModeratorHidden)
+            .OrderByDescending(c => c.UpdatedAt)
+            .Select(c => new
+            {
+                c.Id,
+                c.Body,
+                c.UpdatedAt,
+                AuthorName = c.User!.Profile != null
+                    ? c.User.Profile.DisplayName
+                    : c.User.UserName,
+                PostSlug = c.Post.Slug,
+                PostAuthorSlug = c.Post.User!.Profile != null ? c.Post.User.Profile.PublicSlug : null,
+                PostAuthorActive = c.Post.User.IsActive
+            })
+            .ToListAsync(ct);
+
+        foreach (var c in hiddenComments)
+        {
+            string? url = null;
+            if (c.PostAuthorActive && !string.IsNullOrEmpty(c.PostAuthorSlug))
+                url = $"/uye/{c.PostAuthorSlug}/makale/{c.PostSlug}#yorum-{c.Id}";
+            var preview = c.Body.Length > 50
+                ? "Yorum: " + c.Body.Substring(0, 50) + "..."
+                : "Yorum: " + c.Body;
+            items.Add(new HiddenContentItem(
+                ContentReportTargetType.Comment, c.Id,
+                preview,
+                c.AuthorName ?? "(yazar bulunamadı)",
+                c.UpdatedAt, url));
+        }
+
+        return items
+            .OrderByDescending(i => i.UpdatedAt)
+            .ToList();
+    }
+
     public async Task<ContentReportResult> DismissAsync(
         ContentReportTargetType targetType, int targetId,
         int adminUserId, string? reviewNote, CancellationToken ct = default)

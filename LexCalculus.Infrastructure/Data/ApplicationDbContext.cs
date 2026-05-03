@@ -241,6 +241,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             // Public listing — yayın tarihi DESC sorgusu
             e.HasIndex(p => new { p.IsPublished, p.PublishedAt });
             e.HasIndex(p => p.CategoryId);
+
+            // Faz 5.3 — Hide moderation
+            e.HasIndex(p => p.IsModeratorHidden);
         });
 
         builder.Entity<PostTagLink>(e =>
@@ -280,6 +283,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             e.HasIndex(c => c.PostId);
             e.HasIndex(c => new { c.PostId, c.CreatedAt });
+
+            // Faz 5.3 — Hide moderation
+            e.HasIndex(c => c.IsModeratorHidden);
         });
 
         builder.Entity<PostLike>(e =>

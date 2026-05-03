@@ -112,6 +112,7 @@ public sealed class DefaultSitemapBuilder : ISitemapBuilder
             .AsNoTracking()
             .Include(p => p.User).ThenInclude(u => u!.Profile)
             .Where(p => p.IsPublished
+                     && !p.IsModeratorHidden
                      && p.User != null
                      && p.User.IsActive
                      && p.User.Profile != null
