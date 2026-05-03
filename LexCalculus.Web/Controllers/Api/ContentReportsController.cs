@@ -4,6 +4,7 @@ using LexCalculus.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace LexCalculus.Web.Controllers.Api;
 
@@ -29,6 +30,7 @@ public sealed class ContentReportsController : ControllerBase
 
     [HttpPost("create")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("report")]
     public async Task<IActionResult> Create(
         [FromBody] CreateReportRequest? req, CancellationToken ct = default)
     {

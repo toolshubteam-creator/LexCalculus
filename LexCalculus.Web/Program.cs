@@ -24,10 +24,13 @@ using LexCalculus.Web.Extensions;
 using LexCalculus.Web.HealthChecks;
 using LexCalculus.Web.ModelBinders;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Serilog;
 using StackExchange.Redis;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 // =============================================================================
 // BOOTSTRAP LOGGER — startup hatalarını yakalamak için
@@ -225,6 +228,100 @@ try
 
     // KVKK hesap anonimize (Faz 5.1, charter Karar 6)
     builder.Services.AddScoped<IUserAnonymizationService, UserAnonymizationService>();
+
+    // -------------------------------------------------------------------------
+    // RATE LIMITING (Faz 5.2, charter Karar 7)
+    // .NET built-in System.Threading.RateLimiting; per-user partition (UserId
+    // claim), anonim kullanıcı için IP fallback. In-memory storage; multi-instance
+    // gerekirse Faz 6+'da Redis backplane.
+    // -------------------------------------------------------------------------
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        options.OnRejected = async (context, ct) =>
+        {
+            context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.HttpContext.Response.Headers.RetryAfter = "60";
+            context.HttpContext.Response.ContentType = "application/json";
+            const string message = "Çok fazla istek gönderdiniz. Lütfen biraz bekleyin.";
+            await context.HttpContext.Response.WriteAsync(
+                $"{{\"error\":\"{message}\"}}", ct);
+        };
+
+        static string GetPartitionKey(HttpContext httpContext)
+        {
+            var userId = httpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId)) return $"user:{userId}";
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString();
+            return $"ip:{ip ?? "unknown"}";
+        }
+
+        // Yorum: 10/dk
+        options.AddPolicy("comment", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(httpContext),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+        // Şikayet: 5/saat
+        options.AddPolicy("report", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(httpContext),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromHours(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+        // Mesaj: 30/dk (Faz 5 Dalga B mesajlaşma için hazır)
+        options.AddPolicy("message", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(httpContext),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+        // Bağlantı isteği: 20/saat
+        options.AddPolicy("connection", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(httpContext),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromHours(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
+        // Genel AJAX: 100/dk (catch-all — beğeni, görsel upload, vs.)
+        options.AddPolicy("ajax-general", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: GetPartitionKey(httpContext),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 100,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+    });
 
     // Admin: tenant yönetimi (Faz 3.7 P2a/5)
     builder.Services.AddScoped<ITenantAdminService, TenantAdminService>();
@@ -449,6 +546,10 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    // Rate limiter (Faz 5.2) — auth sonrası yerleşmeli (User.Identity dolu olsun
+    // ki per-user partition key resolve edilebilsin).
+    app.UseRateLimiter();
 
     // Hangfire dashboard — admin-only via cookie auth role check
     if (!isTesting)

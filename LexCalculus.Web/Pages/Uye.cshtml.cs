@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -230,6 +231,7 @@ public sealed class UyeModel : PageModel
 
     // Faz 4.2 P3a/3 — Bağlantı POST handler'ları (PRG pattern, RedirectToPage(slug))
 
+    [EnableRateLimiting("connection")]
     public async Task<IActionResult> OnPostConnectAsync(string slug, CancellationToken ct = default)
     {
         if (!TryGetViewerId(out var viewerId)) return Challenge();

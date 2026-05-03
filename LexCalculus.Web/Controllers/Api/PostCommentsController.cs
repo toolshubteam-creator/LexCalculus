@@ -8,6 +8,7 @@ using LexCalculus.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace LexCalculus.Web.Controllers.Api;
@@ -44,6 +45,7 @@ public sealed class PostCommentsController : ControllerBase
 
     [HttpPost("create")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("comment")]
     public async Task<IActionResult> Create([FromBody] CreateCommentRequest? req,
         CancellationToken ct = default)
     {

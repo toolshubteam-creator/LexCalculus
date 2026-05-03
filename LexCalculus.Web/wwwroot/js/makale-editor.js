@@ -86,6 +86,18 @@
 
                 quill.deleteText(range.index, placeholderLen);
 
+                // Faz 5.2 — rate limit (429): kullanıcıya özel mesaj.
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('Retry-After') || '60';
+                    let rlMsg = 'Çok fazla yükleme. ' + retryAfter + ' saniye sonra tekrar deneyin.';
+                    try {
+                        const rlData = await response.json();
+                        if (rlData && rlData.error) rlMsg = rlData.error;
+                    } catch (_) { /* boş body */ }
+                    alert(rlMsg);
+                    return;
+                }
+
                 if (!response.ok) {
                     let errMsg = response.statusText;
                     try {

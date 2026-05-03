@@ -20,6 +20,17 @@
         const response = await fetch(url, init);
         let data = {};
         try { data = await response.json(); } catch (_) { /* boş body */ }
+
+        // Faz 5.2 — rate limit: 429 yakalanır, kullanıcıya alert.
+        // Çağıran handler erken dönmek için status'u kontrol etmeli.
+        if (response.status === 429) {
+            const retryAfter = response.headers.get('Retry-After') || '60';
+            const message = (data && data.error)
+                ? data.error
+                : 'Çok fazla istek. ' + retryAfter + ' saniye sonra tekrar deneyin.';
+            alert(message);
+        }
+
         return { ok: response.ok, status: response.status, data };
     }
 
@@ -41,7 +52,10 @@
             const result = await postJson('/api/post-likes/toggle', { postId });
 
             if (!result.ok) {
-                alert('Beğeni işlemi başarısız: ' + (result.data.error || 'Bilinmeyen hata'));
+                // 429 zaten postJson içinde alert gösterdi — ikinci alert atma.
+                if (result.status !== 429) {
+                    alert('Beğeni işlemi başarısız: ' + (result.data.error || 'Bilinmeyen hata'));
+                }
                 likeButton.disabled = false;
                 return;
             }
@@ -92,8 +106,11 @@
             const result = await postJson('/api/post-comments/create', { postId, body });
 
             if (!result.ok) {
-                errorEl.textContent = result.data.error || 'Yorum gönderilemedi.';
-                errorEl.hidden = false;
+                // 429 zaten postJson içinde alert gösterdi — form içi hata mesajı atma.
+                if (result.status !== 429) {
+                    errorEl.textContent = result.data.error || 'Yorum gönderilemedi.';
+                    errorEl.hidden = false;
+                }
                 submitBtn.disabled = false;
                 return;
             }
@@ -142,7 +159,9 @@
 
             const result = await postJson('/api/post-comments/' + commentId + '/delete');
             if (!result.ok) {
-                alert('Silme başarısız: ' + (result.data.error || 'Bilinmeyen hata'));
+                if (result.status !== 429) {
+                    alert('Silme başarısız: ' + (result.data.error || 'Bilinmeyen hata'));
+                }
                 return;
             }
             li.remove();
@@ -206,7 +225,9 @@
             const result = await postJson('/api/post-comments/' + commentId + '/update',
                 { body: newBody });
             if (!result.ok) {
-                alert('Güncelleme başarısız: ' + (result.data.error || 'Bilinmeyen hata'));
+                if (result.status !== 429) {
+                    alert('Güncelleme başarısız: ' + (result.data.error || 'Bilinmeyen hata'));
+                }
                 e.target.disabled = false;
                 return;
             }
@@ -322,8 +343,11 @@
             });
 
             if (!result.ok) {
-                errorEl.textContent = (result.data && result.data.error) || 'Şikayet gönderilemedi.';
-                errorEl.hidden = false;
+                // 429 zaten postJson içinde alert gösterdi.
+                if (result.status !== 429) {
+                    errorEl.textContent = (result.data && result.data.error) || 'Şikayet gönderilemedi.';
+                    errorEl.hidden = false;
+                }
                 submitBtn.disabled = false;
                 return;
             }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace LexCalculus.Web.Controllers.Api;
 
@@ -33,6 +34,7 @@ public sealed class PostImagesController : ControllerBase
 
     [HttpPost("upload")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("ajax-general")]
     public async Task<IActionResult> Upload(IFormFile? file, CancellationToken ct = default)
     {
         if (file is null || file.Length == 0)
