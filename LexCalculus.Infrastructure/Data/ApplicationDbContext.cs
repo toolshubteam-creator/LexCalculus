@@ -2,6 +2,7 @@ using LexCalculus.Core.Entities;
 using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
+using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Entities.Moderation;
 using LexCalculus.Core.Entities.Notifications;
 using LexCalculus.Core.Entities.Social;
@@ -50,6 +51,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<PostComment> PostComments => Set<PostComment>();
     public DbSet<PostLike> PostLikes => Set<PostLike>();
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<Message> Messages => Set<Message>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -334,6 +337,50 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             // Admin paneli queries
             e.HasIndex(r => new { r.Status, r.CreatedAt });
             e.HasIndex(r => new { r.TargetType, r.TargetId });
+        });
+
+        // Faz 5.4 — Mesajlaşma altyapısı
+        builder.Entity<Conversation>(e =>
+        {
+            e.HasKey(c => c.Id);
+
+            e.HasOne(c => c.User1)
+             .WithMany()
+             .HasForeignKey(c => c.User1Id)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(c => c.User2)
+             .WithMany()
+             .HasForeignKey(c => c.User2Id)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            // Tek conversation iki kullanıcı arasında (User1<User2 normalize)
+            e.HasIndex(c => new { c.User1Id, c.User2Id }).IsUnique();
+
+            // Listeleme: kullanıcı conversation'ları LastMessageAt DESC
+            e.HasIndex(c => c.User1Id);
+            e.HasIndex(c => c.User2Id);
+            e.HasIndex(c => c.LastMessageAt);
+        });
+
+        builder.Entity<Message>(e =>
+        {
+            e.HasKey(m => m.Id);
+
+            e.Property(m => m.Body).HasMaxLength(2000).IsRequired();
+
+            e.HasOne(m => m.Conversation)
+             .WithMany(c => c.Messages)
+             .HasForeignKey(m => m.ConversationId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(m => m.Sender)
+             .WithMany()
+             .HasForeignKey(m => m.SenderId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(m => new { m.ConversationId, m.CreatedAt });
+            e.HasIndex(m => m.SenderId);
         });
 
         builder.Entity<ActivityLog>(e =>

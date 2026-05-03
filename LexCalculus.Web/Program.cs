@@ -229,6 +229,10 @@ try
     // KVKK hesap anonimize (Faz 5.1, charter Karar 6)
     builder.Services.AddScoped<IUserAnonymizationService, UserAnonymizationService>();
 
+    // Mesajlaşma altyapısı (Faz 5.4, charter Karar 1, 3, 4, 5)
+    builder.Services.AddScoped<IConversationService, ConversationService>();
+    builder.Services.AddScoped<IMessageService, MessageService>();
+
     // -------------------------------------------------------------------------
     // RATE LIMITING (Faz 5.2, charter Karar 7)
     // .NET built-in System.Threading.RateLimiting; per-user partition (UserId
