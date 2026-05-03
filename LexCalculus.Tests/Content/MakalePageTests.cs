@@ -466,6 +466,12 @@ public class MakalePageTests : IClassFixture<TestAuthWebApplicationFactory>
             body.Should().Contain("makale__preview-banner--hidden",
                 "sahip için 'Yönetim tarafından gizlendi' banner");
             body.Should().Contain("noindex", "hidden preview noindex meta render");
+
+            // Faz 5.3 fix — hidden preview'da yorum + beğeni interaction gizli
+            body.Should().NotContain("class=\"yorumlar\"",
+                "yorum section hidden preview'da render edilmemeli");
+            body.Should().NotContain("data-post-id=\"" + postId + "\"",
+                "beğeni butonu hidden preview'da render edilmemeli");
         }
         finally
         {

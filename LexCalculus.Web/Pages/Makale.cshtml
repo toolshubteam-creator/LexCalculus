@@ -75,8 +75,8 @@
                 <span class="makale__views">@Model.Post.ViewCount görüntülenme</span>
             }
 
-            @* Faz 4.9 P2 — beğeni butonu *@
-            @if (Model.Post.IsPublished)
+            @* Faz 4.9 P2 — beğeni butonu (Faz 5.3: hidden preview'da gizli) *@
+            @if (Model.Post.IsPublished && !Model.IsHiddenPreview)
             {
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -138,8 +138,8 @@
         için lütfen yetkili bir hukuk profesyoneline danışınız.
     </aside>
 
-    @* Faz 4.9 P2 — Yorum bölümü *@
-    @if (Model.Post.IsPublished)
+    @* Faz 4.9 P2 — Yorum bölümü (Faz 5.3: hidden preview'da gizli; taslak'ta zaten yok) *@
+    @if (Model.Post.IsPublished && !Model.IsHiddenPreview)
     {
         <section class="yorumlar" id="yorumlar">
             <h2 class="yorumlar__title">
@@ -189,8 +189,8 @@
         </section>
     }
 
-    @* Faz 4.10 P1 — şikayet modal'i (login user için) *@
-    @if (User.Identity?.IsAuthenticated == true && Model.Post.IsPublished)
+    @* Faz 4.10 P1 — şikayet modal'i (login user için; hidden preview'da gizli) *@
+    @if (User.Identity?.IsAuthenticated == true && Model.Post.IsPublished && !Model.IsHiddenPreview)
     {
         <partial name="_ReportModal" />
     }
