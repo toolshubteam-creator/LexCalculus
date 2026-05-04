@@ -43,6 +43,14 @@ public interface IConversationService
     /// Bell icon / mesaj badge için. n+1 query var (Faz 6+ optimize).
     /// </summary>
     Task<int> GetUnreadCountAsync(int userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// İki kullanıcı arası mesaj yetkisi (UI guard için): bağlantı OR aynı aktif
+    /// tenant member; AND NOT engelleme. Yetki tek kaynak — GetOrCreateAsync da
+    /// bu metodu kullanır. /uye/{slug} 'Mesaj Gönder' butonu görünürlüğü için
+    /// Faz 5.5'te public expose edildi.
+    /// </summary>
+    Task<bool> CanMessageAsync(int userAId, int userBId, CancellationToken ct = default);
 }
 
 public sealed record ConversationResult(bool Success, string? ErrorMessage, Conversation? Conversation);

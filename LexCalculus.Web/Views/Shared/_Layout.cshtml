@@ -1,5 +1,5 @@
-@inject SignInManager<ApplicationUser> SignInManager
 @{
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
     var trCulture = new CultureInfo("tr-TR");
     var currentDate = DateTime.Now.ToString("dd MMMM yyyy", trCulture);
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
@@ -45,13 +45,17 @@
             </a>
 
             <div class="header-meta">
-                @if (SignInManager.IsSignedIn(User))
+                @if (isAuthenticated)
                 {
                     <div>@User.Identity?.Name</div>
                     <div class="header-meta__user-actions">
                         @await Component.InvokeAsync("NotificationBell")
                         <a class="header-meta__link" href="/hesaplarim">Hesaplarım</a>
                         <a class="header-meta__link" href="/baglantilarim">Bağlantılarım</a>
+                        <a class="header-meta__link" href="/mesajlar">
+                            <span>Mesajlar</span>
+                            @(await Component.InvokeAsync("UnreadMessagesBadge"))
+                        </a>
                         <a class="header-meta__link" href="/makalelerim">Makalelerim</a>
                         <a class="header-meta__link" href="/profil">Profilim</a>
                         @await Component.InvokeAsync("UserTenantContext")

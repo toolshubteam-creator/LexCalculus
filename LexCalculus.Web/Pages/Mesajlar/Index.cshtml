@@ -1,0 +1,57 @@
+@page "/mesajlar"
+@model LexCalculus.Web.Pages.Mesajlar.IndexModel
+
+<section class="mesajlar-page">
+    <header class="mesajlar-page__header">
+        <h1>Mesajlar</h1>
+    </header>
+
+    @if (Model.Conversations.Count == 0)
+    {
+        <p class="mesajlar-page__empty">Henüz mesajınız yok.</p>
+    }
+    else
+    {
+        <ul class="mesajlar-list">
+            @foreach (var conv in Model.Conversations)
+            {
+                <li class="mesajlar-list__item">
+                    <a asp-page="/Mesajlar/Detail" asp-route-id="@conv.ConversationId"
+                       class="mesajlar-list__link">
+                        <div class="mesajlar-list__avatar">
+                            @if (!string.IsNullOrEmpty(conv.OtherAvatarUrl))
+                            {
+                                <img src="@conv.OtherAvatarUrl" alt="@conv.OtherDisplayName" />
+                            }
+                            else
+                            {
+                                <span class="mesajlar-list__avatar-placeholder" aria-hidden="true">
+                                    @(conv.OtherDisplayName.Length > 0
+                                        ? conv.OtherDisplayName.Substring(0, 1).ToUpperInvariant()
+                                        : "?")
+                                </span>
+                            }
+                        </div>
+
+                        <div class="mesajlar-list__info">
+                            <div class="mesajlar-list__top">
+                                <strong class="mesajlar-list__name">@conv.OtherDisplayName</strong>
+                                <span class="mesajlar-list__date">
+                                    @conv.LastMessageAt.ToLocalTime().ToString("d MMM HH:mm")
+                                </span>
+                            </div>
+                            <div class="mesajlar-list__preview">
+                                @(conv.LastMessagePreview ?? "(mesaj yok)")
+                            </div>
+                        </div>
+
+                        @if (conv.UnreadCount > 0)
+                        {
+                            <span class="mesajlar-list__badge">@conv.UnreadCount</span>
+                        }
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</section>

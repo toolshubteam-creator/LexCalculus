@@ -234,9 +234,10 @@ public sealed class ConversationService : IConversationService
 
     /// <summary>
     /// Yetki: bağlantı OR aynı aktif tenant member; AND NOT engelleme.
-    /// Faz 5 charter Karar 3.
+    /// Faz 5 charter Karar 3. UI guard için /uye/{slug} 'Mesaj Gönder' butonu
+    /// görünürlüğünde reuse — Faz 5.5'te public hâle getirildi.
     /// </summary>
-    private async Task<bool> CanMessageAsync(int a, int b, CancellationToken ct)
+    public async Task<bool> CanMessageAsync(int a, int b, CancellationToken ct = default)
     {
         var blocked = await _blockService.IsEitherDirectionBlockedAsync(a, b, ct);
         if (blocked) return false;

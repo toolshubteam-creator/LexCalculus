@@ -134,6 +134,15 @@
                     Engelle
                 </button>
             </form>
+
+            @* Faz 5.5 — Mesaj Gönder butonu (login + canMessage durumda) *@
+            @if (Model.CanMessage)
+            {
+                <a asp-page="/Mesajlar/Yeni" asp-route-recipient="@Model.ProfileUserId"
+                   class="btn btn--primary uye-profil__action-form">
+                    Mesaj Gönder
+                </a>
+            }
         }
     </div>
 

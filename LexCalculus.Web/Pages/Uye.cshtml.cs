@@ -31,6 +31,7 @@ public sealed class UyeModel : PageModel
     private readonly IMediaStorage _storage;
     private readonly IConnectionService _connections;
     private readonly IUserBlockService _blocks;
+    private readonly IConversationService _conversations;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SeoSettings _seo;
 
@@ -39,6 +40,7 @@ public sealed class UyeModel : PageModel
         IMediaStorage storage,
         IConnectionService connections,
         IUserBlockService blocks,
+        IConversationService conversations,
         UserManager<ApplicationUser> userManager,
         IOptions<SeoSettings> seoOptions)
     {
@@ -46,6 +48,7 @@ public sealed class UyeModel : PageModel
         _storage = storage;
         _connections = connections;
         _blocks = blocks;
+        _conversations = conversations;
         _userManager = userManager;
         _seo = seoOptions.Value ?? new SeoSettings();
     }
@@ -73,6 +76,10 @@ public sealed class UyeModel : PageModel
     // Faz 4.3 — engelleme state'leri
     public bool IsBlockedByMe { get; private set; }
     public bool BlockedByOther { get; private set; }
+
+    // Faz 5.5 — mesajlaşma yetkisi (bağlantı OR aynı tenant + NOT engelleme)
+    public bool CanMessage { get; private set; }
+    public int ProfileUserId { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string slug, CancellationToken ct = default)
     {
@@ -116,6 +123,7 @@ public sealed class UyeModel : PageModel
         // Faz 4.2 P3a/3 — viewer perspective
         var viewerIdRaw = _userManager.GetUserId(User);
         IsViewerAnonymous = string.IsNullOrEmpty(viewerIdRaw);
+        ProfileUserId = profile.UserId;
 
         if (!IsViewerAnonymous && int.TryParse(viewerIdRaw, out var viewerId))
         {
@@ -126,7 +134,7 @@ public sealed class UyeModel : PageModel
                 IsBlockedByMe = await _blocks.IsBlockedAsync(viewerId, profile.UserId, ct);
                 BlockedByOther = await _blocks.IsBlockedAsync(profile.UserId, viewerId, ct);
 
-                // Engelleme yoksa connection state hesapla.
+                // Engelleme yoksa connection state + mesaj yetkisi hesapla.
                 if (!IsBlockedByMe && !BlockedByOther)
                 {
                     ConnectionState = await _connections.GetConnectionStateAsync(viewerId, profile.UserId, ct);
@@ -144,6 +152,8 @@ public sealed class UyeModel : PageModel
                             .Select(c => (int?)c.Id)
                             .FirstOrDefaultAsync(ct);
                     }
+
+                    CanMessage = await _conversations.CanMessageAsync(viewerId, profile.UserId, ct);
                 }
             }
         }

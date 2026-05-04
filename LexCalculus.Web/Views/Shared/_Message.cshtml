@@ -1,0 +1,46 @@
+@model LexCalculus.Web.Models.MessageViewModel
+
+<div class="mesaj @(Model.IsOwnMessage ? "mesaj--own" : "mesaj--other")"
+     id="mesaj-@Model.Id" data-message-id="@Model.Id">
+    @if (!Model.IsOwnMessage)
+    {
+        <div class="mesaj__avatar">
+            @if (!string.IsNullOrEmpty(Model.SenderAvatarUrl))
+            {
+                <img src="@Model.SenderAvatarUrl" alt="@Model.SenderDisplayName" />
+            }
+            else
+            {
+                <span class="mesaj__avatar-placeholder" aria-hidden="true">
+                    @(Model.SenderDisplayName.Length > 0
+                        ? Model.SenderDisplayName.Substring(0, 1).ToUpperInvariant()
+                        : "?")
+                </span>
+            }
+        </div>
+    }
+
+    <div class="mesaj__content">
+        @if (Model.IsDeleted)
+        {
+            <p class="mesaj__deleted">(Bu mesaj silindi)</p>
+        }
+        else
+        {
+            <div class="mesaj__body" data-mesaj-body>@Html.Raw(Model.Body)</div>
+        }
+
+        <div class="mesaj__meta">
+            <time datetime="@Model.CreatedAt.ToString("o")">
+                @Model.CreatedAt.ToLocalTime().ToString("HH:mm")
+            </time>
+            @if (Model.IsOwnMessage && !Model.IsDeleted)
+            {
+                <button type="button" class="mesaj__delete"
+                        data-mesaj-delete data-message-id="@Model.Id">
+                    Sil
+                </button>
+            }
+        </div>
+    </div>
+</div>

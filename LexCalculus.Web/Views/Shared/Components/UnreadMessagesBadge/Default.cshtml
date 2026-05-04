@@ -1,0 +1,5 @@
+@model int
+@if (Model > 0)
+{
+    <span class="nav-badge nav-badge--unread">@(Model > 99 ? "99+" : Model.ToString())</span>
+}

@@ -1,0 +1,379 @@
+/* /mesajlar liste + /mesajlar/{id} detail + /mesajlar/yeni form
+   BEM, Faz 5.5. Mobile breakpoint < 600px. */
+
+.mesajlar-page__header {
+    margin-bottom: var(--sp-6);
+}
+.mesajlar-page__header h1 {
+    font-family: var(--font-heading);
+    font-size: var(--fs-xl);
+    color: var(--ink);
+    margin: 0 0 var(--sp-2);
+}
+.mesajlar-page__empty {
+    color: var(--muted);
+    text-align: center;
+    padding: var(--sp-12) 0;
+}
+
+/* ─── Conversation listesi ─── */
+.mesajlar-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+}
+.mesajlar-list__item {
+    margin: 0;
+}
+.mesajlar-list__link {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+    background: var(--parchment);
+    border: var(--border-thin-rule);
+    border-radius: 6px;
+    text-decoration: none;
+    color: inherit;
+    transition: var(--transition-fast);
+}
+.mesajlar-list__link:hover {
+    background: var(--gold-pale);
+    border-color: var(--gold);
+}
+.mesajlar-list__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--parchment);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.mesajlar-list__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.mesajlar-list__avatar-placeholder {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.mesajlar-list__info {
+    flex: 1;
+    min-width: 0;
+}
+.mesajlar-list__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--sp-2);
+    margin-bottom: var(--sp-1);
+}
+.mesajlar-list__name {
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+}
+.mesajlar-list__date {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: var(--fs-meta);
+    flex-shrink: 0;
+}
+.mesajlar-list__preview {
+    color: var(--muted);
+    font-size: var(--fs-hint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mesajlar-list__badge {
+    background: var(--burgundy);
+    color: var(--parchment);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+}
+
+/* ─── Detail sayfa ─── */
+.mesajlar-detail-page {
+    display: flex;
+    flex-direction: column;
+}
+.mesajlar-detail__header {
+    margin-bottom: var(--sp-4);
+    padding-bottom: var(--sp-4);
+    border-bottom: var(--border-thin-rule);
+}
+.mesajlar-detail__back {
+    display: inline-block;
+    margin-bottom: var(--sp-2);
+    color: var(--muted);
+    font-size: var(--fs-hint);
+    text-decoration: none;
+}
+.mesajlar-detail__back:hover {
+    color: var(--gold);
+}
+.mesajlar-detail__user {
+    display: flex;
+    gap: var(--sp-3);
+    align-items: center;
+}
+.mesajlar-detail__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--parchment);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+.mesajlar-detail__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.mesajlar-detail__user-info h1 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--fs-xl);
+}
+.mesajlar-detail__profile-link {
+    color: var(--muted);
+    font-size: var(--fs-hint);
+    text-decoration: none;
+}
+.mesajlar-detail__profile-link:hover {
+    color: var(--gold);
+    text-decoration: underline;
+}
+
+.mesajlar-detail {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 280px);
+    min-height: 400px;
+}
+.mesajlar-detail__load-more {
+    align-self: center;
+    background: transparent;
+    border: var(--border-thin-rule);
+    padding: 6px var(--sp-4);
+    border-radius: 16px;
+    cursor: pointer;
+    color: var(--muted);
+    margin-bottom: var(--sp-3);
+    font-family: var(--font-mono);
+    font-size: var(--fs-meta);
+}
+.mesajlar-detail__load-more:hover {
+    background: var(--parchment);
+    color: var(--ink);
+}
+.mesajlar-detail__messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--sp-4);
+    background: var(--parchment);
+    border-radius: 6px;
+    border: var(--border-thin-rule);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+}
+
+/* ─── Mesaj kartı (sol/sağ alignment) ─── */
+.mesaj {
+    display: flex;
+    gap: var(--sp-2);
+    max-width: 70%;
+}
+.mesaj--other {
+    align-self: flex-start;
+}
+.mesaj--own {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+.mesaj__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--parchment);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.mesaj__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.mesaj__avatar-placeholder {
+    font-size: var(--fs-meta);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.mesaj__content {
+    background: #fff;
+    border: var(--border-thin-rule);
+    border-radius: 12px;
+    padding: var(--sp-2) var(--sp-3);
+    min-width: 0;
+}
+.mesaj--own .mesaj__content {
+    background: var(--gold-pale);
+    border-color: var(--gold);
+}
+.mesaj__body {
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+    color: var(--ink);
+}
+.mesaj__body a {
+    color: var(--burgundy);
+}
+.mesaj__deleted {
+    margin: 0;
+    font-style: italic;
+    color: var(--muted);
+}
+.mesaj__meta {
+    display: flex;
+    gap: var(--sp-2);
+    align-items: center;
+    margin-top: var(--sp-1);
+    font-size: var(--fs-meta-xs);
+    color: var(--muted);
+    font-family: var(--font-mono);
+}
+.mesaj__delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 0;
+    font-size: var(--fs-meta-xs);
+    text-decoration: underline;
+    font-family: var(--font-mono);
+}
+.mesaj__delete:hover {
+    color: var(--burgundy);
+}
+
+/* ─── Send formu ─── */
+.mesajlar-detail__send {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: var(--sp-2);
+    margin-top: var(--sp-3);
+    align-items: end;
+}
+.mesajlar-detail__send textarea {
+    grid-column: 1;
+    grid-row: 1;
+    resize: vertical;
+    padding: var(--sp-2);
+    border: var(--border-thin-rule);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: var(--fs-base);
+    color: var(--ink);
+    background: #fff;
+}
+.mesajlar-detail__send textarea:focus {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-color: var(--gold);
+}
+.mesajlar-detail__send button {
+    grid-column: 2;
+    grid-row: 1;
+}
+.mesajlar-detail__char-count {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: var(--fs-meta);
+    color: var(--muted);
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+/* ─── /mesajlar/yeni form ─── */
+.mesajlar-yeni {
+    background: var(--parchment);
+    padding: var(--sp-6);
+    border-radius: 6px;
+    border: var(--border-thin-rule);
+}
+.mesajlar-yeni textarea {
+    width: 100%;
+    padding: var(--sp-3);
+    border: var(--border-thin-rule);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: var(--fs-base);
+    margin-bottom: var(--sp-4);
+    background: #fff;
+    color: var(--ink);
+}
+.mesajlar-yeni textarea:focus {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-color: var(--gold);
+}
+.mesajlar-yeni__feedback {
+    margin: 0 0 var(--sp-3);
+    font-size: var(--fs-hint);
+    min-height: 1em;
+}
+.mesajlar-yeni__feedback--error {
+    color: var(--burgundy);
+}
+.mesajlar-yeni__actions {
+    display: flex;
+    gap: var(--sp-3);
+    justify-content: flex-end;
+}
+
+/* ─── Üst menü unread badge ─── */
+.nav-badge--unread {
+    background: var(--burgundy);
+    color: var(--parchment);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: var(--fs-meta-xs);
+    margin-left: 4px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+@media (max-width: 600px) {
+    .mesaj { max-width: 85%; }
+    .mesajlar-detail { height: calc(100vh - 220px); }
+    .mesajlar-list__date { font-size: var(--fs-meta-xs); }
+}

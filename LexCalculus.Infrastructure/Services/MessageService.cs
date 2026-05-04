@@ -130,4 +130,30 @@ public sealed class MessageService : IMessageService
 
     public Task<int> GetCountForConversationAsync(int conversationId, CancellationToken ct = default)
         => _ctx.Messages.CountAsync(m => m.ConversationId == conversationId, ct);
+
+    public async Task<IReadOnlyList<Message>> GetNewerThanAsync(
+        int conversationId, int viewerId, DateTime since, CancellationToken ct = default)
+    {
+        var conv = await _conversationService.GetByIdAsync(conversationId, viewerId, ct);
+        if (conv is null) return Array.Empty<Message>();
+
+        return await _ctx.Messages
+            .Include(m => m.Sender).ThenInclude(u => u!.Profile)
+            .Where(m => m.ConversationId == conversationId
+                     && m.SenderId != viewerId
+                     && m.CreatedAt > since)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync(ct);
+    }
+
+    public async Task<Message?> GetByIdAsync(int messageId, int viewerId, CancellationToken ct = default)
+    {
+        var msg = await _ctx.Messages
+            .Include(m => m.Sender).ThenInclude(u => u!.Profile)
+            .FirstOrDefaultAsync(m => m.Id == messageId, ct);
+        if (msg is null) return null;
+
+        var conv = await _conversationService.GetByIdAsync(msg.ConversationId, viewerId, ct);
+        return conv is null ? null : msg;
+    }
 }

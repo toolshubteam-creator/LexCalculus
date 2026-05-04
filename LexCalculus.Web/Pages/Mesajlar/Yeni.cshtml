@@ -1,0 +1,31 @@
+@page "/mesajlar/yeni"
+@model LexCalculus.Web.Pages.Mesajlar.YeniModel
+
+<section class="mesajlar-page">
+    <header class="mesajlar-page__header">
+        <h1>Yeni Mesaj</h1>
+        <p>Alıcı: <strong>@Model.RecipientDisplayName</strong></p>
+    </header>
+
+    <form id="mesaj-yeni-form" class="mesajlar-yeni" data-mesaj-yeni-form
+          data-recipient-id="@Model.RecipientId">
+        @Html.AntiForgeryToken()
+
+        <textarea id="mesaj-yeni-body" rows="5"
+                  maxlength="@Model.MaxBodyLength"
+                  placeholder="İlk mesajınızı yazın..." required
+                  data-mesaj-yeni-body></textarea>
+
+        <div class="mesajlar-yeni__feedback" data-mesaj-yeni-feedback role="alert"
+             aria-live="polite"></div>
+
+        <div class="mesajlar-yeni__actions">
+            <a asp-page="/Mesajlar/Index" class="btn btn--ghost">İptal</a>
+            <button type="submit" class="btn btn--primary">Gönder</button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <script src="~/js/mesajlar.js" defer asp-append-version="true"></script>
+}

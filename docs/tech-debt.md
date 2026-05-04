@@ -600,3 +600,67 @@ Veya middleware/filter pattern: `[Authorize]` attribute olan
 sayfalar otomatik `X-Robots-Tag: noindex` header.
 
 **Önerilen zaman:** Faz 5 minor cleanup. Tahmini iş: ~30 dk.
+
+---
+
+## 24. Mesajlar polling — sayfa görünürlüğü/sekme aktivasyonu duyarsız
+
+**Bağlam:** Adım 5.5'te `/mesajlar/{id}` Detail sayfası 30 sn'de bir
+`/api/messages/{id}/new` polling yapıyor. Sayfa arka planda (sekme
+inactive) olduğunda da polling devam ediyor.
+
+**Mevcut durum:** `setInterval(poll, 30000)` sürekli aktif. Tarayıcı
+sekmesi gizli olsa bile her 30 sn'de bir HTTP request gidiyor.
+Multi-tab kullanıcılarda gereksiz trafik.
+
+**İdeal çözüm:** `document.visibilityState === 'visible'` kontrol
+yapılsın; `visibilitychange` event'inde polling pause/resume.
+Veya tek seferlik short-poll: visible tab içinde aktif, hidden olunca
+durur.
+
+**Önerilen zaman:** Adım 5.6 (SignalR) ile birlikte doğal olarak çözülür
+(WebSocket connection sekme inactive olduğunda zaten boşa eden
+yok). SignalR fallback olarak polling kalacaksa o zaman bu kuralı
+uygula.
+
+---
+
+## 25. Mesajlar 'Daha fazla yükle' aktif değil
+
+**Bağlam:** Adım 5.5'te `/mesajlar/{id}` Detail sayfasında HasMore=true
+durumunda "Daha fazla yükle" butonu render ediliyor, ama tıklamada
+alert gösteriyor (placeholder).
+
+**Mevcut durum:** GET /api/messages/{conversationId}?skip=N&take=50
+endpoint'i var ve VM array dönüyor. Ancak client-side render server
+template ile uyumsuz (server _Message partial render eder, client VM
+yapısını render edebilecek bir JS template fonksiyonu yazılmadı).
+
+**İdeal çözüm:**
+- Server-side render endpoint: GET /api/messages/{convId}/page?skip=N
+  → HTML string array döner (server _Message partial). Client
+  insertAdjacentHTML('afterbegin') ile prepend eder.
+- Veya client template: handlebars/lit-html ile MessageViewModel'den
+  HTML üret (ama XSS riski + duplicate code).
+
+**Önerilen zaman:** Adım 5.6 (SignalR) ile birlikte tasarım yenilemesi
+sırasında veya Faz 6+ pagination iyileştirmesi.
+
+---
+
+## 26. MessagesController polling endpoint avatar URL kullanıcı bağımsız
+
+**Bağlam:** Adım 5.5'te `/api/messages/{id}/new` polling yanıtı server
+tarafında _Message partial HTML üretir. Avatar URL `IMediaStorage.GetPublicUrl`
+çağrısı ile resolve edilir; bu çağrı user-agnostic (CDN URL üretir).
+
+**Mevcut durum:** Pratik bir sorun yok — avatar URL'ler statik. Ama
+ileride avatar erişim kontrolü (private avatars) eklenirse VM bina
+mantığı `viewerId` parametresini değerlendirmeli.
+
+**İdeal çözüm:** Avatar URL'leri her zaman context-aware bir helper
+üzerinden resolve etsin (UserAvatarUrlResolver) — gelecekte rule
+değişirse tek noktadan dokunulur.
+
+**Önerilen zaman:** Avatar privacy gereksinimi doğarsa (private/blocked
+user avatar gizleme) gündeme alınır. Şimdilik MEYP.

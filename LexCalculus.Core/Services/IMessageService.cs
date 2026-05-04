@@ -30,6 +30,22 @@ public interface IMessageService
         CancellationToken ct = default);
 
     Task<int> GetCountForConversationAsync(int conversationId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Polling endpoint için: belirli zamandan sonra eklenen, viewer dışındaki
+    /// kullanıcı tarafından gönderilen mesajlar (eski → yeni). Faz 5.5,
+    /// Faz 5.6'da SignalR fallback olarak kalır.
+    /// Yetki: viewer katılımcı olmalı; değilse boş liste.
+    /// </summary>
+    Task<IReadOnlyList<Message>> GetNewerThanAsync(
+        int conversationId, int viewerId, DateTime since, CancellationToken ct = default);
+
+    /// <summary>
+    /// Tek mesaj fetch (Sender + Profile include). Yetki: viewer mesajın
+    /// conversation'ında katılımcı olmalı; değilse null. Send AJAX response için
+    /// VM oluştururken kullanılır.
+    /// </summary>
+    Task<Message?> GetByIdAsync(int messageId, int viewerId, CancellationToken ct = default);
 }
 
 public sealed record MessageResult(bool Success, string? ErrorMessage, Message? Message);

@@ -1,0 +1,71 @@
+@page "/mesajlar/{id:int}"
+@model LexCalculus.Web.Pages.Mesajlar.DetailModel
+
+<section class="mesajlar-detail-page">
+    <header class="mesajlar-detail__header">
+        <a asp-page="/Mesajlar/Index" class="mesajlar-detail__back">← Tüm mesajlar</a>
+        <div class="mesajlar-detail__user">
+            <div class="mesajlar-detail__avatar">
+                @if (!string.IsNullOrEmpty(Model.OtherAvatarUrl))
+                {
+                    <img src="@Model.OtherAvatarUrl" alt="@Model.OtherDisplayName" />
+                }
+                else
+                {
+                    <span aria-hidden="true">
+                        @(Model.OtherDisplayName.Length > 0
+                            ? Model.OtherDisplayName.Substring(0, 1).ToUpperInvariant()
+                            : "?")
+                    </span>
+                }
+            </div>
+            <div class="mesajlar-detail__user-info">
+                <h1>@Model.OtherDisplayName</h1>
+                @if (!string.IsNullOrEmpty(Model.OtherSlug))
+                {
+                    <a href="/uye/@Model.OtherSlug" class="mesajlar-detail__profile-link">
+                        Profili gör
+                    </a>
+                }
+            </div>
+        </div>
+    </header>
+
+    <div class="mesajlar-detail" data-conversation-id="@Model.ConversationId"
+         data-recipient-id="@Model.OtherUserId">
+
+        @Html.AntiForgeryToken()
+
+        @if (Model.HasMore)
+        {
+            <button type="button" class="mesajlar-detail__load-more" data-mesaj-load-more>
+                Daha fazla yükle
+            </button>
+        }
+
+        <div class="mesajlar-detail__messages" id="mesaj-listesi" data-mesaj-listesi>
+            @{
+                var ordered = Model.Messages.AsEnumerable().Reverse().ToList();
+            }
+            @foreach (var m in ordered)
+            {
+                @await Html.PartialAsync("_Message", m)
+            }
+        </div>
+
+        <form class="mesajlar-detail__send" id="mesaj-form" data-mesaj-form>
+            <textarea name="body" id="mesaj-body" rows="3"
+                      maxlength="@Model.MaxBodyLength"
+                      placeholder="Mesaj yaz..." required
+                      data-mesaj-body></textarea>
+            <button type="submit" class="btn btn--primary">Gönder</button>
+            <span class="mesajlar-detail__char-count" data-mesaj-char-count>
+                0 / @Model.MaxBodyLength
+            </span>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/mesajlar.js" defer asp-append-version="true"></script>
+}
