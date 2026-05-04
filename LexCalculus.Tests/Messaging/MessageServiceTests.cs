@@ -2,6 +2,7 @@ using FluentAssertions;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Entities.Social;
+using LexCalculus.Core.Messaging;
 using LexCalculus.Core.Storage;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Services;
@@ -19,7 +20,8 @@ public class MessageServiceTests
         var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
         var storage = new FakeMediaStorage();
         var convSvc = new ConversationService(ctx, blockSvc, storage, new NullActivityLogService());
-        var msgSvc = new MessageService(ctx, convSvc, new CommentSanitizer(), new NullActivityLogService());
+        var msgSvc = new MessageService(ctx, convSvc, new CommentSanitizer(),
+            new NullActivityLogService(), new NoOpMessagingNotifier());
 
         ctx.Users.AddRange(MakeUser(1), MakeUser(2), MakeUser(3));
         ctx.UserConnections.Add(new UserConnection

@@ -664,3 +664,57 @@ değişirse tek noktadan dokunulur.
 
 **Önerilen zaman:** Avatar privacy gereksinimi doğarsa (private/blocked
 user avatar gizleme) gündeme alınır. Şimdilik MEYP.
+
+---
+
+## 27. SignalR @microsoft/signalr CDN — self-host önerilir
+
+**Bağlam:** Adım 5.6'da `/mesajlar/{id}` Detail sayfası SignalR client
+kütüphanesini cdnjs.cloudflare.com'dan yüklüyor (8.0.7).
+
+**Mevcut durum:** External CDN bağımlılığı: CDN downtime → SignalR
+yüklenmez → polling fallback devreye girer (sessiz). Integrity hash
+yok (yanlış hash sayfayı kırar; CDN'in TLS güvenliği yeterli).
+
+**İdeal çözüm:** `npm install @microsoft/signalr` + statik dosya olarak
+`wwwroot/lib/signalr/` altına copy + integrity hash + asp-fallback-src
+pattern (Bootstrap pattern reuse). Veya LibMan kullanılabilir.
+
+**Önerilen zaman:** Production öncesi (Faz 6+ release prep). Şimdi CDN
+geliştirme/test için pratik.
+
+---
+
+## 28. SignalR tek instance — multi-instance Redis backplane
+
+**Bağlam:** Adım 5.6'da SignalR Hub default in-memory backplane ile
+çalışıyor. AddSignalR() varsayılan konfig.
+
+**Mevcut durum:** Tek instance deployment (sticky sessions OK). Multi-
+instance'da kullanıcı A instance-1'e bağlı, kullanıcı B instance-2'ye
+bağlı → A'dan B'ye broadcast çalışmaz (her instance kendi grup
+listesini tutuyor).
+
+**İdeal çözüm:** `Microsoft.AspNetCore.SignalR.StackExchangeRedis`
+NuGet paketi + `AddStackExchangeRedis(connectionString)`. Redis zaten
+projede mevcut (rate limit / cache).
+
+**Önerilen zaman:** Multi-instance horizontal scale gereksinimi
+doğduğunda (Faz 6+). Tek instance'la başlangıç yeterli.
+
+---
+
+## 29. SignalR negotiation rate limit yok
+
+**Bağlam:** Adım 5.6'da `/hubs/messages/negotiate` endpoint Hub
+[Authorize] dışında özel rate limit attach edilmedi.
+
+**Mevcut durum:** Anonim 401 dönüyor ama brute-force negotiate kullanım
+limit yok. Authenticated kullanıcı için açık (otomatik reconnect zaten
+makul).
+
+**İdeal çözüm:** `[EnableRateLimiting("ajax-general")]` Hub negotiate'a
+veya yeni "signalr-negotiate" policy (5/dakika).
+
+**Önerilen zaman:** Production öncesi cleanup. Düşük öncelik —
+[Authorize] negotiate spam'ı önlüyor zaten.

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using LexCalculus.Core.Messaging;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
 using Microsoft.AspNetCore.Authentication;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -96,6 +98,12 @@ public sealed class TestAuthWebApplicationFactory : WebApplicationFactory<Progra
 
             services.AddAuthentication(TestAuthHandler.SchemeName)
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+
+            // SignalR notifier override (Faz 5.6): test ortamında Hub real-time
+            // broadcast yapmasın — NoOp ile sessizce geçer, integration test
+            // davranışı etkilenmez.
+            services.RemoveAll<IMessagingNotifier>();
+            services.AddScoped<IMessagingNotifier, NoOpMessagingNotifier>();
 
             services.PostConfigure<AuthenticationOptions>(options =>
             {

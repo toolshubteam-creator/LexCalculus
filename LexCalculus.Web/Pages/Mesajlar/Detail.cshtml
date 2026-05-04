@@ -67,5 +67,10 @@
 </section>
 
 @section Scripts {
+    @* @microsoft/signalr 8.0.7 — .NET 8/10 ile uyumlu. CDN basit; production
+       self-host opsiyonu Faz 6+ tech-debt. Integrity hash atlanır (CDN'in
+       kendi güvenliği yeterli — yanlış hash sayfayı kırar). *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
+            crossorigin="anonymous" defer></script>
     <script src="~/js/mesajlar.js" defer asp-append-version="true"></script>
 }

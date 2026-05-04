@@ -1,8 +1,12 @@
 /**
  * /mesajlar/{id} ve /mesajlar/yeni sayfalarının AJAX davranışı.
- * - Detail: send + delete + 30sn polling + scroll-to-bottom + char counter
+ * - Detail: send + delete + SignalR real-time + 30sn polling fallback
  * - Yeni: ilk mesaj submit → /api/messages/send → redirect /mesajlar/{convId}
- * Faz 5.5; Faz 5.6'da SignalR ile değişecek (polling fallback olarak kalır).
+ * Faz 5.5 (polling), Faz 5.6 (SignalR primary, polling fallback).
+ *
+ * SignalR: window.signalR globalı yüklü ve Hub bağlantısı kurulduysa
+ * MessageReceived/MessageDeleted event'leriyle anlık güncelleme yapılır;
+ * connection kopuk veya kütüphane yoksa polling devreye girer.
  */
 (function () {
     'use strict';
@@ -79,10 +83,25 @@
 
     let lastSeenAt = new Date().toISOString();
     let pollingTimer = null;
+    let signalRActive = false;
 
     function scrollToBottom() {
         if (!messagesContainer) return;
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function applyDeletePlaceholder(messageId) {
+        const card = messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
+        if (!card) return;
+        const body = card.querySelector('[data-mesaj-body]');
+        if (body) {
+            const placeholder = document.createElement('p');
+            placeholder.className = 'mesaj__deleted';
+            placeholder.textContent = '(Bu mesaj silindi)';
+            body.replaceWith(placeholder);
+        }
+        const btn = card.querySelector('[data-mesaj-delete]');
+        if (btn) btn.remove();
     }
 
     function updateCharCount() {
@@ -141,17 +160,7 @@
                 alert((result.data && result.data.error) || 'Silinemedi.');
                 return;
             }
-
-            const card = btn.closest('.mesaj');
-            if (!card) return;
-            const body = card.querySelector('[data-mesaj-body]');
-            if (body) {
-                const placeholder = document.createElement('p');
-                placeholder.className = 'mesaj__deleted';
-                placeholder.textContent = '(Bu mesaj silindi)';
-                body.replaceWith(placeholder);
-            }
-            btn.remove();
+            applyDeletePlaceholder(messageId);
         });
     }
 
@@ -162,8 +171,49 @@
         });
     }
 
-    // Polling
+    // ───────────────── SignalR (primary kanal) ─────────────────
+    // window.signalR varsa Hub bağlantısı kurulur. Yüklenememesi/baylantı
+    // başarısızlığı sessizdir; UI'da göstergesi yoktur — polling devreye girer.
+    if (typeof window.signalR !== 'undefined') {
+        try {
+            const connection = new window.signalR.HubConnectionBuilder()
+                .withUrl('/hubs/messages')
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on('MessageReceived', async (data) => {
+                if (!data || data.conversationId !== conversationId) return;
+                messagesContainer.insertAdjacentHTML('beforeend', data.html);
+                scrollToBottom();
+                lastSeenAt = new Date().toISOString();
+                await postJson(`/api/messages/${conversationId}/mark-read`, null)
+                    .catch(() => { /* sessiz */ });
+            });
+
+            connection.on('MessageDeleted', (data) => {
+                if (!data || data.conversationId !== conversationId) return;
+                applyDeletePlaceholder(data.messageId);
+            });
+
+            connection.onreconnecting(() => { signalRActive = false; });
+            connection.onreconnected(() => { signalRActive = true; });
+            connection.onclose(() => { signalRActive = false; });
+
+            connection.start()
+                .then(() => { signalRActive = true; })
+                .catch((err) => {
+                    signalRActive = false;
+                    console.warn('SignalR start hata, polling fallback:', err);
+                });
+        } catch (err) {
+            signalRActive = false;
+            console.warn('SignalR setup hata, polling fallback:', err);
+        }
+    }
+
+    // ───────────────── Polling fallback ─────────────────
     async function poll() {
+        if (signalRActive) return;   // SignalR aktif; polling'i atla
         try {
             const url = `/api/messages/${conversationId}/new?since=${encodeURIComponent(lastSeenAt)}`;
             const response = await fetch(url, { headers: { 'Accept': 'application/json' } });

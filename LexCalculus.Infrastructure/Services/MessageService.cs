@@ -1,4 +1,5 @@
 using LexCalculus.Core.Entities.Messaging;
+using LexCalculus.Core.Messaging;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ public sealed class MessageService : IMessageService
     private readonly IConversationService _conversationService;
     private readonly ICommentSanitizer _sanitizer;
     private readonly IActivityLogService _activityLog;
+    private readonly IMessagingNotifier _notifier;
     private readonly ILogger<MessageService>? _logger;
 
     public MessageService(
@@ -27,12 +29,14 @@ public sealed class MessageService : IMessageService
         IConversationService conversationService,
         ICommentSanitizer sanitizer,
         IActivityLogService activityLog,
+        IMessagingNotifier notifier,
         ILogger<MessageService>? logger = null)
     {
         _ctx = ctx;
         _conversationService = conversationService;
         _sanitizer = sanitizer;
         _activityLog = activityLog;
+        _notifier = notifier;
         _logger = logger;
     }
 
@@ -80,6 +84,18 @@ public sealed class MessageService : IMessageService
             metadata: new { message.Id, ConversationId = trackedConv.Id, SenderId = senderId },
             ct: ct);
 
+        // Real-time broadcast (sessiz fail — polling fallback devreye girer)
+        try
+        {
+            await _notifier.NotifyMessageReceivedAsync(recipientId, message.Id, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex,
+                "Notifier MessageReceived broadcast failed (mesaj kaydedildi): msgId={MessageId}",
+                message.Id);
+        }
+
         return new MessageResult(true, null, message);
     }
 
@@ -104,6 +120,27 @@ public sealed class MessageService : IMessageService
             description: $"Mesaj silindi id={message.Id} sender={actingUserId}",
             metadata: new { message.Id, message.ConversationId, ActingUserId = actingUserId },
             ct: ct);
+
+        // Recipient = conversation'daki diğer katılımcı (acting user değil)
+        var convIds = await _ctx.Conversations
+            .Where(c => c.Id == message.ConversationId)
+            .Select(c => new { c.User1Id, c.User2Id })
+            .FirstOrDefaultAsync(ct);
+        if (convIds is not null)
+        {
+            var recipientId = convIds.User1Id == actingUserId ? convIds.User2Id : convIds.User1Id;
+            try
+            {
+                await _notifier.NotifyMessageDeletedAsync(
+                    recipientId, message.ConversationId, message.Id, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex,
+                    "Notifier MessageDeleted broadcast failed (silme uygulandı): msgId={MessageId}",
+                    message.Id);
+            }
+        }
 
         return new MessageResult(true, null, message);
     }

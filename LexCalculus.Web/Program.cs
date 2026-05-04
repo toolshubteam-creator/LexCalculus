@@ -3,6 +3,7 @@ using LexCalculus.Core.Admin.Dashboard;
 using LexCalculus.Core.Email;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Interfaces;
+using LexCalculus.Core.Messaging;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Notifications;
 using LexCalculus.Core.Services;
@@ -232,6 +233,12 @@ try
     // Mesajlaşma altyapısı (Faz 5.4, charter Karar 1, 3, 4, 5)
     builder.Services.AddScoped<IConversationService, ConversationService>();
     builder.Services.AddScoped<IMessageService, MessageService>();
+
+    // Real-time mesajlaşma (Faz 5.6, charter Karar 2): SignalR Hub + notifier.
+    // Hub /hubs/messages endpoint'inde, cookie auth (charter Karar 8). Tek
+    // instance — multi-instance gerekirse Faz 6+ Redis backplane.
+    builder.Services.AddSignalR();
+    builder.Services.AddScoped<IMessagingNotifier, LexCalculus.Web.SignalR.SignalRMessagingNotifier>();
 
     // -------------------------------------------------------------------------
     // RATE LIMITING (Faz 5.2, charter Karar 7)
@@ -595,6 +602,10 @@ try
         pattern: "{controller=Home}/{action=Index}/{id?}");
 
     app.MapRazorPages();
+
+    // SignalR Hub — mesajlaşma real-time (Faz 5.6).
+    // Cookie auth (Hub [Authorize]); negotiate endpoint /hubs/messages/negotiate.
+    app.MapHub<LexCalculus.Web.SignalR.MessagesHub>("/hubs/messages");
 
     // -------------------------------------------------------------------------
     // STARTUP MIGRATIONS + SEED
