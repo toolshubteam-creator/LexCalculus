@@ -85,6 +85,7 @@ public sealed class DetailModel : PageModel
                 Body = m.Body,
                 CreatedAt = m.CreatedAt,
                 IsDeleted = m.IsDeleted,
+                IsModeratorHidden = m.IsModeratorHidden,
                 IsOwnMessage = m.SenderId == viewerId
             };
         }).ToList();

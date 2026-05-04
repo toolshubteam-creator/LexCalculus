@@ -221,17 +221,23 @@ public sealed class ContentReportsController : Controller
             return $"/uye/{post.AuthorSlug}/makale/{post.Slug}";
         }
 
-        var comment = await _ctx.PostComments
-            .Where(c => c.Id == targetId)
-            .Select(c => new
-            {
-                PostSlug = c.Post.Slug,
-                AuthorSlug = c.Post.User.Profile != null ? c.Post.User.Profile.PublicSlug : null,
-                CommentId = c.Id
-            })
-            .FirstOrDefaultAsync(ct);
-        if (comment is null || string.IsNullOrEmpty(comment.AuthorSlug)) return null;
-        return $"/uye/{comment.AuthorSlug}/makale/{comment.PostSlug}#yorum-{comment.CommentId}";
+        if (targetType == ContentReportTargetType.Comment)
+        {
+            var comment = await _ctx.PostComments
+                .Where(c => c.Id == targetId)
+                .Select(c => new
+                {
+                    PostSlug = c.Post.Slug,
+                    AuthorSlug = c.Post.User.Profile != null ? c.Post.User.Profile.PublicSlug : null,
+                    CommentId = c.Id
+                })
+                .FirstOrDefaultAsync(ct);
+            if (comment is null || string.IsNullOrEmpty(comment.AuthorSlug)) return null;
+            return $"/uye/{comment.AuthorSlug}/makale/{comment.PostSlug}#yorum-{comment.CommentId}";
+        }
+
+        // Faz 5.7 — mesajın public URL'i yok (admin Detail içinde inline render).
+        return null;
     }
 
     private async Task<ContentReportDetailVm> BuildDetailVmAsync(
@@ -275,7 +281,7 @@ public sealed class ContentReportsController : Controller
                 vm.TargetTitle = "(makale silinmiş)";
             }
         }
-        else
+        else if (targetType == ContentReportTargetType.Comment)
         {
             var comment = await _ctx.PostComments
                 .Include(c => c.User).ThenInclude(u => u!.Profile)
@@ -299,6 +305,27 @@ public sealed class ContentReportsController : Controller
             else
             {
                 vm.TargetTitle = "(yorum silinmiş)";
+            }
+        }
+        else if (targetType == ContentReportTargetType.Message)
+        {
+            // Faz 5.7 — mesaj şikayeti. Konuşma context'i admin Detail'de YOK
+            // (KVKK; sadece şikayet edilen mesaj). Public URL yok.
+            var message = await _ctx.Messages
+                .Include(m => m.Sender).ThenInclude(u => u!.Profile)
+                .FirstOrDefaultAsync(m => m.Id == targetId, ct);
+            if (message is not null)
+            {
+                vm.TargetTitle = "Mesaj";
+                vm.TargetBodyHtml = message.Body;
+                vm.TargetCreatedAt = message.CreatedAt;
+                vm.AuthorDisplayName = message.Sender.GetDisplayNameOrAnonymized();
+                vm.AuthorSlug = message.Sender.GetPublicSlugOrNull() ?? "";
+                vm.TargetPublicUrl = null;
+            }
+            else
+            {
+                vm.TargetTitle = "(mesaj silinmiş)";
             }
         }
 

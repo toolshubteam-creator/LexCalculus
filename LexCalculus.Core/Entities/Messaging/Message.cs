@@ -25,4 +25,12 @@ public sealed class Message
 
     /// <summary>Sahip soft delete (Faz 5.4). Body korunur, view'da placeholder render.</summary>
     public bool IsDeleted { get; set; }
+
+    /// <summary>
+    /// Admin moderasyon gizleme (Faz 5.7, charter Karar 11). True ise alıcı
+    /// için mesaj liste'den filter; sahip için '(yönetim tarafından gizlendi)'
+    /// placeholder. UnhideAsync ile geri alınabilir. IsDeleted'tan ayrı —
+    /// kullanıcı silmesi vs. moderasyon gizlemesi farklı kararlar.
+    /// </summary>
+    public bool IsModeratorHidden { get; set; }
 }

@@ -8,5 +8,12 @@ namespace LexCalculus.Core.Entities.Moderation;
 public enum ContentReportTargetType
 {
     Post = 1,
-    Comment = 2
+    Comment = 2,
+
+    /// <summary>
+    /// Faz 5.7 — 1-1 doğrudan mesaj. ContentReportService.CreateAsync için yetki
+    /// kontrolü konuşma katılımcılığı (rastgele mesaj id ile spam engel).
+    /// Hide → IsModeratorHidden=true (alıcı için filter, sahip için placeholder).
+    /// </summary>
+    Message = 3
 }

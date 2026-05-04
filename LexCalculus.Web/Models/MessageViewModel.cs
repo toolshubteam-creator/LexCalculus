@@ -23,6 +23,14 @@ public sealed class MessageViewModel
     public DateTime CreatedAt { get; set; }
     public bool IsDeleted { get; set; }
 
+    /// <summary>
+    /// Faz 5.7 — admin moderasyon gizleme. View IsDeleted/IsModeratorHidden
+    /// koşullarına göre body yerine placeholder render eder. Sahip kendi gizli
+    /// mesajını "(Yönetim tarafından gizlendi)" placeholder olarak görür;
+    /// recipient için MessageService zaten liste'den filter eder.
+    /// </summary>
+    public bool IsModeratorHidden { get; set; }
+
     /// <summary>Viewer kendi mesajı mı (sağ alignment + Sil butonu).</summary>
     public bool IsOwnMessage { get; set; }
 }

@@ -139,11 +139,14 @@ public sealed class ConversationService : IConversationService
             var lastReadAt = c.User1Id == userId ? c.User1LastReadAt : c.User2LastReadAt;
             var otherUserId = c.User1Id == userId ? c.User2Id : c.User1Id;
 
-            // Son mesaj preview (n+1 — Faz 6+ tech-debt)
+            // Son mesaj preview — IsModeratorHidden mesajlar filter dışı
+            // (alıcı için: hidden mesajı görmesin; sahip için kendi gizli
+            // mesajı liste'de placeholder ile görünür). n+1 — Faz 6+ tech-debt.
             var lastMsg = await _ctx.Messages
-                .Where(m => m.ConversationId == c.Id)
+                .Where(m => m.ConversationId == c.Id
+                         && (!m.IsModeratorHidden || m.SenderId == userId))
                 .OrderByDescending(m => m.CreatedAt)
-                .Select(m => new { m.Body, m.IsDeleted })
+                .Select(m => new { m.Body, m.IsDeleted, m.IsModeratorHidden, m.SenderId })
                 .FirstOrDefaultAsync(ct);
 
             string? preview = null;
@@ -152,6 +155,10 @@ public sealed class ConversationService : IConversationService
                 if (lastMsg.IsDeleted)
                 {
                     preview = "(silindi)";
+                }
+                else if (lastMsg.IsModeratorHidden && lastMsg.SenderId == userId)
+                {
+                    preview = "(yönetim tarafından gizlendi)";
                 }
                 else
                 {
@@ -162,13 +169,14 @@ public sealed class ConversationService : IConversationService
                 }
             }
 
-            // Okunmamış sayım
+            // Okunmamış sayım — hidden mesajlar dahil edilmez (alıcı zaten görmez)
             var threshold = lastReadAt ?? DateTime.MinValue;
             var unread = await _ctx.Messages
                 .CountAsync(m => m.ConversationId == c.Id
                               && m.SenderId == otherUserId
                               && m.CreatedAt > threshold
-                              && !m.IsDeleted, ct);
+                              && !m.IsDeleted
+                              && !m.IsModeratorHidden, ct);
 
             result.Add(new ConversationListItem(
                 ConversationId: c.Id,
@@ -225,7 +233,8 @@ public sealed class ConversationService : IConversationService
                 m.ConversationId == c.ConvId
                 && m.SenderId == c.OtherUserId
                 && m.CreatedAt > threshold
-                && !m.IsDeleted, ct);
+                && !m.IsDeleted
+                && !m.IsModeratorHidden, ct);
         }
         return total;
     }

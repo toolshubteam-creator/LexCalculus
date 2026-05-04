@@ -7,19 +7,20 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 **Faz 5 — Real-time + Olgunlaştırma + KVKK başladı (2 Mayıs 2026).**
 [Charter](./docs/phase-5-charter.md) · [Roadmap](./docs/phase-5-roadmap.md)
 
-**Faz 4 — Sosyal Platform + UGC tamamlandı (2 Mayıs 2026).**
+**Faz 5 Dalga B — Mesajlaşma altyapısı tamamlandı (5 Mayıs 2026).**
 
 - 17/17 hesaplayıcı aktif
-- 666/666 test geçiyor
-- Public profil + bağlantı + engelleme + notification (Dalga A)
-- Kullanıcı içerik üretimi: makale + yorum + beğeni + şikayet + admin moderasyon (Dalga B)
+- 779/779 test geçiyor
+- Public profil + bağlantı + engelleme + notification (Faz 4 Dalga A)
+- Kullanıcı içerik üretimi: makale + yorum + beğeni + şikayet + admin moderasyon (Faz 4 Dalga B)
+- 1-1 mesajlaşma: SignalR real-time + 30 sn polling fallback + moderasyon (Faz 5 Dalga B)
+- KVKK: hesap silme/anonimize, rate limiting, hide moderation (Faz 5 Dalga A)
 - Görsel altyapısı: featured + inline image, AJAX upload, ImageSharp + WebP
-- Admin paneli: parametre/LifeTable/kullanıcı/tenant/talep/davet/kategori/şikayet CRUD, activity log
+- Admin paneli: parametre/LifeTable/kullanıcı/tenant/talep/davet/kategori/şikayet (Post+Comment+Message) CRUD, activity log
 - Multi-tenant altyapı (hukuk büroları); bireysel vatandaş kullanıcıları etkilenmiyor (TenantId nullable)
 - 2 Hangfire recurring job (veri tazelik kontrolü, davet expire)
 - 9 hukuk kategorisinden 3'ü (İş Hukuku, Aktüerya, Faiz) hesaplayıcı olarak hazır
-- Mesajlaşma katmanı (Dalga C 4.12-4.14) → Faz 5
-- Kalan 6 hukuk kategorisi (Vergi, Aile, Miras, vb.) Faz 5+'ta eklenecek
+- Kalan 6 hukuk kategorisi (Vergi, Aile, Miras, vb.) Faz 6+'da eklenecek
 
 ## Hesaplayıcılar
 
@@ -244,6 +245,38 @@ responsive variants, hesap silme/anonimize, bot/spam rate limiting,
 comment edit history, notification email kanalı, NoIndex bayraktarması.
 
 Önceki açık (Faz 3'ten devren): Madde 1, 3, 4, 9 — durumları değişmedi.
+
+---
+
+## Faz 5 Dalga B — Tamamlandı (5 Mayıs 2026)
+
+**Tag:** `phase-5-wave-b-complete` · **Süre:** ~2 gün (tahmin 3 hafta)
+
+1-1 doğrudan mesajlaşma altyapısı tam yayında. Conversation + Message
+entity, /mesajlar UI, polling fallback, SignalR real-time, mesaj
+moderasyonu (Hide/Sil + Şikayet), engelleme + anonimize entegrasyonu.
+
+| Adım | Konu | Sonuç |
+|---|---|---|
+| 5.4 | Conversation + Message entity + servis | Yetki: bağlantı OR aynı tenant + NOT engelleme; deterministic User1Id<User2Id |
+| 5.5 | /mesajlar UI + AJAX endpoint + polling | 3 sayfa (Index/Detail/Yeni), 5 endpoint, 30 sn polling, kebab Sil |
+| 5.6 | SignalR real-time | IMessagingNotifier abstraction, Hub /hubs/messages, polling fallback korunur |
+| 5.7 | Mesaj moderasyon + closeout | Şikayet butonu, IsModeratorHidden, admin Hide/Unhide/Sil, real-time MessageHidden event |
+
+| Metrik | Faz 4 sonu | Dalga B sonu | Delta |
+|---|---|---|---|
+| Test | 666 | 779 | +113 (+%17) |
+| Migration | 30 | 32 | +2 (AddMessaging, AddMessageModeratorHide) |
+| Yeni entity | — | 2 | Conversation, Message |
+| Yeni Razor Page | — | 3 | /mesajlar, /mesajlar/{id}, /mesajlar/yeni |
+| Yeni AJAX endpoint | — | 5 | send, delete, get, new (polling), mark-read |
+| Yeni teknoloji | — | SignalR + WebSocket + IHubContext | — |
+| Genişletilen enum | — | ContentReportTargetType.Message=3 | — |
+
+### Sonraki: Dalga C (5.8-5.9)
+
+- 5.8 SQL Server LocalDB test migration (InMemory'den geçiş)
+- 5.9 Faz 5 closeout (roadmap, README final, tech-debt, `phase-5-complete` tag)
 
 ---
 

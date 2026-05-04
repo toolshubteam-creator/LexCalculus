@@ -64,6 +64,9 @@
             </span>
         </form>
     </div>
+
+    @* Faz 5.7 — şikayet modal (mesaj kebab menüsündeki "Şikayet Et"den açılır) *@
+    <partial name="_ReportModal" />
 </section>
 
 @section Scripts {
@@ -73,4 +76,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
             crossorigin="anonymous" defer></script>
     <script src="~/js/mesajlar.js" defer asp-append-version="true"></script>
+    <script src="~/js/report-modal.js" defer asp-append-version="true"></script>
 }

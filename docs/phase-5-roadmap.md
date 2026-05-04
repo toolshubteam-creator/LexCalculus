@@ -8,14 +8,15 @@
 ## Durum
 
 🟢 **Dalga A tamamlandı (3 Mayıs 2026)** — Tag: `phase-5-wave-a-complete`
-🟡 **Dalga B (Mesajlaşma) sırada** — 5.4-5.7
+🟢 **Dalga B tamamlandı (5 Mayıs 2026)** — Tag: `phase-5-wave-b-complete`
+🟡 **Dalga C (Test infra + closeout) sırada** — 5.8-5.9
 
 ## Dalga Yapısı
 
 | Dalga | Konu | Adım Aralığı | Tahmin | Durum |
 |---|---|---|---|---|
 | A | Olgunlaştırma (KVKK + güvenlik) | 5.1 - 5.3 | 1.5-2 hafta → ~1 gün | ✅ |
-| B | Mesajlaşma altyapısı (Conversation + SignalR) | 5.4 - 5.7 | 3 hafta | ⏳ |
+| B | Mesajlaşma altyapısı (Conversation + SignalR) | 5.4 - 5.7 | 3 hafta → ~2 gün | ✅ |
 | C | Test infrastructure + Faz closeout | 5.8 - 5.9 | 1 hafta | ⏳ |
 
 ## Adımlar
@@ -25,10 +26,10 @@
 | 5.1 | Hesap silme + anonimize stratejisi | Faz 4 FK Restrict yapısı | 6 | ✅ |
 | 5.2 | Rate limiting middleware | — | 7 | ✅ |
 | 5.3 | Hide moderation + NoIndex auto | Adım 4.10 P2 | 11, 12 | ✅ |
-| 5.4 | Conversation + Message entity + servis | Adım 4.2 (UserConnection), 4.3 (UserBlock) | 1, 4, 5 | ⏳ |
-| 5.5 | Mesajlaşma UI (polling fallback) | 5.4 | 9 | ⏳ |
-| 5.6 | SignalR real-time entegrasyonu | 5.5 | 2, 8 | ⏳ |
-| 5.7 | Mesaj moderasyon + Notification + Dalga B closeout | 5.4-5.6 | 3 | ⏳ |
+| 5.4 | Conversation + Message entity + servis | Adım 4.2 (UserConnection), 4.3 (UserBlock) | 1, 4, 5 | ✅ |
+| 5.5 | Mesajlaşma UI (polling fallback) | 5.4 | 9 | ✅ |
+| 5.6 | SignalR real-time entegrasyonu | 5.5 | 2, 8 | ✅ |
+| 5.7 | Mesaj moderasyon + Notification + Dalga B closeout | 5.4-5.6 | 3 | ✅ |
 | 5.8 | SQL Server LocalDB test migration | — (paralel olabilir) | 10 | ⏳ |
 | 5.9 | Faz 5 closeout (roadmap, README, tech-debt, tag) | tüm | — | ⏳ |
 
@@ -129,19 +130,33 @@
 
 **Süre:** ~3-4 gün
 
-### Adım 5.7 — Mesaj moderasyon + Notification + Dalga B closeout
+### Adım 5.7 — Mesaj moderasyon + Notification + Dalga B closeout ✅
 
-**Kapsam:**
-- `NotificationType.Message` (102'den sonra yeni int — örn. 106)
-- ConversationService → NotificationService entegrasyon
-- Kullanıcı tercihi: "Her mesaj için bildir" / "Sessiz" / "Toplu özet"
-- Mesaj içerik şikayet (ContentReportTargetType.Message ekle)
-- Manuel doğrulama (Dalga B senaryolar)
-- Mini tag: `phase-5-wave-b-complete`
+**Tamamlandı:** 5 Mayıs 2026
 
-**Charter Karar:** 3
+**Yapılanlar:**
+- `Message.IsModeratorHidden` field + `AddMessageModeratorHide` migration
+- `ContentReportTargetType.Message=3` enum
+- `ContentReportService` Message support (Create yetki kontrolü
+  conversation participant; Hide/Unhide/Action; GetHiddenContent)
+- `_Message` partial: kebab menü ⋯ (own=Sil, other=Şikayet)
+- `mesajlar.js`: kebab toggle + report-modal entegrasyonu + MessageHidden
+  SignalR handler
+- `report-modal.js` extract (Makale + Mesajlar paylaşımlı, DRY)
+- Public render filter: alıcı için hidden mesaj görünmez, sahip için
+  placeholder ("(Yönetim tarafından gizlendi)")
+- ConversationService preview + UnreadCount: hidden mesajlar dahil değil
+- Admin moderasyon: Index/Detail/Hidden Mesaj badge + body render
+  (konuşma context yok — KVKK)
+- IMessagingNotifier.NotifyMessageHiddenAsync (sender + recipient grup
+  broadcast); SignalR 'MessageHidden' event
+- Notification: ContentHidden/ContentRemoved Message body güncelleme
+- Tag: `phase-5-wave-b-complete`
 
-**Süre:** ~2-3 gün
+**Charter Karar:** 3, 11
+
+**Test:** 763 → 779 (+16: MessageReportTests, MessageHiddenFilterTests,
+AdminMessageReportTests)
 
 ### Adım 5.8 — SQL Server LocalDB test migration
 

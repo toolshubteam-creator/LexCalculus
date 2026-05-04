@@ -381,6 +381,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             e.HasIndex(m => new { m.ConversationId, m.CreatedAt });
             e.HasIndex(m => m.SenderId);
+
+            // Faz 5.7 — admin "Gizlenenler" listesi için (Hide pattern, Karar 11).
+            e.HasIndex(m => m.IsModeratorHidden);
         });
 
         builder.Entity<ActivityLog>(e =>

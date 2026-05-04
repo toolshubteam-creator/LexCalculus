@@ -2,6 +2,7 @@ using FluentAssertions;
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Moderation;
+using LexCalculus.Core.Messaging;
 using LexCalculus.Core.Notifications;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Services;
@@ -23,7 +24,8 @@ public class HideModerationTests
     {
         var ctx = TestDbContextFactory.Create();
         var notif = new RecordingNotificationService();
-        var svc = new ContentReportService(ctx, notif, new NullActivityLogService());
+        var svc = new ContentReportService(ctx, notif, new NullActivityLogService(),
+            new NoOpMessagingNotifier());
 
         ctx.Users.AddRange(
             MakeUser(1, "owner@x.com"),

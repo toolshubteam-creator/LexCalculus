@@ -1,5 +1,7 @@
 using LexCalculus.Core.Entities.Content;
 using LexCalculus.Core.Entities.Moderation;
+using LexCalculus.Core.Extensions;
+using LexCalculus.Core.Messaging;
 using LexCalculus.Core.Notifications;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Data;
@@ -20,17 +22,20 @@ public sealed class ContentReportService : IContentReportService
     private readonly ApplicationDbContext _ctx;
     private readonly INotificationService _notifications;
     private readonly IActivityLogService _activityLog;
+    private readonly IMessagingNotifier _messagingNotifier;
     private readonly ILogger<ContentReportService>? _logger;
 
     public ContentReportService(
         ApplicationDbContext ctx,
         INotificationService notifications,
         IActivityLogService activityLog,
+        IMessagingNotifier messagingNotifier,
         ILogger<ContentReportService>? logger = null)
     {
         _ctx = ctx;
         _notifications = notifications;
         _activityLog = activityLog;
+        _messagingNotifier = messagingNotifier;
         _logger = logger;
     }
 
@@ -84,6 +89,31 @@ public sealed class ContentReportService : IContentReportService
                 if (comment is null)
                     return new ContentReportResult(false, "Şikayet edilecek yorum bulunamadı.", null);
                 targetOwnerId = comment.UserId;
+                break;
+            }
+            case ContentReportTargetType.Message:
+            {
+                // Mesaj şikayet (Faz 5.7). Yetki: reporter konuşmanın katılımcısı
+                // olmalı (rastgele mesaj id ile spam engel).
+                var msg = await _ctx.Messages
+                    .Where(m => m.Id == targetId)
+                    .Select(m => new
+                    {
+                        m.SenderId,
+                        m.ConversationId,
+                        m.IsDeleted,
+                        m.IsModeratorHidden,
+                        ConvUser1Id = m.Conversation.User1Id,
+                        ConvUser2Id = m.Conversation.User2Id
+                    })
+                    .FirstOrDefaultAsync(ct);
+                if (msg is null)
+                    return new ContentReportResult(false, "Şikayet edilecek mesaj bulunamadı.", null);
+                if (msg.IsDeleted || msg.IsModeratorHidden)
+                    return new ContentReportResult(false, "Bu mesaj artık şikayet edilemez.", null);
+                if (msg.ConvUser1Id != reporterId && msg.ConvUser2Id != reporterId)
+                    return new ContentReportResult(false, "Yetkisiz erişim.", null);
+                targetOwnerId = msg.SenderId;
                 break;
             }
             default:
@@ -162,10 +192,12 @@ public sealed class ContentReportService : IContentReportService
         if (raw.Count == 0)
             return Array.Empty<ContentReportGroup>();
 
-        // Hedef title + author display name doldurma (Post + Comment ayrı queries)
+        // Hedef title + author display name doldurma (Post + Comment + Message ayrı queries)
         var postIds = raw.Where(r => r.TargetType == ContentReportTargetType.Post)
             .Select(r => r.TargetId).ToList();
         var commentIds = raw.Where(r => r.TargetType == ContentReportTargetType.Comment)
+            .Select(r => r.TargetId).ToList();
+        var messageIds = raw.Where(r => r.TargetType == ContentReportTargetType.Message)
             .Select(r => r.TargetId).ToList();
 
         var posts = new Dictionary<int, (string? Title, string? Author)>();
@@ -204,6 +236,34 @@ public sealed class ContentReportService : IContentReportService
                 comments[r.Id] = (Truncate(r.Body, 80), (string?)r.AuthorName);
         }
 
+        var messages = new Dictionary<int, (string? Title, string? Author)>();
+        if (messageIds.Count > 0)
+        {
+            var messageRows = await _ctx.Messages
+                .Where(m => messageIds.Contains(m.Id))
+                .Select(m => new
+                {
+                    m.Id,
+                    Body = m.Body,
+                    AuthorName = m.Sender!.Profile != null
+                        ? m.Sender.Profile.DisplayName
+                        : m.Sender.UserName,
+                    AuthorActive = m.Sender.IsActive
+                })
+                .ToListAsync(ct);
+            foreach (var r in messageRows)
+            {
+                var preview = r.Body.Length > 80
+                    ? "Mesaj: " + r.Body.Substring(0, 80) + "…"
+                    : "Mesaj: " + r.Body;
+                preview = StripHtmlForPreview(preview);
+                var authorDisplay = r.AuthorActive
+                    ? r.AuthorName
+                    : ApplicationUserDisplayExtensions.AnonymizedDisplayName;
+                messages[r.Id] = (preview, authorDisplay);
+            }
+        }
+
         var result = new List<ContentReportGroup>(raw.Count);
         foreach (var g in raw)
         {
@@ -213,6 +273,8 @@ public sealed class ContentReportService : IContentReportService
             { title = pv.Title; author = pv.Author; }
             else if (g.TargetType == ContentReportTargetType.Comment && comments.TryGetValue(g.TargetId, out var cv))
             { title = cv.Title; author = cv.Author; }
+            else if (g.TargetType == ContentReportTargetType.Message && messages.TryGetValue(g.TargetId, out var mv))
+            { title = mv.Title; author = mv.Author; }
 
             result.Add(new ContentReportGroup(
                 g.TargetType, g.TargetId, g.ReportCount, g.LatestReportAt, title, author));
@@ -251,6 +313,8 @@ public sealed class ContentReportService : IContentReportService
     {
         int? contentOwnerId = null;
         bool wasAlreadyHidden = false;
+        // Faz 5.7 mesaj gizleme için real-time event
+        (int senderId, int recipientId, int conversationId)? messageBroadcast = null;
         switch (targetType)
         {
             case ContentReportTargetType.Post:
@@ -273,6 +337,22 @@ public sealed class ContentReportService : IContentReportService
                 contentOwnerId = comment.UserId;
                 comment.IsModeratorHidden = true;
                 comment.UpdatedAt = DateTime.UtcNow;
+                break;
+            }
+            case ContentReportTargetType.Message:
+            {
+                var message = await _ctx.Messages
+                    .Include(m => m.Conversation)
+                    .FirstOrDefaultAsync(m => m.Id == targetId, ct);
+                if (message is null)
+                    return new ContentReportResult(false, "İçerik bulunamadı.", null);
+                wasAlreadyHidden = message.IsModeratorHidden;
+                contentOwnerId = message.SenderId;
+                message.IsModeratorHidden = true;
+                var recipient = message.Conversation.User1Id == message.SenderId
+                    ? message.Conversation.User2Id
+                    : message.Conversation.User1Id;
+                messageBroadcast = (message.SenderId, recipient, message.ConversationId);
                 break;
             }
             default:
@@ -322,17 +402,38 @@ public sealed class ContentReportService : IContentReportService
             // Content owner'a
             if (contentOwnerId.HasValue)
             {
+                var ownerBody = targetType switch
+                {
+                    ContentReportTargetType.Post => "Makaleniz şikayet üzerine yönetim tarafından gizlendi.",
+                    ContentReportTargetType.Comment => "Yorumunuz şikayet üzerine yönetim tarafından gizlendi.",
+                    ContentReportTargetType.Message => "Mesajınız şikayet üzerine yönetim tarafından gizlendi.",
+                    _ => "İçeriğiniz şikayet üzerine yönetim tarafından gizlendi."
+                };
                 await SafeNotifyAsync(() => _notifications.CreateAsync(
                     type: NotificationType.ContentHidden,
                     userId: contentOwnerId.Value,
                     title: "İçeriğiniz gizlendi",
-                    body: targetType == ContentReportTargetType.Post
-                        ? "Makaleniz şikayet üzerine yönetim tarafından gizlendi."
-                        : "Yorumunuz şikayet üzerine yönetim tarafından gizlendi.",
+                    body: ownerBody,
                     link: "/bildirimler",
                     relatedEntityType: targetType.ToString(),
                     relatedEntityId: targetId,
                     ct: ct));
+            }
+
+            // Real-time broadcast (mesaj gizleme): sender + recipient grupları
+            if (messageBroadcast is { } mb)
+            {
+                try
+                {
+                    await _messagingNotifier.NotifyMessageHiddenAsync(
+                        mb.senderId, mb.recipientId, mb.conversationId, targetId, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex,
+                        "Notifier MessageHidden broadcast failed (gizleme uygulandı): msgId={MessageId}",
+                        targetId);
+                }
             }
         }
 
@@ -385,6 +486,17 @@ public sealed class ContentReportService : IContentReportService
                 comment.UpdatedAt = DateTime.UtcNow;
                 break;
             }
+            case ContentReportTargetType.Message:
+            {
+                var message = await _ctx.Messages.FirstOrDefaultAsync(m => m.Id == targetId, ct);
+                if (message is null)
+                    return new ContentReportResult(false, "İçerik bulunamadı.", null);
+                if (!message.IsModeratorHidden)
+                    return new ContentReportResult(false, "İçerik zaten gizli değil.", null);
+                contentOwnerId = message.SenderId;
+                message.IsModeratorHidden = false;
+                break;
+            }
             default:
                 return new ContentReportResult(false, "Geçersiz hedef tipi.", null);
         }
@@ -393,13 +505,18 @@ public sealed class ContentReportService : IContentReportService
 
         if (contentOwnerId.HasValue)
         {
+            var restoredBody = targetType switch
+            {
+                ContentReportTargetType.Post => "Gizlenmiş makaleniz tekrar yayında.",
+                ContentReportTargetType.Comment => "Gizlenmiş yorumunuz tekrar görünür.",
+                ContentReportTargetType.Message => "Gizlenmiş mesajınız tekrar görünür (sayfa yenilenirse).",
+                _ => "Gizlenmiş içeriğiniz tekrar görünür."
+            };
             await SafeNotifyAsync(() => _notifications.CreateAsync(
                 type: NotificationType.ContentRestored,
                 userId: contentOwnerId.Value,
                 title: "İçeriğiniz geri yüklendi",
-                body: targetType == ContentReportTargetType.Post
-                    ? "Gizlenmiş makaleniz tekrar yayında."
-                    : "Gizlenmiş yorumunuz tekrar görünür.",
+                body: restoredBody,
                 link: "/bildirimler",
                 relatedEntityType: targetType.ToString(),
                 relatedEntityId: targetId,
@@ -493,9 +610,56 @@ public sealed class ContentReportService : IContentReportService
                 c.UpdatedAt, url));
         }
 
+        // Faz 5.7 — gizlenmiş mesajlar (admin Hidden listesi)
+        var hiddenMessages = await _ctx.Messages
+            .AsNoTracking()
+            .Include(m => m.Sender).ThenInclude(u => u!.Profile)
+            .Where(m => m.IsModeratorHidden)
+            .OrderByDescending(m => m.CreatedAt)
+            .Select(m => new
+            {
+                m.Id,
+                m.Body,
+                m.CreatedAt,
+                m.SenderId,
+                AuthorName = m.Sender!.Profile != null
+                    ? m.Sender.Profile.DisplayName
+                    : m.Sender.UserName,
+                AuthorActive = m.Sender.IsActive
+            })
+            .ToListAsync(ct);
+
+        foreach (var m in hiddenMessages)
+        {
+            // Mesajın public URL'i yok — admin Detail içinde inline görünür
+            // (konuşma context'siz, sadece tek mesaj — KVKK).
+            var preview = m.Body.Length > 50
+                ? "Mesaj: " + m.Body.Substring(0, 50) + "..."
+                : "Mesaj: " + m.Body;
+            // Plain text'e çevir (sanitize edilmiş HTML olabilir)
+            preview = StripHtmlForPreview(preview);
+            var authorDisplay = m.AuthorActive
+                ? (m.AuthorName ?? "(yazar bulunamadı)")
+                : ApplicationUserDisplayExtensions.AnonymizedDisplayName;
+            items.Add(new HiddenContentItem(
+                ContentReportTargetType.Message, m.Id,
+                preview,
+                authorDisplay,
+                m.CreatedAt, null));
+        }
+
         return items
             .OrderByDescending(i => i.UpdatedAt)
             .ToList();
+    }
+
+    private static string StripHtmlForPreview(string html)
+    {
+        if (string.IsNullOrEmpty(html)) return html;
+        var noBr = System.Text.RegularExpressions.Regex.Replace(html, @"<br\s*/?>", " ",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var noTags = System.Text.RegularExpressions.Regex.Replace(noBr, @"<[^>]+>", "");
+        return System.Net.WebUtility.HtmlDecode(noTags).Trim();
     }
 
     public async Task<ContentReportResult> DismissAsync(
@@ -609,6 +773,15 @@ public sealed class ContentReportService : IContentReportService
                 _ctx.PostComments.Remove(comment);
                 break;
             }
+            case ContentReportTargetType.Message:
+            {
+                var message = await _ctx.Messages.FirstOrDefaultAsync(m => m.Id == targetId, ct);
+                if (message is null)
+                    return new ContentReportResult(false, "İçerik zaten kaldırılmış.", null);
+                contentOwnerId = message.SenderId;
+                _ctx.Messages.Remove(message);
+                break;
+            }
         }
 
         var now = DateTime.UtcNow;
@@ -643,13 +816,18 @@ public sealed class ContentReportService : IContentReportService
         // İçerik sahibine: içeriği kaldırıldı
         if (contentOwnerId.HasValue)
         {
+            var ownerBody = targetType switch
+            {
+                ContentReportTargetType.Post => "Makaleniz şikayet üzerine kaldırıldı.",
+                ContentReportTargetType.Comment => "Yorumunuz şikayet üzerine kaldırıldı.",
+                ContentReportTargetType.Message => "Mesajınız şikayet üzerine kaldırıldı.",
+                _ => "İçeriğiniz şikayet üzerine kaldırıldı."
+            };
             await SafeNotifyAsync(() => _notifications.CreateAsync(
                 type: NotificationType.ContentRemoved,
                 userId: contentOwnerId.Value,
                 title: "İçeriğiniz kaldırıldı",
-                body: targetType == ContentReportTargetType.Post
-                    ? "Makaleniz şikayet üzerine kaldırıldı."
-                    : "Yorumunuz şikayet üzerine kaldırıldı.",
+                body: ownerBody,
                 link: "/bildirimler",
                 relatedEntityType: nameof(ContentReport),
                 relatedEntityId: pending[0].Id,

@@ -1108,6 +1108,11 @@ button { font: inherit; }
     background: #fff3cd;
     color: #856404;
 }
+.param-badge--message {
+    /* Faz 5.7 — mesaj şikayet etiketi (mavi tonu, post/comment'tan ayrışsın) */
+    background: #d1ecf1;
+    color: #0c5460;
+}
 
 .content-report-detail {
     display: grid;

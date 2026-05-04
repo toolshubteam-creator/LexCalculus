@@ -25,6 +25,12 @@
         {
             <p class="mesaj__deleted">(Bu mesaj silindi)</p>
         }
+        else if (Model.IsModeratorHidden)
+        {
+            @* Faz 5.7 — admin moderasyon gizleme. Sahip için placeholder
+               (alıcı için MessageService zaten liste'den filter eder). *@
+            <p class="mesaj__hidden">(Yönetim tarafından gizlendi)</p>
+        }
         else
         {
             <div class="mesaj__body" data-mesaj-body>@Html.Raw(Model.Body)</div>
@@ -34,12 +40,37 @@
             <time datetime="@Model.CreatedAt.ToString("o")">
                 @Model.CreatedAt.ToLocalTime().ToString("HH:mm")
             </time>
-            @if (Model.IsOwnMessage && !Model.IsDeleted)
+
+            @if (!Model.IsDeleted && !Model.IsModeratorHidden)
             {
-                <button type="button" class="mesaj__delete"
-                        data-mesaj-delete data-message-id="@Model.Id">
-                    Sil
-                </button>
+                @* Faz 5.7 — kebab menü: own=Sil, other=Şikayet Et *@
+                <div class="mesaj__menu">
+                    <button type="button" class="mesaj__menu-toggle"
+                            aria-label="Mesaj menüsü" aria-haspopup="menu" aria-expanded="false"
+                            data-mesaj-menu-toggle>
+                        ⋯
+                    </button>
+                    <div class="mesaj__menu-items" role="menu" hidden data-mesaj-menu-items>
+                        @if (Model.IsOwnMessage)
+                        {
+                            <button type="button" class="mesaj__menu-item mesaj__delete"
+                                    role="menuitem"
+                                    data-mesaj-delete data-message-id="@Model.Id">
+                                Sil
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="mesaj__menu-item mesaj__menu-item--danger"
+                                    role="menuitem"
+                                    data-report-target-type="3"
+                                    data-report-target-id="@Model.Id">
+                                Şikayet Et
+                            </button>
+                        }
+                    </div>
+                </div>
             }
         </div>
     </div>

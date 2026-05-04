@@ -718,3 +718,72 @@ veya yeni "signalr-negotiate" policy (5/dakika).
 
 **Önerilen zaman:** Production öncesi cleanup. Düşük öncelik —
 [Authorize] negotiate spam'ı önlüyor zaten.
+
+---
+
+## 30. Mesaj 'Daha fazla yükle' sayfalama placeholder
+
+**Bağlam:** Adım 5.5'te `/mesajlar/{id}` Detail sayfasında `HasMore=true`
+durumunda "Daha fazla yükle" butonu render ediliyor; tıklanınca alert
+gösteriyor (placeholder).
+
+**Mevcut durum:** REST endpoint `/api/messages/{id}?skip=N` mevcut,
+VM array dönüyor. Ancak client'ta partial HTML render JS template
+eksik. Pratikte 50'den fazla mesajı olan konuşma az.
+
+**İdeal çözüm:** Server-side render endpoint (`/api/messages/{id}/page?skip=N`
+→ `_Message` HTML array) + client `insertAdjacentHTML('afterbegin')`.
+
+**Önerilen zaman:** Konuşma uzunlukları arttığında veya kullanıcı
+şikayeti gelirse. Düşük öncelik.
+
+---
+
+## 31. ConversationService GetForUserAsync n+1 query
+
+**Bağlam:** Adım 5.4'te `ConversationService.GetForUserAsync` her
+conversation için ayrı `LastMessage` ve `UnreadCount` query'si yapıyor.
+
+**Mevcut durum:** Kullanıcı başına 100+ konuşma olduğunda 100+ query.
+Az kullanıcı için sorun yok.
+
+**İdeal çözüm:** Tek query ile JOIN/aggregate (window function veya
+GroupBy), .NET 10 EF GroupBy projection iyileştirilmiş.
+
+**Önerilen zaman:** Aktif kullanıcı sayısı / mesajlaşma yoğunluğu
+arttığında profile et + optimize.
+
+---
+
+## 32. GetUnreadCountAsync n+1 query
+
+**Bağlam:** Adım 5.4 + 5.7'de `GetUnreadCountAsync` her conversation
+için ayrı `Messages.CountAsync` çağrısı yapıyor (badge için).
+
+**Mevcut durum:** Üst menü her authenticated request'te bu metodu
+çağırıyor (UnreadMessagesBadge ViewComponent). Konuşma sayısına
+oranlı n query.
+
+**İdeal çözüm:** Tek aggregate query (Messages JOIN Conversations,
+GroupBy ConversationId, sum). Veya cache: kullanıcı başına sayım Redis
+(SignalR push ile invalidate).
+
+**Önerilen zaman:** Layout render performance metrik düştüğünde.
+
+---
+
+## 33. Admin mesaj Detail konuşma context yok
+
+**Bağlam:** Adım 5.7'de admin moderasyon paneli `/admin/sikayetler/3/{id}`
+yalnızca şikayet edilen mesajı render ediyor — conversation'ın diğer
+mesajları görünmüyor (KVKK + admin sınırı).
+
+**Mevcut durum:** Admin tek mesaj üzerinden karar veriyor. Gerçek
+context (önce/sonra ne yazıldı?) için kullanıcıdan ek bilgi gerekirse
+manuel takip lazım.
+
+**İdeal çözüm:** Admin'e "tüm konuşmayı incele" özel butonu (audit
+log'a yazılır), context view sadece şikayet inceleme süresince görünür.
+
+**Önerilen zaman:** Faz 6+ moderasyon iyileştirme. Şimdilik karar:
+admin tek mesaj görür, conversation context yok (KVKK gözetildi).

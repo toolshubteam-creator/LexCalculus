@@ -69,6 +69,7 @@ public sealed class SignalRMessagingNotifier : IMessagingNotifier
             Body = message.Body,
             CreatedAt = message.CreatedAt,
             IsDeleted = message.IsDeleted,
+            IsModeratorHidden = message.IsModeratorHidden,
             IsOwnMessage = false   // recipient için karşı tarafın mesajı
         };
 
@@ -90,6 +91,22 @@ public sealed class SignalRMessagingNotifier : IMessagingNotifier
         await _hubContext.Clients
             .Group(MessagesHub.GroupName(recipientId))
             .SendAsync("MessageDeleted", new
+            {
+                conversationId,
+                messageId
+            }, ct);
+    }
+
+    public async Task NotifyMessageHiddenAsync(
+        int senderId, int recipientId, int conversationId, int messageId,
+        CancellationToken ct = default)
+    {
+        // Hem gönderene (kendi gizli mesajını placeholder olarak görmeli)
+        // hem de alıcıya (recipient için liste'den filter, açık sayfa varsa
+        // anlık placeholder) tek call'da broadcast.
+        await _hubContext.Clients
+            .Groups(MessagesHub.GroupName(senderId), MessagesHub.GroupName(recipientId))
+            .SendAsync("MessageHidden", new
             {
                 conversationId,
                 messageId

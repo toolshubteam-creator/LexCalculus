@@ -45,13 +45,17 @@
                     {
                         <tr class="param-table__row">
                             <td>
-                                @if (item.TargetType == ContentReportTargetType.Post)
+                                @switch (item.TargetType)
                                 {
-                                    <span class="param-badge param-badge--post">Makale</span>
-                                }
-                                else
-                                {
-                                    <span class="param-badge param-badge--comment">Yorum</span>
+                                    case ContentReportTargetType.Post:
+                                        <span class="param-badge param-badge--post">Makale</span>
+                                        break;
+                                    case ContentReportTargetType.Comment:
+                                        <span class="param-badge param-badge--comment">Yorum</span>
+                                        break;
+                                    case ContentReportTargetType.Message:
+                                        <span class="param-badge param-badge--message">Mesaj</span>
+                                        break;
                                 }
                             </td>
                             <td>

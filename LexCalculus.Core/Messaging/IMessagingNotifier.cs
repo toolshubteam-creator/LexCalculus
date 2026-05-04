@@ -20,4 +20,15 @@ public interface IMessagingNotifier
     /// '(Bu mesaj silindi)' placeholder'ına çevirir.
     /// </summary>
     Task NotifyMessageDeletedAsync(int recipientId, int conversationId, int messageId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Mesaj admin tarafından gizlendiğini KONUŞMANIN HER İKİ KATILIMCISINA
+    /// bildirir (sender de placeholder olarak görmeli, alıcı listede filter).
+    /// senderId == ownerId; recipientId == karşı taraf. SignalR Groups.Groups
+    /// ile tek call'da iki gruba broadcast.
+    /// Faz 5.7 mesaj moderasyonu.
+    /// </summary>
+    Task NotifyMessageHiddenAsync(
+        int senderId, int recipientId, int conversationId, int messageId,
+        CancellationToken ct = default);
 }

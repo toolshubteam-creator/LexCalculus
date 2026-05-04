@@ -14,7 +14,15 @@
             <h2>Şikayet Edilen İçerik</h2>
             <dl class="content-report-detail__meta">
                 <dt>Tip:</dt>
-                <dd>@(Model.TargetType == ContentReportTargetType.Post ? "Makale" : "Yorum")</dd>
+                <dd>
+                    @(Model.TargetType switch
+                    {
+                        ContentReportTargetType.Post => "Makale",
+                        ContentReportTargetType.Comment => "Yorum",
+                        ContentReportTargetType.Message => "Mesaj",
+                        _ => "Bilinmeyen"
+                    })
+                </dd>
 
                 <dt>Yazar:</dt>
                 <dd>

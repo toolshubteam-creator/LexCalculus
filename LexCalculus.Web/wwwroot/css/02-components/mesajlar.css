@@ -261,6 +261,15 @@
     font-style: italic;
     color: var(--muted);
 }
+.mesaj__hidden {
+    margin: 0;
+    font-style: italic;
+    color: var(--muted);
+    background: var(--gold-pale);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px dashed var(--gold);
+}
 .mesaj__meta {
     display: flex;
     gap: var(--sp-2);
@@ -282,6 +291,63 @@
 }
 .mesaj__delete:hover {
     color: var(--burgundy);
+}
+
+/* ─── Kebab menü (Faz 5.7) ─── */
+.mesaj__menu {
+    position: relative;
+    display: inline-block;
+}
+.mesaj__menu-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 0 4px;
+    font-size: 1rem;
+    line-height: 1;
+}
+.mesaj__menu-toggle:hover,
+.mesaj__menu-toggle[aria-expanded="true"] {
+    color: var(--ink);
+}
+.mesaj__menu-items {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: #fff;
+    border: var(--border-thin-rule);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(10, 20, 40, 0.12);
+    z-index: 10;
+    min-width: 130px;
+    margin-top: 2px;
+    padding: 4px 0;
+}
+.mesaj--own .mesaj__menu-items {
+    right: auto;
+    left: 0;
+}
+.mesaj__menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: var(--fs-hint);
+    color: var(--ink);
+    font-family: inherit;
+}
+.mesaj__menu-item:hover {
+    background: var(--gold-pale);
+}
+.mesaj__menu-item--danger {
+    color: var(--burgundy);
+}
+.mesaj__menu-item--danger:hover {
+    background: rgba(107, 31, 46, 0.08);
 }
 
 /* ─── Send formu ─── */

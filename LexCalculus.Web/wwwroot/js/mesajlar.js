@@ -100,9 +100,47 @@
             placeholder.textContent = '(Bu mesaj silindi)';
             body.replaceWith(placeholder);
         }
-        const btn = card.querySelector('[data-mesaj-delete]');
-        if (btn) btn.remove();
+        const menu = card.querySelector('.mesaj__menu');
+        if (menu) menu.remove();
     }
+
+    // Faz 5.7 — admin moderasyon gizleme placeholder
+    function applyHiddenPlaceholder(messageId) {
+        const card = messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
+        if (!card) return;
+        const body = card.querySelector('[data-mesaj-body]');
+        if (body) {
+            const placeholder = document.createElement('p');
+            placeholder.className = 'mesaj__hidden';
+            placeholder.textContent = '(Yönetim tarafından gizlendi)';
+            body.replaceWith(placeholder);
+        }
+        const menu = card.querySelector('.mesaj__menu');
+        if (menu) menu.remove();
+    }
+
+    // Faz 5.7 — kebab menü toggle (event delegation)
+    function closeAllMenus() {
+        messagesContainer.querySelectorAll('[data-mesaj-menu-items]')
+            .forEach((el) => { el.hidden = true; });
+        messagesContainer.querySelectorAll('[data-mesaj-menu-toggle]')
+            .forEach((el) => { el.setAttribute('aria-expanded', 'false'); });
+    }
+    document.addEventListener('click', (e) => {
+        const toggle = e.target.closest('[data-mesaj-menu-toggle]');
+        if (toggle && messagesContainer && messagesContainer.contains(toggle)) {
+            const items = toggle.parentElement.querySelector('[data-mesaj-menu-items]');
+            if (!items) return;
+            const wasHidden = items.hidden;
+            closeAllMenus();
+            items.hidden = !wasHidden;
+            toggle.setAttribute('aria-expanded', String(!wasHidden));
+            e.stopPropagation();
+            return;
+        }
+        // Dış tıklama → tüm menüleri kapat
+        if (!e.target.closest('.mesaj__menu')) closeAllMenus();
+    });
 
     function updateCharCount() {
         if (!bodyTextarea || !charCount) return;
@@ -193,6 +231,12 @@
             connection.on('MessageDeleted', (data) => {
                 if (!data || data.conversationId !== conversationId) return;
                 applyDeletePlaceholder(data.messageId);
+            });
+
+            // Faz 5.7 — admin moderasyon gizleme broadcast (sender + recipient)
+            connection.on('MessageHidden', (data) => {
+                if (!data || data.conversationId !== conversationId) return;
+                applyHiddenPlaceholder(data.messageId);
             });
 
             connection.onreconnecting(() => { signalRActive = false; });

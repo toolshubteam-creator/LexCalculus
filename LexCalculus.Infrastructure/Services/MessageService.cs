@@ -156,9 +156,12 @@ public sealed class MessageService : IMessageService
         if (skip < 0) skip = 0;
         if (take <= 0 || take > 200) take = 50;
 
+        // Faz 5.7 — IsModeratorHidden filter: alıcı için filter (görünmez),
+        // sahip için liste'de kalır (view'da placeholder render eder).
         return await _ctx.Messages
             .Include(m => m.Sender).ThenInclude(u => u!.Profile)
-            .Where(m => m.ConversationId == conversationId)
+            .Where(m => m.ConversationId == conversationId
+                     && (!m.IsModeratorHidden || m.SenderId == viewerId))
             .OrderByDescending(m => m.CreatedAt)
             .Skip(skip)
             .Take(take)
@@ -174,11 +177,15 @@ public sealed class MessageService : IMessageService
         var conv = await _conversationService.GetByIdAsync(conversationId, viewerId, ct);
         if (conv is null) return Array.Empty<Message>();
 
+        // Polling: alıcının other-sender yeni mesajları. SenderId != viewerId
+        // koşulu var, yani viewer her zaman alıcı — IsModeratorHidden mesajlar
+        // hiç görünmez (alıcı için filter kuralı).
         return await _ctx.Messages
             .Include(m => m.Sender).ThenInclude(u => u!.Profile)
             .Where(m => m.ConversationId == conversationId
                      && m.SenderId != viewerId
-                     && m.CreatedAt > since)
+                     && m.CreatedAt > since
+                     && !m.IsModeratorHidden)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(ct);
     }

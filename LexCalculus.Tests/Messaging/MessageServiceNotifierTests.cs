@@ -126,6 +126,7 @@ public class MessageServiceNotifierTests
     {
         public List<(int RecipientId, int MessageId)> ReceivedCalls { get; } = new();
         public List<(int RecipientId, int ConversationId, int MessageId)> DeletedCalls { get; } = new();
+        public List<(int SenderId, int RecipientId, int ConversationId, int MessageId)> HiddenCalls { get; } = new();
 
         public Task NotifyMessageReceivedAsync(int recipientId, int messageId, CancellationToken ct = default)
         {
@@ -139,10 +140,17 @@ public class MessageServiceNotifierTests
             return Task.CompletedTask;
         }
 
+        public Task NotifyMessageHiddenAsync(int senderId, int recipientId, int conversationId, int messageId, CancellationToken ct = default)
+        {
+            HiddenCalls.Add((senderId, recipientId, conversationId, messageId));
+            return Task.CompletedTask;
+        }
+
         public void Reset()
         {
             ReceivedCalls.Clear();
             DeletedCalls.Clear();
+            HiddenCalls.Clear();
         }
     }
 
@@ -152,6 +160,9 @@ public class MessageServiceNotifierTests
             => throw new InvalidOperationException("Hub down");
 
         public Task NotifyMessageDeletedAsync(int recipientId, int conversationId, int messageId, CancellationToken ct = default)
+            => throw new InvalidOperationException("Hub down");
+
+        public Task NotifyMessageHiddenAsync(int senderId, int recipientId, int conversationId, int messageId, CancellationToken ct = default)
             => throw new InvalidOperationException("Hub down");
     }
 
