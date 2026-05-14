@@ -11,11 +11,20 @@ using Xunit;
 
 namespace LexCalculus.Tests.Messaging;
 
-public class ConversationServiceTests
+// Adım 5.8 P1 — pilot geçiş: InMemory TestDbContextFactory →
+// SQL Server LocalDB SqlServerTestFixture (IClassFixture).
+public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
 {
-    private static (ConversationService svc, ApplicationDbContext ctx) Setup()
+    private readonly SqlServerTestFixture _fixture;
+
+    public ConversationServiceTests(SqlServerTestFixture fixture)
     {
-        var ctx = TestDbContextFactory.Create();
+        _fixture = fixture;
+    }
+
+    private (ConversationService svc, ApplicationDbContext ctx) Setup()
+    {
+        var ctx = _fixture.CreateContext();
         var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
         var storage = new FakeMediaStorage();
         var svc = new ConversationService(ctx, blockSvc, storage, new NullActivityLogService());
@@ -101,7 +110,7 @@ public class ConversationServiceTests
     [Fact]
     public async Task GetOrCreateAsync_SameTenant_AllowsCreate()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _fixture.CreateContext();
         var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
         var storage = new FakeMediaStorage();
         var svc = new ConversationService(ctx, blockSvc, storage, new NullActivityLogService());

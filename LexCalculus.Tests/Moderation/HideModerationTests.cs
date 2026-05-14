@@ -17,12 +17,21 @@ namespace LexCalculus.Tests.Moderation;
 /// PostComment.IsModeratorHidden) servis akışı testleri.
 /// Charter Karar 11.
 /// </summary>
-public class HideModerationTests
+// Adım 5.8 P1 — pilot geçiş: InMemory TestDbContextFactory →
+// SQL Server LocalDB SqlServerTestFixture (IClassFixture).
+public class HideModerationTests : IClassFixture<SqlServerTestFixture>
 {
-    private static (ContentReportService svc, ApplicationDbContext ctx, RecordingNotificationService notif)
+    private readonly SqlServerTestFixture _fixture;
+
+    public HideModerationTests(SqlServerTestFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
+    private (ContentReportService svc, ApplicationDbContext ctx, RecordingNotificationService notif)
         Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _fixture.CreateContext();
         var notif = new RecordingNotificationService();
         var svc = new ContentReportService(ctx, notif, new NullActivityLogService(),
             new NoOpMessagingNotifier());

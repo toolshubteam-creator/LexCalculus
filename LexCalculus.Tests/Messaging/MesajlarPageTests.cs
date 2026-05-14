@@ -13,12 +13,14 @@ using Xunit;
 
 namespace LexCalculus.Tests.Messaging;
 
+// Adım 5.8 P1 — pilot geçiş: InMemory TestAuthWebApplicationFactory →
+// SQL Server LocalDB SqlServerTestAuthWebApplicationFactory.
 [Collection("AdminWebHost")]
-public class MesajlarPageTests : IClassFixture<TestAuthWebApplicationFactory>
+public class MesajlarPageTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public MesajlarPageTests(TestAuthWebApplicationFactory factory)
+    public MesajlarPageTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

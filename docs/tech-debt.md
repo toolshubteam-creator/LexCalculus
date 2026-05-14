@@ -787,3 +787,35 @@ log'a yazılır), context view sadece şikayet inceleme süresince görünür.
 
 **Önerilen zaman:** Faz 6+ moderasyon iyileştirme. Şimdilik karar:
 admin tek mesaj görür, conversation context yok (KVKK gözetildi).
+
+---
+
+## 34. Test altyapısı hibrit — InMemory + SQL Server LocalDB bir arada
+
+**Bağlam:** Adım 5.8 P1 (charter Karar 10). InMemory EF Core provider
+gerçek SQL Server semantiğini taklit etmiyor (IDENTITY kolonları, FK
+insert sıralaması, collation, ExecuteUpdate/GroupBy translation). Test
+güveni için SQL Server LocalDB tabanlı fixture'a geçiş başlatıldı; P1
+yalnızca altyapı + 4 pilot sınıf + kırılma tespiti yaptı.
+
+**Mevcut durum:** İki fixture paralel duruyor. Pilot 4 sınıf
+(`ConversationServiceTests`, `MessagesApiControllerTests`,
+`MesajlarPageTests`, `HideModerationTests`) `SqlServerTestFixture` /
+`SqlServerTestAuthWebApplicationFactory` kullanıyor; kalan ~90 sınıf
+hâlâ InMemory `TestDbContextFactory` / `TestAuthWebApplicationFactory`
+kullanıyor. Pilot servis sınıflarında 21 test kırık (20× explicit
+identity Id seed → `IDENTITY_INSERT OFF`; 1× Tenant↔User circular FK).
+Integration testler (18) SQL Server'da sorunsuz geçti.
+
+**İdeal çözüm:** Tüm test sınıfları SQL Server LocalDB fixture'ına
+geçirilir, InMemory provider ve `TestDbContextFactory` tamamen kaldırılır.
+Seed helper'larındaki explicit `Id = 1,2,3` kullanımı bırakılır (DB
+üretir, üretilen Id yakalanır); circular FK seed'leri iki aşamalı
+SaveChanges'e bölünür; `IClassFixture` paylaşımlı DB nedeniyle testler
+arası izolasyon stratejisi netleştirilir (per-test transaction rollback
+veya per-test DB).
+
+**Önerilen zaman:** Adım 5.8 P2 — kalan sınıfların geçişi + 21 kırık
+testin düzeltilmesi. 21 kırılma >20 eşiğini geçtiği için P2 stratejisi
+(toplu geçiş mi, kademeli mi; izolasyon modeli) başlamadan önce gözden
+geçirilmeli.
