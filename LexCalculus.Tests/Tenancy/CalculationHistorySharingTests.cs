@@ -12,12 +12,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Tenancy;
 
-public class CalculationHistorySharingTests
+public class CalculationHistorySharingTests : SqlServerTestBase
 {
-    private static ApplicationUser MakeUser(int id, string email, int? tenantId = null) =>
+    private static ApplicationUser MakeUser(string suffix, string email, int? tenantId = null) =>
         new()
         {
-            Id = id,
             UserName = email,
             NormalizedUserName = email.ToUpperInvariant(),
             Email = email,
@@ -30,10 +29,40 @@ public class CalculationHistorySharingTests
             SecurityStamp = Guid.NewGuid().ToString()
         };
 
-    private static (ApplicationDbContext ctx, CalculationHistoryService svc) Setup(int? actAsUserId = null, int? actAsTenantId = null)
+    /// <summary>
+    /// Tenant ↔ ApplicationUser circular FK staged seeder.
+    /// (a) Add user with TenantId=null and save.
+    /// (b) Add Tenant with OwnerUserId=user.Id (no explicit Tenant.Id) and save.
+    /// (c) Set user.TenantId=tenant.Id and save.
+    /// Returns (userId, tenantId).
+    /// </summary>
+    private static async Task<(int userId, int tenantId)> SeedUserAndTenantAsync(
+        ApplicationDbContext ctx, string emailSuffix)
+    {
+        var user = MakeUser(emailSuffix, $"u{emailSuffix}@x.com", tenantId: null);
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        var tenant = new Tenant
+        {
+            Name = $"Tenant {emailSuffix}",
+            Slug = $"tenant-{emailSuffix.ToLowerInvariant()}",
+            CreatedAt = DateTime.UtcNow,
+            OwnerUserId = user.Id
+        };
+        ctx.Set<Tenant>().Add(tenant);
+        await ctx.SaveChangesAsync();
+
+        user.TenantId = tenant.Id;
+        await ctx.SaveChangesAsync();
+
+        return (user.Id, tenant.Id);
+    }
+
+    private (ApplicationDbContext ctx, CalculationHistoryService svc) Setup(int? actAsUserId = null, int? actAsTenantId = null)
     {
         var tenantContext = new TestTenantContext { CurrentUserId = actAsUserId, CurrentTenantId = actAsTenantId };
-        var ctx = TestDbContextFactory.Create(databaseName: null, tenantContext: tenantContext);
+        var ctx = _db.Create(databaseName: null, tenantContext: tenantContext);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
         return (ctx, svc);
     }
@@ -44,12 +73,17 @@ public class CalculationHistorySharingTests
     [Fact]
     public async Task LogAsync_WithTenantId_TenantIdSet()
     {
-        var (ctx, svc) = Setup(actAsUserId: 1, actAsTenantId: 5);
-        ctx.Users.Add(MakeUser(1, "u@x.com", tenantId: 5));
-        await ctx.SaveChangesAsync();
+        // Önce user + tenant seed et (no tenant context — global filter'a takılmasın).
+        int userId, tenantId;
+        {
+            using var seedCtx = _db.Create();
+            (userId, tenantId) = await SeedUserAndTenantAsync(seedCtx, "1");
+        }
+
+        var (ctx, svc) = Setup(actAsUserId: userId, actAsTenantId: tenantId);
 
         await svc.LogAsync(
-            userId: 1,
+            userId: userId,
             categorySlug: "is-hukuku",
             toolSlug: "kidem-tazminati",
             toolTitle: "Kıdem Tazminatı",
@@ -57,22 +91,29 @@ public class CalculationHistorySharingTests
             result: new DummyResult(100m),
             totalAmount: 100m,
             unit: "TL",
-            tenantId: 5);
+            tenantId: tenantId);
 
         var entry = await ctx.Set<CalculationHistory>().AsAdminQuery().FirstAsync();
-        entry.UserId.Should().Be(1);
-        entry.TenantId.Should().Be(5);
+        entry.UserId.Should().Be(userId);
+        entry.TenantId.Should().Be(tenantId);
     }
 
     [Fact]
     public async Task LogAsync_TenantIdNull_TenantIdNull()
     {
-        var (ctx, svc) = Setup(actAsUserId: 1);
-        ctx.Users.Add(MakeUser(1, "u@x.com"));
-        await ctx.SaveChangesAsync();
+        int userId;
+        {
+            using var seedCtx = _db.Create();
+            var user = MakeUser("1", "u1@x.com");
+            seedCtx.Users.Add(user);
+            await seedCtx.SaveChangesAsync();
+            userId = user.Id;
+        }
+
+        var (ctx, svc) = Setup(actAsUserId: userId);
 
         await svc.LogAsync(
-            userId: 1,
+            userId: userId,
             categorySlug: "is-hukuku",
             toolSlug: "kidem-tazminati",
             toolTitle: "Kıdem Tazminatı",
@@ -89,47 +130,59 @@ public class CalculationHistorySharingTests
     [Fact]
     public async Task SetSharingAsync_ShareTrue_TenantIdSetFromUser()
     {
-        var (ctx, svc) = Setup(actAsUserId: 1, actAsTenantId: 5);
-        ctx.Users.Add(MakeUser(1, "u@x.com", tenantId: 5));
-        ctx.Set<CalculationHistory>().Add(new CalculationHistory
+        int userId, tenantId, historyId;
         {
-            UserId = 1,
-            CategorySlug = "is-hukuku",
-            ToolSlug = "kidem-tazminati",
-            ToolTitle = "K",
-            InputJson = "{}",
-            OutputJson = "{}",
-            TenantId = null
-        });
-        await ctx.SaveChangesAsync();
-        var historyId = await ctx.Set<CalculationHistory>().AsAdminQuery().Select(h => h.Id).FirstAsync();
+            using var seedCtx = _db.Create();
+            (userId, tenantId) = await SeedUserAndTenantAsync(seedCtx, "1");
+            var history = new CalculationHistory
+            {
+                UserId = userId,
+                CategorySlug = "is-hukuku",
+                ToolSlug = "kidem-tazminati",
+                ToolTitle = "K",
+                InputJson = "{}",
+                OutputJson = "{}",
+                TenantId = null
+            };
+            seedCtx.Set<CalculationHistory>().Add(history);
+            await seedCtx.SaveChangesAsync();
+            historyId = history.Id;
+        }
 
-        var ok = await svc.SetSharingAsync(historyId, requestedByUserId: 1, share: true);
+        var (ctx, svc) = Setup(actAsUserId: userId, actAsTenantId: tenantId);
+
+        var ok = await svc.SetSharingAsync(historyId, requestedByUserId: userId, share: true);
 
         ok.Should().BeTrue();
         var entry = await ctx.Set<CalculationHistory>().AsAdminQuery().FirstAsync(h => h.Id == historyId);
-        entry.TenantId.Should().Be(5);
+        entry.TenantId.Should().Be(tenantId);
     }
 
     [Fact]
     public async Task SetSharingAsync_ShareFalse_TenantIdCleared()
     {
-        var (ctx, svc) = Setup(actAsUserId: 1, actAsTenantId: 5);
-        ctx.Users.Add(MakeUser(1, "u@x.com", tenantId: 5));
-        ctx.Set<CalculationHistory>().Add(new CalculationHistory
+        int userId, tenantId, historyId;
         {
-            UserId = 1,
-            CategorySlug = "is-hukuku",
-            ToolSlug = "kidem-tazminati",
-            ToolTitle = "K",
-            InputJson = "{}",
-            OutputJson = "{}",
-            TenantId = 5
-        });
-        await ctx.SaveChangesAsync();
-        var historyId = await ctx.Set<CalculationHistory>().AsAdminQuery().Select(h => h.Id).FirstAsync();
+            using var seedCtx = _db.Create();
+            (userId, tenantId) = await SeedUserAndTenantAsync(seedCtx, "1");
+            var history = new CalculationHistory
+            {
+                UserId = userId,
+                CategorySlug = "is-hukuku",
+                ToolSlug = "kidem-tazminati",
+                ToolTitle = "K",
+                InputJson = "{}",
+                OutputJson = "{}",
+                TenantId = tenantId
+            };
+            seedCtx.Set<CalculationHistory>().Add(history);
+            await seedCtx.SaveChangesAsync();
+            historyId = history.Id;
+        }
 
-        var ok = await svc.SetSharingAsync(historyId, requestedByUserId: 1, share: false);
+        var (ctx, svc) = Setup(actAsUserId: userId, actAsTenantId: tenantId);
+
+        var ok = await svc.SetSharingAsync(historyId, requestedByUserId: userId, share: false);
 
         ok.Should().BeTrue();
         var entry = await ctx.Set<CalculationHistory>().AsAdminQuery().FirstAsync(h => h.Id == historyId);

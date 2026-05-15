@@ -14,7 +14,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.ActivityLog;
 
-public class ActivityLogServiceTests
+public class ActivityLogServiceTests : SqlServerTestBase
 {
     private static Mock<UserManager<ApplicationUser>> MockUserManager(ApplicationDbContext ctx)
     {
@@ -38,7 +38,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task LogAsync_HappyPath_LogCreated()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = CreateService(ctx);
 
         await svc.LogAsync(
@@ -60,7 +60,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task LogAsync_NoUser_UserIdNull()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = CreateService(ctx); // HttpContextAccessor.HttpContext is null
 
         await svc.LogAsync(action: "System.Job");
@@ -74,7 +74,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task LogAsync_LongMetadata_Truncated()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = CreateService(ctx);
 
         var bigPayload = new { Blob = new string('x', 12_000) };
@@ -90,7 +90,7 @@ public class ActivityLogServiceTests
     public async Task LogAsync_FailureDoesNotThrow()
     {
         // DbContext'i dispose ederek SaveChanges'in kesin fail etmesini sağla
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var svc = CreateService(ctx);
         await ctx.DisposeAsync();
 
@@ -102,7 +102,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task GetPaginatedAsync_FilterByAction_ReturnsMatching()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.ActivityLogs.AddRange(
             new Core.Entities.ActivityLog { Action = "User.Pasiflestir", CreatedAt = DateTime.UtcNow.AddMinutes(-1) },
             new Core.Entities.ActivityLog { Action = "User.Aktiflestir", CreatedAt = DateTime.UtcNow.AddMinutes(-2) },
@@ -121,7 +121,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task GetPaginatedAsync_FilterByDateRange_ReturnsMatching()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var now = DateTime.UtcNow;
         ctx.ActivityLogs.AddRange(
             new Core.Entities.ActivityLog { Action = "A", CreatedAt = now.AddDays(-10) },
@@ -142,26 +142,48 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task GetPaginatedAsync_FilterByUserId_ReturnsMatching()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+
+        // SQL Server FK_ActivityLogs_AspNetUsers_UserId zorunlu — referans
+        // edilecek user'ları önce seed et.
+        var user1 = new ApplicationUser
+        {
+            UserName = "alog1@x.com", NormalizedUserName = "ALOG1@X.COM",
+            Email = "alog1@x.com", NormalizedEmail = "ALOG1@X.COM",
+            FullName = "ALog1", CreatedAt = DateTime.UtcNow,
+            IsActive = true, EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        var user2 = new ApplicationUser
+        {
+            UserName = "alog2@x.com", NormalizedUserName = "ALOG2@X.COM",
+            Email = "alog2@x.com", NormalizedEmail = "ALOG2@X.COM",
+            FullName = "ALog2", CreatedAt = DateTime.UtcNow,
+            IsActive = true, EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        ctx.Users.AddRange(user1, user2);
+        await ctx.SaveChangesAsync();
+
         ctx.ActivityLogs.AddRange(
-            new Core.Entities.ActivityLog { Action = "X", UserId = 1, CreatedAt = DateTime.UtcNow.AddMinutes(-1) },
-            new Core.Entities.ActivityLog { Action = "Y", UserId = 2, CreatedAt = DateTime.UtcNow.AddMinutes(-2) },
-            new Core.Entities.ActivityLog { Action = "Z", UserId = 1, CreatedAt = DateTime.UtcNow.AddMinutes(-3) }
+            new Core.Entities.ActivityLog { Action = "X", UserId = user1.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-1) },
+            new Core.Entities.ActivityLog { Action = "Y", UserId = user2.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-2) },
+            new Core.Entities.ActivityLog { Action = "Z", UserId = user1.Id, CreatedAt = DateTime.UtcNow.AddMinutes(-3) }
         );
         await ctx.SaveChangesAsync();
         var svc = CreateService(ctx);
 
         var result = await svc.GetPaginatedAsync(
-            new ActivityLogFilter { UserId = 1 }, page: 1, pageSize: 50);
+            new ActivityLogFilter { UserId = user1.Id }, page: 1, pageSize: 50);
 
         result.TotalCount.Should().Be(2);
-        result.Items.Should().OnlyContain(i => i.UserId == 1);
+        result.Items.Should().OnlyContain(i => i.UserId == user1.Id);
     }
 
     [Fact]
     public async Task GetPaginatedAsync_OrderedByCreatedAtDesc()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var now = DateTime.UtcNow;
         ctx.ActivityLogs.AddRange(
             new Core.Entities.ActivityLog { Action = "Old", CreatedAt = now.AddHours(-3) },
@@ -179,7 +201,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task GetPaginatedAsync_PageSize_LimitsResults()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         for (var i = 0; i < 25; i++)
         {
             ctx.ActivityLogs.Add(new Core.Entities.ActivityLog
@@ -201,7 +223,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task GetByIdAsync_ExistingId_ReturnsDetail()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var entry = new Core.Entities.ActivityLog
         {
             Action = "Test.Get",
@@ -228,7 +250,7 @@ public class ActivityLogServiceTests
     [Fact]
     public async Task GetByIdAsync_NotFound_ReturnsNull()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = CreateService(ctx);
 
         var detail = await svc.GetByIdAsync(99999);
@@ -241,11 +263,10 @@ public class ActivityLogServiceTests
     {
         // Entegrasyon: UserAdminService gerçek instance, ActivityLogService gerçek instance
         // SetActiveAsync(false) çağrısı sonrası ActivityLog tablosunda kayıt olmalı.
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         var user = new ApplicationUser
         {
-            Id = 7,
             UserName = "kullanici@example.com",
             NormalizedUserName = "KULLANICI@EXAMPLE.COM",
             Email = "kullanici@example.com",

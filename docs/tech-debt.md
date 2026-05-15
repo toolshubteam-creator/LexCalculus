@@ -304,7 +304,21 @@ maddeler. Hepsi Faz 5+ aday — UGC katmanı yayında çalışıyor, bunlar
 
 ---
 
-## 11. EF Core InMemory provider sınırları (test infrastructure)
+## ✅ 11. EF Core InMemory provider sınırları (test infrastructure) — Kapatıldı (2026-05-15, Adım 5.8 P2)
+
+**Çözüm:** Tüm test altyapısı SQL Server LocalDB'ye geçirildi (Seçenek 1).
+`SqlServerTestDb` (per-test fresh DB, IAsyncLifetime via `SqlServerTestBase`),
+`SqlServerTestAuthWebApplicationFactory`, `SqlServerWebApplicationFactoryFixture`
+ile InMemory provider tamamen kaldırıldı. `Microsoft.EntityFrameworkCore.InMemory`
+NuGet referansı çıkarıldı. Tüm 779 test gerçek SQL Server semantiği ile koşuyor
+(IDENTITY, FK enforcement, ExecuteUpdate, GroupBy translation, transaction).
+P1 + P2 toplam: 162 kırığın hepsi düzeltildi, yeşil. Detay: [[#34]].
+
+---
+
+## 11. (Orijinal kayıt — referans için)
+
+### EF Core InMemory provider sınırları (test infrastructure)
 
 **Bağlam:** Adım 4.5 (PostTag UsageCount), 4.7 (UserPost ViewCount),
 4.9 (PostLike toggle), 4.10 P1 (ContentReportGroup) — atomik update veya
@@ -790,7 +804,28 @@ admin tek mesaj görür, conversation context yok (KVKK gözetildi).
 
 ---
 
-## 34. Test altyapısı hibrit — InMemory + SQL Server LocalDB bir arada
+## ✅ 34. Test altyapısı hibrit — InMemory + SQL Server LocalDB bir arada — Kapatıldı (2026-05-15, Adım 5.8 P2)
+
+**Çözüm:** Hibrit son. Kalan ~90 sınıf SQL Server LocalDB fixture'ına geçirildi
+(4 paralel düzeltme dalgası). `MakeUser(int id)` helper'ları `MakeUser(string suffix)`
+şeklinde dönüştürüldü, explicit `Id = N` atamaları kaldırıldı; literal Id
+referansları DB-generated `.Id` değişkenleriyle değiştirildi. Tenant+User circular FK
+seed'leri üç aşamalı `SaveChanges`'e bölündü (user TenantId=null → Tenant
+OwnerUserId → user.TenantId update). `UserProfiles.BaroNo` unique-index çakışması:
+test seed'leri `BaroNo = null` (assertion yoktu). `ContentReportsAdminController`
+admin seed'i: `ReviewedByUserId` FK için gerçek admin kullanıcı yaratılıp `X-Test-UserId`
+header'ı buna bağlandı. LocalDB connect timeout 60 sn'ye çıkarıldı (parallel test
+burst altında transient timeout'ları önler). `TestDbContextFactory.cs` ve InMemory
+`WebApplicationFactoryFixture.cs` silindi; `AuthTestHelper.cs`'den InMemory varyant
+çıkarıldı (`TestAuthHandler` korundu — SqlServer varyant kullanıyor);
+`Microsoft.EntityFrameworkCore.InMemory` NuGet referansı kaldırıldı.
+Final: 779/779 yeşil. Bkz. [[#11]].
+
+---
+
+## 34. (Orijinal kayıt — referans için)
+
+### Test altyapısı hibrit — InMemory + SQL Server LocalDB bir arada
 
 **Bağlam:** Adım 5.8 P1 (charter Karar 10). InMemory EF Core provider
 gerçek SQL Server semantiğini taklit etmiyor (IDENTITY kolonları, FK

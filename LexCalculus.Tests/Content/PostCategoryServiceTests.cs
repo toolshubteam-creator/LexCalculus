@@ -8,11 +8,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Content;
 
-public class PostCategoryServiceTests
+public class PostCategoryServiceTests : SqlServerTestBase
 {
-    private static (PostCategoryService svc, ApplicationDbContext ctx) Setup()
+    private (PostCategoryService svc, ApplicationDbContext ctx) Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var svc = new PostCategoryService(ctx, new NullActivityLogService());
         return (svc, ctx);
     }

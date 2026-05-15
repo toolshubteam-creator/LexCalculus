@@ -35,7 +35,7 @@ public sealed class SqlServerTestAuthWebApplicationFactory
         _databaseName = $"LexCalculusTest_{Guid.NewGuid():N}";
         _connectionString =
             $"Server=(localdb)\\mssqllocaldb;Database={_databaseName};" +
-            "Trusted_Connection=True;MultipleActiveResultSets=true";
+            "Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=60";
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

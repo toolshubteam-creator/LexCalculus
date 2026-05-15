@@ -15,8 +15,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Messaging;
 
-// Adım 5.8 P1 — pilot geçiş: InMemory TestAuthWebApplicationFactory →
-// SQL Server LocalDB SqlServerTestAuthWebApplicationFactory.
+// Adım 5.8 — SQL Server LocalDB integration test (SqlServerTestAuthWebApplicationFactory).
 [Collection("AdminWebHost")]
 public class MessagesApiControllerTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {

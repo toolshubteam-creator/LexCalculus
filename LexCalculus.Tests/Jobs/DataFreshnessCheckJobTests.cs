@@ -20,7 +20,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Jobs;
 
-public class DataFreshnessCheckJobTests
+public class DataFreshnessCheckJobTests : SqlServerTestBase
 {
     private static UserManager<ApplicationUser> MockUserManager(
         IList<ApplicationUser> adminUsers,
@@ -80,7 +80,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_NoStaleParameters_DoesNothing()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "test", Key = "rate", Value = 1m,
@@ -88,12 +88,13 @@ public class DataFreshnessCheckJobTests
             ExpectedUpdateFrequency = "Yearly",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-30)  // çok taze
         });
-        await ctx.SaveChangesAsync();
 
         var admins = new List<ApplicationUser>
         {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
         };
+        ctx.Users.AddRange(admins);
+        await ctx.SaveChangesAsync();
 
         var emailMock = new Mock<IEmailService>();
         var rendererMock = new Mock<IEmailTemplateRenderer>();
@@ -109,7 +110,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_OneStaleParameter_CreatesNotificationForEachAdmin()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "kidem", Key = "tavan", Value = 50000m,
@@ -117,13 +118,14 @@ public class DataFreshnessCheckJobTests
             ExpectedUpdateFrequency = "Biannual",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-200)  // 200 > 190 (Biannual tolerance)
         });
-        await ctx.SaveChangesAsync();
 
         var admins = new List<ApplicationUser>
         {
-            new() { Id = 1, UserName = "admin1", Email = "a1@test.local", NotificationsEmailEnabled = true },
-            new() { Id = 2, UserName = "admin2", Email = "a2@test.local", NotificationsEmailEnabled = true }
+            new() { UserName = "admin1", Email = "a1@test.local", NotificationsEmailEnabled = true },
+            new() { UserName = "admin2", Email = "a2@test.local", NotificationsEmailEnabled = true }
         };
+        ctx.Users.AddRange(admins);
+        await ctx.SaveChangesAsync();
 
         var emailMock = new Mock<IEmailService>();
         emailMock.Setup(e => e.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -140,7 +142,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_AdminWithEmailDisabled_DoesNotReceiveEmail_ButGetsNotification()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "kidem", Key = "tavan", Value = 50000m,
@@ -148,12 +150,13 @@ public class DataFreshnessCheckJobTests
             ExpectedUpdateFrequency = "Biannual",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-200)
         });
-        await ctx.SaveChangesAsync();
 
         var admins = new List<ApplicationUser>
         {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = false }
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = false }
         };
+        ctx.Users.AddRange(admins);
+        await ctx.SaveChangesAsync();
 
         var emailMock = new Mock<IEmailService>();
         var rendererMock = new Mock<IEmailTemplateRenderer>();
@@ -169,7 +172,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_RunTwiceInSameWindow_DedupPreventsSecondNotification()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "kidem", Key = "tavan", Value = 50000m,
@@ -177,12 +180,13 @@ public class DataFreshnessCheckJobTests
             ExpectedUpdateFrequency = "Biannual",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-200)
         });
-        await ctx.SaveChangesAsync();
 
         var admins = new List<ApplicationUser>
         {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
         };
+        ctx.Users.AddRange(admins);
+        await ctx.SaveChangesAsync();
 
         var emailMock = new Mock<IEmailService>();
         emailMock.Setup(e => e.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -199,7 +203,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_GroupsBySlugAndKey_OnlyChecksLatestEffectiveDate()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         // Aynı (slug, key) için 3 satır: en yeni 2026-04-01 fresh,
         // önceki 2 versiyon LastUpdatedDate eski (stale gibi görünür)
         // ama job sadece en yeniyi kontrol etmeli → 0 stale.
@@ -226,12 +230,13 @@ public class DataFreshnessCheckJobTests
                 LastUpdatedDate = DateTime.UtcNow.AddDays(-10)  // FRESH
             }
         );
-        await ctx.SaveChangesAsync();
 
         var admins = new List<ApplicationUser>
         {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
         };
+        ctx.Users.AddRange(admins);
+        await ctx.SaveChangesAsync();
 
         var emailMock = new Mock<IEmailService>();
         var rendererMock = new Mock<IEmailTemplateRenderer>();
@@ -248,7 +253,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_NoUsersUsedAffectedTool_NoUserNotifications()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "kidem", Key = "tavan", Value = 50000m,
@@ -257,16 +262,18 @@ public class DataFreshnessCheckJobTests
             LastUpdatedDate = DateTime.UtcNow.AddDays(-200)
         });
         // Bir regular kullanıcı var ama hiçbir hesaplama geçmişi yok → user notif yok
-        await ctx.SaveChangesAsync();
 
         var admins = new List<ApplicationUser>
         {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
         };
         var regulars = new List<ApplicationUser>
         {
-            new() { Id = 2, UserName = "user", Email = "user@test.local", NotificationsEmailEnabled = true }
+            new() { UserName = "user", Email = "user@test.local", NotificationsEmailEnabled = true }
         };
+        ctx.Users.AddRange(admins);
+        ctx.Users.AddRange(regulars);
+        await ctx.SaveChangesAsync();
 
         var emailMock = new Mock<IEmailService>();
         emailMock.Setup(e => e.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -284,7 +291,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_UserUsedAffectedToolInLast90Days_GetsNotification()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "kidem", Key = "tavan", Value = 50000m,
@@ -292,9 +299,20 @@ public class DataFreshnessCheckJobTests
             ExpectedUpdateFrequency = "Biannual",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-200)
         });
+
+        var admins = new List<ApplicationUser>
+        {
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
+        };
+        var regularUser = new ApplicationUser { UserName = "user", Email = "user@test.local", NotificationsEmailEnabled = true };
+        var regulars = new List<ApplicationUser> { regularUser };
+        ctx.Users.AddRange(admins);
+        ctx.Users.AddRange(regulars);
+        await ctx.SaveChangesAsync();
+
         ctx.Set<CalculationHistory>().Add(new CalculationHistory
         {
-            UserId = 2,
+            UserId = regularUser.Id,
             CategorySlug = "is-hukuku",
             ToolSlug = "kidem",
             ToolTitle = "Kıdem Tazminatı",
@@ -302,15 +320,6 @@ public class DataFreshnessCheckJobTests
             OutputJson = "{}"
         });
         await ctx.SaveChangesAsync();
-
-        var admins = new List<ApplicationUser>
-        {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
-        };
-        var regulars = new List<ApplicationUser>
-        {
-            new() { Id = 2, UserName = "user", Email = "user@test.local", NotificationsEmailEnabled = true }
-        };
 
         var emailMock = new Mock<IEmailService>();
         emailMock.Setup(e => e.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -328,7 +337,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_UserUsedDifferentTool_NoNotification()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "kidem", Key = "tavan", Value = 50000m,
@@ -336,10 +345,21 @@ public class DataFreshnessCheckJobTests
             ExpectedUpdateFrequency = "Biannual",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-200)
         });
+
+        var admins = new List<ApplicationUser>
+        {
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
+        };
+        var regularUser = new ApplicationUser { UserName = "user", Email = "user@test.local", NotificationsEmailEnabled = true };
+        var regulars = new List<ApplicationUser> { regularUser };
+        ctx.Users.AddRange(admins);
+        ctx.Users.AddRange(regulars);
+        await ctx.SaveChangesAsync();
+
         // Kullanıcı farklı (etkilenmeyen) bir tool kullandı
         ctx.Set<CalculationHistory>().Add(new CalculationHistory
         {
-            UserId = 2,
+            UserId = regularUser.Id,
             CategorySlug = "is-hukuku",
             ToolSlug = "ihbar",
             ToolTitle = "İhbar Tazminatı",
@@ -347,15 +367,6 @@ public class DataFreshnessCheckJobTests
             OutputJson = "{}"
         });
         await ctx.SaveChangesAsync();
-
-        var admins = new List<ApplicationUser>
-        {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
-        };
-        var regulars = new List<ApplicationUser>
-        {
-            new() { Id = 2, UserName = "user", Email = "user@test.local", NotificationsEmailEnabled = true }
-        };
 
         var emailMock = new Mock<IEmailService>();
         emailMock.Setup(e => e.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -373,7 +384,7 @@ public class DataFreshnessCheckJobTests
     [Fact]
     public async Task ExecuteAsync_GlobalStarStale_AlertsAllRecentUsers()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         // Global stale parametre (slug="*"): tüm araçları etkiler
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
@@ -382,29 +393,31 @@ public class DataFreshnessCheckJobTests
             ExpectedUpdateFrequency = "Yearly",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-400)  // Yearly tolerance 380
         });
+
+        var admins = new List<ApplicationUser>
+        {
+            new() { UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
+        };
+        var user2 = new ApplicationUser { UserName = "user2", Email = "u2@test.local", NotificationsEmailEnabled = true };
+        var user3 = new ApplicationUser { UserName = "user3", Email = "u3@test.local", NotificationsEmailEnabled = true };
+        var regulars = new List<ApplicationUser> { user2, user3 };
+        ctx.Users.AddRange(admins);
+        ctx.Users.AddRange(regulars);
+        await ctx.SaveChangesAsync();
+
         ctx.Set<CalculationHistory>().AddRange(
             new CalculationHistory
             {
-                UserId = 2, CategorySlug = "is-hukuku", ToolSlug = "kidem",
+                UserId = user2.Id, CategorySlug = "is-hukuku", ToolSlug = "kidem",
                 ToolTitle = "Kıdem", InputJson = "{}", OutputJson = "{}"
             },
             new CalculationHistory
             {
-                UserId = 3, CategorySlug = "faiz", ToolSlug = "yasal-faiz",
+                UserId = user3.Id, CategorySlug = "faiz", ToolSlug = "yasal-faiz",
                 ToolTitle = "Yasal Faiz", InputJson = "{}", OutputJson = "{}"
             }
         );
         await ctx.SaveChangesAsync();
-
-        var admins = new List<ApplicationUser>
-        {
-            new() { Id = 1, UserName = "admin", Email = "admin@test.local", NotificationsEmailEnabled = true }
-        };
-        var regulars = new List<ApplicationUser>
-        {
-            new() { Id = 2, UserName = "user2", Email = "u2@test.local", NotificationsEmailEnabled = true },
-            new() { Id = 3, UserName = "user3", Email = "u3@test.local", NotificationsEmailEnabled = true }
-        };
 
         var emailMock = new Mock<IEmailService>();
         emailMock.Setup(e => e.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);

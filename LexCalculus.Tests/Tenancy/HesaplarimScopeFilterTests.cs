@@ -9,12 +9,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Tenancy;
 
-public class HesaplarimScopeFilterTests
+public class HesaplarimScopeFilterTests : SqlServerTestBase
 {
-    private static ApplicationUser MakeUser(int id, string email, int? tenantId = null) =>
+    private static ApplicationUser MakeUser(string suffix, string email, int? tenantId = null) =>
         new()
         {
-            Id = id,
             UserName = email,
             NormalizedUserName = email.ToUpperInvariant(),
             Email = email,
@@ -39,30 +38,60 @@ public class HesaplarimScopeFilterTests
             TenantId = tenantId
         };
 
-    private static (ApplicationDbContext ctx, CalculationHistoryService svc) Setup(int actAsUserId, int? actAsTenantId)
+    private (ApplicationDbContext ctx, CalculationHistoryService svc) Setup(int actAsUserId, int? actAsTenantId)
     {
         var tenantContext = new TestTenantContext { CurrentUserId = actAsUserId, CurrentTenantId = actAsTenantId };
-        var ctx = TestDbContextFactory.Create(databaseName: null, tenantContext: tenantContext);
+        var ctx = _db.Create(databaseName: null, tenantContext: tenantContext);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
         return (ctx, svc);
+    }
+
+    /// <summary>
+    /// Tenant + 2 üye seed et. Circular FK staging:
+    ///   1) İki user'ı TenantId=null ile ekle, save → user1.Id, user2.Id alınır.
+    ///   2) Tenant'ı OwnerUserId=user1.Id ile ekle, save → tenant.Id alınır.
+    ///   3) Her iki user'ın TenantId'sini tenant.Id'ye set et, save.
+    /// </summary>
+    private async Task<(int user1Id, int user2Id, int tenantId)> SeedTenantWithTwoUsersAsync()
+    {
+        using var seedCtx = _db.Create();
+        var u1 = MakeUser("1", "u1@x.com", tenantId: null);
+        var u2 = MakeUser("2", "u2@x.com", tenantId: null);
+        seedCtx.Users.AddRange(u1, u2);
+        await seedCtx.SaveChangesAsync();
+
+        var tenant = new Tenant
+        {
+            Name = "Test Tenant",
+            Slug = "test-tenant",
+            CreatedAt = DateTime.UtcNow,
+            OwnerUserId = u1.Id
+        };
+        seedCtx.Set<Tenant>().Add(tenant);
+        await seedCtx.SaveChangesAsync();
+
+        u1.TenantId = tenant.Id;
+        u2.TenantId = tenant.Id;
+        await seedCtx.SaveChangesAsync();
+
+        return (u1.Id, u2.Id, tenant.Id);
     }
 
     [Fact]
     public async Task GetForUserAsync_ScopeMine_ReturnsOnlyPrivate()
     {
-        // User1 (tenant=5) has 3 hesap: 1 özel, 1 paylaştığı, 1 ekibin paylaştığı (User2)
-        var (ctx, svc) = Setup(actAsUserId: 1, actAsTenantId: 5);
-        ctx.Users.AddRange(
-            MakeUser(1, "u1@x.com", tenantId: 5),
-            MakeUser(2, "u2@x.com", tenantId: 5));
+        // User1 (tenant=X) has 3 hesap: 1 özel, 1 paylaştığı, 1 ekibin paylaştığı (User2)
+        var (user1Id, user2Id, tenantId) = await SeedTenantWithTwoUsersAsync();
+
+        var (ctx, svc) = Setup(actAsUserId: user1Id, actAsTenantId: tenantId);
         ctx.Set<CalculationHistory>().AddRange(
-            MakeHistory(1, "kidem-tazminati", tenantId: null),    // mine, private
-            MakeHistory(1, "ihbar-tazminati", tenantId: 5),       // mine, shared
-            MakeHistory(2, "yillik-izin-ucreti", tenantId: 5));   // team
+            MakeHistory(user1Id, "kidem-tazminati", tenantId: null),     // mine, private
+            MakeHistory(user1Id, "ihbar-tazminati", tenantId: tenantId), // mine, shared
+            MakeHistory(user2Id, "yillik-izin-ucreti", tenantId: tenantId)); // team
         await ctx.SaveChangesAsync();
 
         var page = await svc.GetForUserAsync(
-            userId: 1, page: 1, pageSize: 25, scope: "mine");
+            userId: user1Id, page: 1, pageSize: 25, scope: "mine");
 
         page.Items.Should().HaveCount(1);
         page.Items.Single().ToolSlug.Should().Be("kidem-tazminati");
@@ -71,21 +100,20 @@ public class HesaplarimScopeFilterTests
     [Fact]
     public async Task GetForUserAsync_ScopeTeam_ReturnsTeamSharedOnly()
     {
-        var (ctx, svc) = Setup(actAsUserId: 1, actAsTenantId: 5);
-        ctx.Users.AddRange(
-            MakeUser(1, "u1@x.com", tenantId: 5),
-            MakeUser(2, "u2@x.com", tenantId: 5));
+        var (user1Id, user2Id, tenantId) = await SeedTenantWithTwoUsersAsync();
+
+        var (ctx, svc) = Setup(actAsUserId: user1Id, actAsTenantId: tenantId);
         ctx.Set<CalculationHistory>().AddRange(
-            MakeHistory(1, "kidem-tazminati", tenantId: null),    // mine private
-            MakeHistory(1, "ihbar-tazminati", tenantId: 5),       // mine shared
-            MakeHistory(2, "yillik-izin-ucreti", tenantId: 5),    // team
-            MakeHistory(2, "fazla-mesai", tenantId: 5));          // team
+            MakeHistory(user1Id, "kidem-tazminati", tenantId: null),     // mine private
+            MakeHistory(user1Id, "ihbar-tazminati", tenantId: tenantId), // mine shared
+            MakeHistory(user2Id, "yillik-izin-ucreti", tenantId: tenantId), // team
+            MakeHistory(user2Id, "fazla-mesai", tenantId: tenantId));    // team
         await ctx.SaveChangesAsync();
 
         var page = await svc.GetForUserAsync(
-            userId: 1, page: 1, pageSize: 25, scope: "team");
+            userId: user1Id, page: 1, pageSize: 25, scope: "team");
 
         page.Items.Should().HaveCount(2);
-        page.Items.Should().OnlyContain(h => h.UserId == 2 && h.TenantId == 5);
+        page.Items.Should().OnlyContain(h => h.UserId == user2Id && h.TenantId == tenantId);
     }
 }

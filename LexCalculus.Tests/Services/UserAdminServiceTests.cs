@@ -10,7 +10,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Services;
 
-public class UserAdminServiceTests
+public class UserAdminServiceTests : SqlServerTestBase
 {
     private static UserManager<ApplicationUser> MockUserManager(ApplicationDbContext ctx)
     {
@@ -30,25 +30,23 @@ public class UserAdminServiceTests
             new NullActivityLogService(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<UserAdminService>.Instance);
 
-    private static ApplicationUser MakeUser(int id, string email, bool isActive = true) =>
+    private static ApplicationUser MakeUser(string suffix, string email, bool isActive = true) =>
         new()
         {
-            Id = id,
             UserName = email,
             NormalizedUserName = email.ToUpperInvariant(),
             Email = email,
             NormalizedEmail = email.ToUpperInvariant(),
             FullName = email,
-            CreatedAt = DateTime.UtcNow.AddDays(-id),
+            CreatedAt = DateTime.UtcNow.AddDays(-Math.Abs(suffix.GetHashCode() % 365)),
             IsActive = isActive,
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString()
         };
 
-    private static ApplicationRole MakeRole(int id, string name) =>
+    private static ApplicationRole MakeRole(string name) =>
         new()
         {
-            Id = id,
             Name = name,
             NormalizedName = name.ToUpperInvariant()
         };
@@ -56,14 +54,15 @@ public class UserAdminServiceTests
     [Fact]
     public async Task GetUsersAsync_ReturnsAllUsersWithRoles()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
-        var adminUser = MakeUser(1, "admin@test.local");
-        var plainUser = MakeUser(2, "user@test.local");
+        var adminUser = MakeUser("1", "admin@test.local");
+        var plainUser = MakeUser("2", "user@test.local");
         ctx.Users.AddRange(adminUser, plainUser);
 
-        var adminRole = MakeRole(1, "Admin");
+        var adminRole = MakeRole("Admin");
         ctx.Roles.Add(adminRole);
+        await ctx.SaveChangesAsync();
 
         ctx.UserRoles.Add(new IdentityUserRole<int> { UserId = adminUser.Id, RoleId = adminRole.Id });
         await ctx.SaveChangesAsync();
@@ -84,16 +83,17 @@ public class UserAdminServiceTests
     [Fact]
     public async Task GetUsersAsync_FilterByRole_ReturnsOnlyMatching()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
-        var adminUser = MakeUser(1, "admin@test.local");
-        var u1 = MakeUser(2, "u1@test.local");
-        var u2 = MakeUser(3, "u2@test.local");
+        var adminUser = MakeUser("1", "admin@test.local");
+        var u1 = MakeUser("2", "u1@test.local");
+        var u2 = MakeUser("3", "u2@test.local");
         ctx.Users.AddRange(adminUser, u1, u2);
 
-        var adminRole = MakeRole(1, "Admin");
-        var kullaniciRole = MakeRole(2, "Kullanici");
+        var adminRole = MakeRole("Admin");
+        var kullaniciRole = MakeRole("Kullanici");
         ctx.Roles.AddRange(adminRole, kullaniciRole);
+        await ctx.SaveChangesAsync();
 
         ctx.UserRoles.AddRange(
             new IdentityUserRole<int> { UserId = adminUser.Id, RoleId = adminRole.Id },
@@ -111,10 +111,10 @@ public class UserAdminServiceTests
     [Fact]
     public async Task GetUsersAsync_FilterByIsActive_ReturnsOnlyMatching()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
-        var active = MakeUser(1, "active@test.local", isActive: true);
-        var passive = MakeUser(2, "passive@test.local", isActive: false);
+        var active = MakeUser("1", "active@test.local", isActive: true);
+        var passive = MakeUser("2", "passive@test.local", isActive: false);
         ctx.Users.AddRange(active, passive);
         await ctx.SaveChangesAsync();
 

@@ -17,34 +17,41 @@ namespace LexCalculus.Tests.Moderation;
 /// Yetki kontrolü (conversation participant), self-report engel,
 /// Hide IsModeratorHidden toggle, real-time broadcast notifier kontratı.
 /// </summary>
-public class MessageReportTests
+public class MessageReportTests : SqlServerTestBase
 {
-    private static (ContentReportService svc, ApplicationDbContext ctx,
+    // Setup sonrası seed edilen kullanıcıların DB-generated Id'leri.
+    private int _senderId, _recipientId, _strangerId, _adminId;
+
+    private (ContentReportService svc, ApplicationDbContext ctx,
                     RecordingNotificationService notif, RecordingMessagingNotifier msgNotif)
         Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var notif = new RecordingNotificationService();
         var msgNotif = new RecordingMessagingNotifier();
         var svc = new ContentReportService(ctx, notif, new NullActivityLogService(), msgNotif);
 
-        ctx.Users.AddRange(
-            MakeUser(1, "sender@x.com"),
-            MakeUser(2, "recipient@x.com"),
-            MakeUser(3, "stranger@x.com"),
-            MakeUser(4, "admin@x.com"));
+        var sender = MakeUser("sender@x.com");
+        var recipient = MakeUser("recipient@x.com");
+        var stranger = MakeUser("stranger@x.com");
+        var admin = MakeUser("admin@x.com");
+        ctx.Users.AddRange(sender, recipient, stranger, admin);
         ctx.SaveChanges();
+
+        _senderId = sender.Id;
+        _recipientId = recipient.Id;
+        _strangerId = stranger.Id;
+        _adminId = admin.Id;
         return (svc, ctx, notif, msgNotif);
     }
 
-    private static ApplicationUser MakeUser(int id, string email) => new()
+    private static ApplicationUser MakeUser(string email) => new()
     {
-        Id = id,
         UserName = email,
         NormalizedUserName = email.ToUpperInvariant(),
         Email = email,
         NormalizedEmail = email.ToUpperInvariant(),
-        FullName = $"User {id}",
+        FullName = $"User {email}",
         CreatedAt = DateTime.UtcNow,
         IsActive = true,
         EmailConfirmed = true,
@@ -91,10 +98,10 @@ public class MessageReportTests
     public async Task CreateAsync_MessageTarget_PersistsReport()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Message, msgId, reporterId: 2,
+            ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Harassment, "Taciz edici mesaj");
 
         result.Success.Should().BeTrue();
@@ -102,7 +109,7 @@ public class MessageReportTests
             .FirstOrDefaultAsync(r => r.TargetType == ContentReportTargetType.Message
                                    && r.TargetId == msgId);
         saved.Should().NotBeNull();
-        saved!.ReporterId.Should().Be(2);
+        saved!.ReporterId.Should().Be(_recipientId);
         saved.Reason.Should().Be(ContentReportReason.Harassment);
     }
 
@@ -110,11 +117,11 @@ public class MessageReportTests
     public async Task CreateAsync_OwnMessage_ReturnsSelfReportError()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
 
-        // sender (1) kendi mesajını şikayet etmeye çalışır
+        // sender kendi mesajını şikayet etmeye çalışır
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Message, msgId, reporterId: 1,
+            ContentReportTargetType.Message, msgId, reporterId: _senderId,
             ContentReportReason.Spam, null);
 
         result.Success.Should().BeFalse();
@@ -125,11 +132,11 @@ public class MessageReportTests
     public async Task CreateAsync_NonParticipant_ReturnsError()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
 
         // 3. kişi (stranger) konuşmada değil
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Message, msgId, reporterId: 3,
+            ContentReportTargetType.Message, msgId, reporterId: _strangerId,
             ContentReportReason.Spam, null);
 
         result.Success.Should().BeFalse();
@@ -140,15 +147,15 @@ public class MessageReportTests
     public async Task CreateAsync_DuplicateReport_ReturnsError()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
 
         var first = await svc.CreateAsync(
-            ContentReportTargetType.Message, msgId, reporterId: 2,
+            ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Spam, null);
         first.Success.Should().BeTrue();
 
         var second = await svc.CreateAsync(
-            ContentReportTargetType.Message, msgId, reporterId: 2,
+            ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Harassment, "tekrar");
         second.Success.Should().BeFalse();
         second.ErrorMessage.Should().Contain("zaten");
@@ -158,12 +165,12 @@ public class MessageReportTests
     public async Task HideAsync_Message_SetsIsModeratorHidden()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
-        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: 2,
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
+        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Harassment, "şikayet");
 
         var result = await svc.HideAsync(
-            ContentReportTargetType.Message, msgId, adminUserId: 4, "ihlal");
+            ContentReportTargetType.Message, msgId, adminUserId: _adminId, "ihlal");
 
         result.Success.Should().BeTrue();
         var msg = await ctx.Messages.FirstAsync(m => m.Id == msgId);
@@ -175,16 +182,16 @@ public class MessageReportTests
     public async Task HideAsync_Message_NotifiesParticipants()
     {
         var (svc, ctx, _, msgNotif) = Setup();
-        var (convId, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
-        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: 2,
+        var (convId, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
+        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Harassment, "şikayet");
 
-        await svc.HideAsync(ContentReportTargetType.Message, msgId, adminUserId: 4, null);
+        await svc.HideAsync(ContentReportTargetType.Message, msgId, adminUserId: _adminId, null);
 
         msgNotif.HiddenCalls.Should().HaveCount(1);
         var call = msgNotif.HiddenCalls[0];
-        call.SenderId.Should().Be(1);
-        call.RecipientId.Should().Be(2);
+        call.SenderId.Should().Be(_senderId);
+        call.RecipientId.Should().Be(_recipientId);
         call.ConversationId.Should().Be(convId);
         call.MessageId.Should().Be(msgId);
     }
@@ -193,12 +200,12 @@ public class MessageReportTests
     public async Task UnhideAsync_Message_ResetsIsModeratorHidden()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
-        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: 2,
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
+        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Harassment, "şikayet");
-        await svc.HideAsync(ContentReportTargetType.Message, msgId, adminUserId: 4, null);
+        await svc.HideAsync(ContentReportTargetType.Message, msgId, adminUserId: _adminId, null);
 
-        var result = await svc.UnhideAsync(ContentReportTargetType.Message, msgId, adminUserId: 4);
+        var result = await svc.UnhideAsync(ContentReportTargetType.Message, msgId, adminUserId: _adminId);
 
         result.Success.Should().BeTrue();
         var msg = await ctx.Messages.FirstAsync(m => m.Id == msgId);
@@ -209,10 +216,10 @@ public class MessageReportTests
     public async Task GetHiddenContent_IncludesHiddenMessages()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
-        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: 2,
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
+        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Spam, null);
-        await svc.HideAsync(ContentReportTargetType.Message, msgId, adminUserId: 4, null);
+        await svc.HideAsync(ContentReportTargetType.Message, msgId, adminUserId: _adminId, null);
 
         var hidden = await svc.GetHiddenContentAsync();
 
@@ -227,12 +234,12 @@ public class MessageReportTests
     public async Task ActionAsync_Message_DeletesMessage()
     {
         var (svc, ctx, _, _) = Setup();
-        var (_, msgId) = await SeedConversationAsync(ctx, senderId: 1, recipientId: 2);
-        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: 2,
+        var (_, msgId) = await SeedConversationAsync(ctx, senderId: _senderId, recipientId: _recipientId);
+        await svc.CreateAsync(ContentReportTargetType.Message, msgId, reporterId: _recipientId,
             ContentReportReason.Legal, "telif ihlali");
 
         var result = await svc.ActionAsync(
-            ContentReportTargetType.Message, msgId, adminUserId: 4, "kaldırıldı");
+            ContentReportTargetType.Message, msgId, adminUserId: _adminId, "kaldırıldı");
 
         result.Success.Should().BeTrue();
         (await ctx.Messages.AnyAsync(m => m.Id == msgId)).Should().BeFalse();

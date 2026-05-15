@@ -8,11 +8,11 @@ using Xunit;
 namespace LexCalculus.Tests.Email;
 
 [Collection("AdminWebHost")]
-public class EmailTemplateRendererTests : IClassFixture<WebApplicationFactoryFixture>
+public class EmailTemplateRendererTests : IClassFixture<SqlServerWebApplicationFactoryFixture>
 {
-    private readonly WebApplicationFactoryFixture _factory;
+    private readonly SqlServerWebApplicationFactoryFixture _factory;
 
-    public EmailTemplateRendererTests(WebApplicationFactoryFixture factory)
+    public EmailTemplateRendererTests(SqlServerWebApplicationFactoryFixture factory)
     {
         _factory = factory;
     }

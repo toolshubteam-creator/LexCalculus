@@ -8,11 +8,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class TicariTemerrutFaizCalculatorTests
+public class TicariTemerrutFaizCalculatorTests : SqlServerTestBase
 {
-    private static (TicariTemerrutFaizCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (TicariTemerrutFaizCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         // Yasal faiz: 2 oran
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 1, 1) },

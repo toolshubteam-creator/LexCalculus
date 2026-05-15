@@ -9,11 +9,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class KiraArtisiCalculatorTests
+public class KiraArtisiCalculatorTests : SqlServerTestBase
 {
-    private static (KiraArtisiCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (KiraArtisiCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "tufe-12-ay-ort", Key = "2024-02", Value = 55.91m, EffectiveDate = new DateTime(2024, 2, 1) },
             new FormulaParameter { ToolSlug = "tufe-12-ay-ort", Key = "2024-08", Value = 64.91m, EffectiveDate = new DateTime(2024, 8, 1) },

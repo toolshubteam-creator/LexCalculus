@@ -17,54 +17,55 @@ namespace LexCalculus.Tests.Moderation;
 /// PostComment.IsModeratorHidden) servis akışı testleri.
 /// Charter Karar 11.
 /// </summary>
-// Adım 5.8 P1 — pilot geçiş: InMemory TestDbContextFactory →
-// SQL Server LocalDB SqlServerTestFixture (IClassFixture).
-public class HideModerationTests : IClassFixture<SqlServerTestFixture>
+// Adım 5.8 — SQL Server LocalDB servis testi (SqlServerTestBase, per-test DB).
+public class HideModerationTests : SqlServerTestBase
 {
-    private readonly SqlServerTestFixture _fixture;
-
-    public HideModerationTests(SqlServerTestFixture fixture)
-    {
-        _fixture = fixture;
-    }
+    // Setup sonrası seed edilen kayıtların DB-generated Id'leri.
+    private int _ownerId, _reporterId, _adminId, _categoryId;
 
     private (ContentReportService svc, ApplicationDbContext ctx, RecordingNotificationService notif)
         Setup()
     {
-        var ctx = _fixture.CreateContext();
+        var ctx = _db.Create();
         var notif = new RecordingNotificationService();
         var svc = new ContentReportService(ctx, notif, new NullActivityLogService(),
             new NoOpMessagingNotifier());
 
-        ctx.Users.AddRange(
-            MakeUser(1, "owner@x.com"),
-            MakeUser(2, "reporter@x.com"),
-            MakeUser(3, "admin@x.com"));
-        ctx.PostCategories.Add(new PostCategory
+        var owner = MakeUser("owner@x.com");
+        var reporter = MakeUser("reporter@x.com");
+        var admin = MakeUser("admin@x.com");
+        ctx.Users.AddRange(owner, reporter, admin);
+        var category = new PostCategory
         {
-            Id = 1, Name = "Genel", Slug = "genel",
+            Name = "Genel", Slug = "genel",
             DisplayOrder = 1, IsActive = true, CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         ctx.SaveChanges();
+
+        _ownerId = owner.Id;
+        _reporterId = reporter.Id;
+        _adminId = admin.Id;
+        _categoryId = category.Id;
         return (svc, ctx, notif);
     }
 
-    private static ApplicationUser MakeUser(int id, string email) => new()
+    private static ApplicationUser MakeUser(string email) => new()
     {
-        Id = id, UserName = email, NormalizedUserName = email.ToUpperInvariant(),
+        UserName = email, NormalizedUserName = email.ToUpperInvariant(),
         Email = email, NormalizedEmail = email.ToUpperInvariant(),
-        FullName = $"User {id}", CreatedAt = DateTime.UtcNow,
+        FullName = $"User {email}", CreatedAt = DateTime.UtcNow,
         IsActive = true, EmailConfirmed = true,
         SecurityStamp = Guid.NewGuid().ToString()
     };
 
-    private static async Task<int> SeedPostAsync(ApplicationDbContext ctx,
+    private async Task<int> SeedPostAsync(ApplicationDbContext ctx,
         int userId, bool isPublished = true, string slug = "test-post")
     {
         var now = DateTime.UtcNow;
         var p = new UserPost
         {
-            UserId = userId, CategoryId = 1, Title = "Test", Slug = slug,
+            UserId = userId, CategoryId = _categoryId, Title = "Test", Slug = slug,
             Body = "<p>x</p>", IsPublished = isPublished,
             PublishedAt = isPublished ? now : null,
             CreatedAt = now, UpdatedAt = now
@@ -92,11 +93,11 @@ public class HideModerationTests : IClassFixture<SqlServerTestFixture>
     public async Task HideAsync_PostValid_SetsIsModeratorHiddenTrue()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.HideAsync(
             ContentReportTargetType.Post, postId,
-            adminUserId: 3, reviewNote: "Spam");
+            adminUserId: _adminId, reviewNote: "Spam");
 
         result.Success.Should().BeTrue();
         var post = await ctx.UserPosts.FirstAsync(p => p.Id == postId);
@@ -107,12 +108,12 @@ public class HideModerationTests : IClassFixture<SqlServerTestFixture>
     public async Task HideAsync_CommentValid_SetsIsModeratorHiddenTrue()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var commentId = await SeedCommentAsync(ctx, postId, userId: 2);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var commentId = await SeedCommentAsync(ctx, postId, userId: _reporterId);
 
         var result = await svc.HideAsync(
             ContentReportTargetType.Comment, commentId,
-            adminUserId: 3, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         result.Success.Should().BeTrue();
         var comment = await ctx.PostComments.FirstAsync(c => c.Id == commentId);
@@ -126,7 +127,7 @@ public class HideModerationTests : IClassFixture<SqlServerTestFixture>
 
         var result = await svc.HideAsync(
             ContentReportTargetType.Post, targetId: 99999,
-            adminUserId: 3, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("bulunamadı");
@@ -136,35 +137,35 @@ public class HideModerationTests : IClassFixture<SqlServerTestFixture>
     public async Task HideAsync_NotifiesReportersAndOwner()
     {
         var (svc, ctx, notif) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: 2,
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Spam, null);
 
         var result = await svc.HideAsync(
             ContentReportTargetType.Post, postId,
-            adminUserId: 3, reviewNote: "İhlal");
+            adminUserId: _adminId, reviewNote: "İhlal");
 
         result.Success.Should().BeTrue();
         notif.Created.Should().Contain(n =>
-            n.Type == NotificationType.ContentHidden && n.UserId == 2);
+            n.Type == NotificationType.ContentHidden && n.UserId == _reporterId);
         notif.Created.Should().Contain(n =>
-            n.Type == NotificationType.ContentHidden && n.UserId == 1);
+            n.Type == NotificationType.ContentHidden && n.UserId == _ownerId);
     }
 
     [Fact]
     public async Task HideAsync_PendingReports_BecomeActioned()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: 2,
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Harassment, null);
 
         await svc.HideAsync(ContentReportTargetType.Post, postId,
-            adminUserId: 3, reviewNote: "Yönetim aksiyonu");
+            adminUserId: _adminId, reviewNote: "Yönetim aksiyonu");
 
         var report = await ctx.ContentReports.FirstAsync(r => r.TargetId == postId);
         report.Status.Should().Be(ContentReportStatus.Actioned);
-        report.ReviewedByUserId.Should().Be(3);
+        report.ReviewedByUserId.Should().Be(_adminId);
         report.ReviewNote.Should().Be("Yönetim aksiyonu");
     }
 
@@ -172,12 +173,12 @@ public class HideModerationTests : IClassFixture<SqlServerTestFixture>
     public async Task UnhideAsync_HiddenPost_SetsIsModeratorHiddenFalse()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
         await svc.HideAsync(ContentReportTargetType.Post, postId,
-            adminUserId: 3, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         var result = await svc.UnhideAsync(
-            ContentReportTargetType.Post, postId, adminUserId: 3);
+            ContentReportTargetType.Post, postId, adminUserId: _adminId);
 
         result.Success.Should().BeTrue();
         var post = await ctx.UserPosts.FirstAsync(p => p.Id == postId);
@@ -188,10 +189,10 @@ public class HideModerationTests : IClassFixture<SqlServerTestFixture>
     public async Task UnhideAsync_NotHidden_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.UnhideAsync(
-            ContentReportTargetType.Post, postId, adminUserId: 3);
+            ContentReportTargetType.Post, postId, adminUserId: _adminId);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("zaten");
@@ -201,29 +202,29 @@ public class HideModerationTests : IClassFixture<SqlServerTestFixture>
     public async Task UnhideAsync_NotifiesContentOwner()
     {
         var (svc, ctx, notif) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
         await svc.HideAsync(ContentReportTargetType.Post, postId,
-            adminUserId: 3, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
         notif.Created.Clear(); // sadece unhide notification'ı say
 
-        await svc.UnhideAsync(ContentReportTargetType.Post, postId, adminUserId: 3);
+        await svc.UnhideAsync(ContentReportTargetType.Post, postId, adminUserId: _adminId);
 
         notif.Created.Should().Contain(n =>
-            n.Type == NotificationType.ContentRestored && n.UserId == 1);
+            n.Type == NotificationType.ContentRestored && n.UserId == _ownerId);
     }
 
     [Fact]
     public async Task GetHiddenContentAsync_ReturnsHiddenPostsAndComments()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1, slug: "hidden-post");
-        var commentId = await SeedCommentAsync(ctx, postId, userId: 2);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId, slug: "hidden-post");
+        var commentId = await SeedCommentAsync(ctx, postId, userId: _reporterId);
         await svc.HideAsync(ContentReportTargetType.Post, postId,
-            adminUserId: 3, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
         await svc.HideAsync(ContentReportTargetType.Comment, commentId,
-            adminUserId: 3, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
-        var visibleId = await SeedPostAsync(ctx, userId: 1, slug: "visible");
+        var visibleId = await SeedPostAsync(ctx, userId: _ownerId, slug: "visible");
 
         var hidden = await svc.GetHiddenContentAsync();
 

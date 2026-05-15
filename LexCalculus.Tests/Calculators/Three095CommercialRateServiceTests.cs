@@ -7,12 +7,12 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class Three095CommercialRateServiceTests
+public class Three095CommercialRateServiceTests : SqlServerTestBase
 {
-    private static (Three095CommercialRateService svc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build(
+    private (Three095CommercialRateService svc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build(
         params (DateTime date, decimal rate)[] rates)
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         foreach (var (date, rate) in rates)
         {
             ctx.Set<FormulaParameter>().Add(new FormulaParameter

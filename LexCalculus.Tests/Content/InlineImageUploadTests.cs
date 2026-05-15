@@ -21,7 +21,7 @@ namespace LexCalculus.Tests.Content;
 /// MediaUploadService.UploadInlineImageAsync — Quill inline görsel yükleme.
 /// AvatarUploadTests pattern reuse. Faz 4.8.
 /// </summary>
-public sealed class InlineImageUploadTests : IDisposable
+public sealed class InlineImageUploadTests : SqlServerTestBase, IDisposable
 {
     private readonly string _tempRoot;
 
@@ -39,7 +39,7 @@ public sealed class InlineImageUploadTests : IDisposable
 
     private (MediaUploadService svc, ApplicationDbContext ctx) CreateService()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var env = new TestWebHostEnvironment(_tempRoot);
         var storage = new LocalDiskMediaStorage(env, NullLogger<LocalDiskMediaStorage>.Instance);
         var svc = new MediaUploadService(
@@ -48,17 +48,19 @@ public sealed class InlineImageUploadTests : IDisposable
         return (svc, ctx);
     }
 
-    private static async Task SeedUserAsync(ApplicationDbContext ctx, int id = 42)
+    private static async Task<int> SeedUserAsync(ApplicationDbContext ctx, string suffix = "inline")
     {
-        ctx.Users.Add(new ApplicationUser
+        var user = new ApplicationUser
         {
-            Id = id, UserName = $"u{id}@x.com", NormalizedUserName = $"U{id}@X.COM",
-            Email = $"u{id}@x.com", NormalizedEmail = $"U{id}@X.COM",
+            UserName = $"u{suffix}@x.com", NormalizedUserName = $"U{suffix.ToUpperInvariant()}@X.COM",
+            Email = $"u{suffix}@x.com", NormalizedEmail = $"U{suffix.ToUpperInvariant()}@X.COM",
             FullName = "Inline Test", CreatedAt = DateTime.UtcNow,
             IsActive = true, EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString()
-        });
+        };
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
+        return user.Id;
     }
 
     private static byte[] BuildJpegBytes(int width = 64, int height = 64)
@@ -76,16 +78,16 @@ public sealed class InlineImageUploadTests : IDisposable
     public async Task UploadInline_Valid_StoresInPostsInlineDirectory()
     {
         var (svc, ctx) = CreateService();
-        await SeedUserAsync(ctx, 100);
+        var userId = await SeedUserAsync(ctx, "valid");
 
         var jpeg = BuildJpegBytes();
         using var stream = new MemoryStream(jpeg);
 
         var result = await svc.UploadInlineImageAsync(
-            100, stream, "inline.jpg", "image/jpeg", jpeg.LongLength);
+            userId, stream, "inline.jpg", "image/jpeg", jpeg.LongLength);
 
         result.Success.Should().BeTrue();
-        result.RelativePath.Should().Contain("uploads/posts/100/inline/");
+        result.RelativePath.Should().Contain($"uploads/posts/{userId}/inline/");
         result.RelativePath.Should().EndWith(".webp");
 
         var diskPath = Path.Combine(_tempRoot,
@@ -97,13 +99,13 @@ public sealed class InlineImageUploadTests : IDisposable
     public async Task UploadInline_OversizedFile_ReturnsError()
     {
         var (svc, ctx) = CreateService();
-        await SeedUserAsync(ctx, 101);
+        var userId = await SeedUserAsync(ctx, "oversized");
 
         var bigBytes = new byte[6 * 1024 * 1024];
         using var stream = new MemoryStream(bigBytes);
 
         var result = await svc.UploadInlineImageAsync(
-            101, stream, "big.jpg", "image/jpeg", bigBytes.LongLength);
+            userId, stream, "big.jpg", "image/jpeg", bigBytes.LongLength);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("büyük");
@@ -113,13 +115,13 @@ public sealed class InlineImageUploadTests : IDisposable
     public async Task UploadInline_InvalidContentType_ReturnsError()
     {
         var (svc, ctx) = CreateService();
-        await SeedUserAsync(ctx, 102);
+        var userId = await SeedUserAsync(ctx, "invalidct");
 
         var jpeg = BuildJpegBytes();
         using var stream = new MemoryStream(jpeg);
 
         var result = await svc.UploadInlineImageAsync(
-            102, stream, "doc.pdf", "application/pdf", jpeg.LongLength);
+            userId, stream, "doc.pdf", "application/pdf", jpeg.LongLength);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("JPG");
@@ -129,13 +131,13 @@ public sealed class InlineImageUploadTests : IDisposable
     public async Task UploadInline_FakeMagicBytes_ReturnsError()
     {
         var (svc, ctx) = CreateService();
-        await SeedUserAsync(ctx, 103);
+        var userId = await SeedUserAsync(ctx, "fakemagic");
 
         var fakeBytes = Encoding.UTF8.GetBytes("This is plain text, not a real image.");
         using var stream = new MemoryStream(fakeBytes);
 
         var result = await svc.UploadInlineImageAsync(
-            103, stream, "fake.jpg", "image/jpeg", fakeBytes.LongLength);
+            userId, stream, "fake.jpg", "image/jpeg", fakeBytes.LongLength);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("uyuşmuyor");
@@ -145,14 +147,14 @@ public sealed class InlineImageUploadTests : IDisposable
     public async Task UploadInline_LargeImage_ResizesToMaxDimension()
     {
         var (svc, ctx) = CreateService();
-        await SeedUserAsync(ctx, 104);
+        var userId = await SeedUserAsync(ctx, "largeimg");
 
         // 2400x1800 — her iki boyut da 1200'den büyük; Max mode 1200x900'e indirir
         var jpeg = BuildJpegBytes(2400, 1800);
         using var stream = new MemoryStream(jpeg);
 
         var result = await svc.UploadInlineImageAsync(
-            104, stream, "big.jpg", "image/jpeg", jpeg.LongLength);
+            userId, stream, "big.jpg", "image/jpeg", jpeg.LongLength);
 
         result.Success.Should().BeTrue();
 
@@ -172,17 +174,17 @@ public sealed class InlineImageUploadTests : IDisposable
     public async Task UploadInline_CreatesMediaFileAuditRow()
     {
         var (svc, ctx) = CreateService();
-        await SeedUserAsync(ctx, 105);
+        var userId = await SeedUserAsync(ctx, "audit");
 
         var jpeg = BuildJpegBytes();
         using var stream = new MemoryStream(jpeg);
 
         var result = await svc.UploadInlineImageAsync(
-            105, stream, "test-inline.jpg", "image/jpeg", jpeg.LongLength);
+            userId, stream, "test-inline.jpg", "image/jpeg", jpeg.LongLength);
         result.Success.Should().BeTrue();
 
         var media = await ctx.MediaFiles.AsNoTracking()
-            .FirstOrDefaultAsync(m => m.UserId == 105);
+            .FirstOrDefaultAsync(m => m.UserId == userId);
         media.Should().NotBeNull();
         media!.RelativePath.Should().Be(result.RelativePath);
         media.MimeType.Should().Be("image/webp");

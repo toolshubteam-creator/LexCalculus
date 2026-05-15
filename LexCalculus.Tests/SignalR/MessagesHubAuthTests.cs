@@ -17,11 +17,11 @@ namespace LexCalculus.Tests.SignalR;
 /// Tam SignalR connection round-trip Faz 6+ end-to-end test'lerine bırakıldı.
 /// </summary>
 [Collection("AdminWebHost")]
-public class MessagesHubAuthTests : IClassFixture<TestAuthWebApplicationFactory>
+public class MessagesHubAuthTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public MessagesHubAuthTests(TestAuthWebApplicationFactory factory)
+    public MessagesHubAuthTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

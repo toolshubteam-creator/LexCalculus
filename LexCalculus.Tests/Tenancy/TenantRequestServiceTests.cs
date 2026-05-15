@@ -15,17 +15,19 @@ using Xunit;
 
 namespace LexCalculus.Tests.Tenancy;
 
-public class TenantRequestServiceTests
+public class TenantRequestServiceTests : SqlServerTestBase
 {
-    private static ApplicationUser MakeUser(int id, string email, int? tenantId = null) =>
+    // IDENTITY_INSERT fix (Adım 5.8 P2): explicit Id atamak yerine EF'in
+    // ürettiği Id'yi kullan. UserName/Email her test içinde unique olmalı —
+    // suffix bunu garanti eder.
+    private static ApplicationUser MakeUser(string suffix, int? tenantId = null) =>
         new()
         {
-            Id = id,
-            UserName = email,
-            NormalizedUserName = email.ToUpperInvariant(),
-            Email = email,
-            NormalizedEmail = email.ToUpperInvariant(),
-            FullName = email,
+            UserName = $"u{suffix}@x.com",
+            NormalizedUserName = $"U{suffix}@X.COM",
+            Email = $"u{suffix}@x.com",
+            NormalizedEmail = $"U{suffix}@X.COM",
+            FullName = $"User {suffix}",
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
             EmailConfirmed = true,
@@ -35,13 +37,13 @@ public class TenantRequestServiceTests
 
     private const string TestSiteUrl = "https://test.lexcalculus.com";
 
-    private static (
+    private (
         ApplicationDbContext ctx,
         TenantRequestService svc,
         Mock<IEmailService> emailMock,
         Mock<IEmailTemplateRenderer> rendererMock) Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var emailMock = new Mock<IEmailService>();
         emailMock.Setup(x => x.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>()))
                  .ReturnsAsync(true);
@@ -62,10 +64,11 @@ public class TenantRequestServiceTests
     public async Task CreateRequestAsync_HappyPath_RequestCreatedAsPending()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.Add(MakeUser(1, "u@x.com"));
+        var user = MakeUser("u");
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
-        var id = await svc.CreateRequestAsync(1,
+        var id = await svc.CreateRequestAsync(user.Id,
             new CreateTenantRequestInput("Hukuk Bürosu A", null, "34/12345", "Test"));
 
         var r = await ctx.TenantRequests.AsAdminQuery().FirstAsync(x => x.Id == id);
@@ -78,10 +81,28 @@ public class TenantRequestServiceTests
     public async Task CreateRequestAsync_UserAlreadyInTenant_Throws()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.Add(MakeUser(1, "u@x.com", tenantId: 99));
+
+        // Circular FK staging: önce placeholder owner ile placeholder tenant,
+        // sonra hedef user'ı oraya bağla.
+        var placeholderOwner = MakeUser("placeholder");
+        ctx.Users.Add(placeholderOwner);
         await ctx.SaveChangesAsync();
 
-        var act = () => svc.CreateRequestAsync(1,
+        var placeholderTenant = new Tenant
+        {
+            Name = "Placeholder", Slug = "placeholder",
+            CreatedAt = DateTime.UtcNow, OwnerUserId = placeholderOwner.Id
+        };
+        ctx.Tenants.Add(placeholderTenant);
+        await ctx.SaveChangesAsync();
+
+        var user = MakeUser("u");
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+        user.TenantId = placeholderTenant.Id;
+        await ctx.SaveChangesAsync();
+
+        var act = () => svc.CreateRequestAsync(user.Id,
             new CreateTenantRequestInput("Test", null, "12345", null));
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*tenant*");
     }
@@ -90,11 +111,12 @@ public class TenantRequestServiceTests
     public async Task CreateRequestAsync_UserHasActivePendingRequest_Throws()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.Add(MakeUser(1, "u@x.com"));
+        var user = MakeUser("u");
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
-        await svc.CreateRequestAsync(1, new CreateTenantRequestInput("First", null, "111", null));
+        await svc.CreateRequestAsync(user.Id, new CreateTenantRequestInput("First", null, "111", null));
 
-        var act = () => svc.CreateRequestAsync(1, new CreateTenantRequestInput("Second", null, "222", null));
+        var act = () => svc.CreateRequestAsync(user.Id, new CreateTenantRequestInput("Second", null, "222", null));
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Bekleyen*");
     }
 
@@ -102,11 +124,12 @@ public class TenantRequestServiceTests
     public async Task CancelRequestAsync_HappyPath_StatusBecomesCancelled()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.Add(MakeUser(1, "u@x.com"));
+        var user = MakeUser("u");
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
-        var id = await svc.CreateRequestAsync(1, new CreateTenantRequestInput("Test", null, "111", null));
+        var id = await svc.CreateRequestAsync(user.Id, new CreateTenantRequestInput("Test", null, "111", null));
 
-        await svc.CancelRequestAsync(id, 1);
+        await svc.CancelRequestAsync(id, user.Id);
 
         var r = await ctx.TenantRequests.AsAdminQuery().FirstAsync(x => x.Id == id);
         r.Status.Should().Be(TenantRequestStatus.Cancelled);
@@ -117,11 +140,13 @@ public class TenantRequestServiceTests
     public async Task CancelRequestAsync_NotOwnRequest_Throws()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.AddRange(MakeUser(1, "a@x.com"), MakeUser(2, "b@x.com"));
+        var u1 = MakeUser("a");
+        var u2 = MakeUser("b");
+        ctx.Users.AddRange(u1, u2);
         await ctx.SaveChangesAsync();
-        var id = await svc.CreateRequestAsync(1, new CreateTenantRequestInput("Test", null, "111", null));
+        var id = await svc.CreateRequestAsync(u1.Id, new CreateTenantRequestInput("Test", null, "111", null));
 
-        var act = () => svc.CancelRequestAsync(id, 2);
+        var act = () => svc.CancelRequestAsync(id, u2.Id);
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*size ait değil*");
     }
 
@@ -129,12 +154,13 @@ public class TenantRequestServiceTests
     public async Task CancelRequestAsync_AlreadyProcessed_Throws()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.Add(MakeUser(1, "u@x.com"));
+        var user = MakeUser("u");
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
-        var id = await svc.CreateRequestAsync(1, new CreateTenantRequestInput("Test", null, "111", null));
-        await svc.CancelRequestAsync(id, 1);
+        var id = await svc.CreateRequestAsync(user.Id, new CreateTenantRequestInput("Test", null, "111", null));
+        await svc.CancelRequestAsync(id, user.Id);
 
-        var act = () => svc.CancelRequestAsync(id, 1);
+        var act = () => svc.CancelRequestAsync(id, user.Id);
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*bekleyen*");
     }
 
@@ -142,23 +168,23 @@ public class TenantRequestServiceTests
     public async Task ApproveAsync_HappyPath_TenantCreatedOwnerSet()
     {
         var (ctx, svc, emailMock, _) = Setup();
-        ctx.Users.AddRange(
-            MakeUser(1, "u@x.com"),
-            MakeUser(99, "admin@x.com"));
+        var requester = MakeUser("u");
+        var admin = MakeUser("admin");
+        ctx.Users.AddRange(requester, admin);
         await ctx.SaveChangesAsync();
-        var reqId = await svc.CreateRequestAsync(1,
+        var reqId = await svc.CreateRequestAsync(requester.Id,
             new CreateTenantRequestInput("Hukuk Bürosu B", null, "111", null));
 
-        await svc.ApproveAsync(reqId, 99, new ApproveTenantRequestInput("Hukuk Bürosu B", null));
+        await svc.ApproveAsync(reqId, admin.Id, new ApproveTenantRequestInput("Hukuk Bürosu B", null));
 
         var r = await ctx.TenantRequests.AsAdminQuery().FirstAsync(x => x.Id == reqId);
         r.Status.Should().Be(TenantRequestStatus.Approved);
         r.CreatedTenantId.Should().NotBeNull();
 
         var tenant = await ctx.Tenants.AsAdminQuery().FirstAsync(t => t.Id == r.CreatedTenantId);
-        tenant.OwnerUserId.Should().Be(1);
+        tenant.OwnerUserId.Should().Be(requester.Id);
 
-        var owner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == 1);
+        var owner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == requester.Id);
         owner.TenantId.Should().Be(tenant.Id);
 
         emailMock.Verify(x => x.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -168,20 +194,20 @@ public class TenantRequestServiceTests
     public async Task ApproveAsync_SlugCollision_Throws()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.AddRange(
-            MakeUser(1, "first@x.com"),
-            MakeUser(2, "second@x.com"),
-            MakeUser(99, "admin@x.com"));
+        var first = MakeUser("first");
+        var second = MakeUser("second");
+        var admin = MakeUser("admin");
+        ctx.Users.AddRange(first, second, admin);
         await ctx.SaveChangesAsync();
 
         // First user pre-existing tenant with slug "shared"
-        var firstReq = await svc.CreateRequestAsync(1, new CreateTenantRequestInput("X", "shared", "111", null));
-        await svc.ApproveAsync(firstReq, 99, new ApproveTenantRequestInput("X", "shared"));
+        var firstReq = await svc.CreateRequestAsync(first.Id, new CreateTenantRequestInput("X", "shared", "111", null));
+        await svc.ApproveAsync(firstReq, admin.Id, new ApproveTenantRequestInput("X", "shared"));
 
         // Second user request, admin tries same slug
-        var secondReq = await svc.CreateRequestAsync(2, new CreateTenantRequestInput("Y", "shared", "222", null));
+        var secondReq = await svc.CreateRequestAsync(second.Id, new CreateTenantRequestInput("Y", "shared", "222", null));
 
-        var act = () => svc.ApproveAsync(secondReq, 99, new ApproveTenantRequestInput("Y", "shared"));
+        var act = () => svc.ApproveAsync(secondReq, admin.Id, new ApproveTenantRequestInput("Y", "shared"));
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Slug*");
     }
 
@@ -189,12 +215,14 @@ public class TenantRequestServiceTests
     public async Task ApproveAsync_StatusNotPending_Throws()
     {
         var (ctx, svc, _, _) = Setup();
-        ctx.Users.AddRange(MakeUser(1, "u@x.com"), MakeUser(99, "a@x.com"));
+        var user = MakeUser("u");
+        var admin = MakeUser("a");
+        ctx.Users.AddRange(user, admin);
         await ctx.SaveChangesAsync();
-        var id = await svc.CreateRequestAsync(1, new CreateTenantRequestInput("Test", null, "111", null));
-        await svc.CancelRequestAsync(id, 1);
+        var id = await svc.CreateRequestAsync(user.Id, new CreateTenantRequestInput("Test", null, "111", null));
+        await svc.CancelRequestAsync(id, user.Id);
 
-        var act = () => svc.ApproveAsync(id, 99, new ApproveTenantRequestInput("Test", null));
+        var act = () => svc.ApproveAsync(id, admin.Id, new ApproveTenantRequestInput("Test", null));
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*işlenmiş*");
     }
 
@@ -202,17 +230,19 @@ public class TenantRequestServiceTests
     public async Task RejectAsync_HappyPath_StatusBecomesRejectedWithReason()
     {
         var (ctx, svc, emailMock, _) = Setup();
-        ctx.Users.AddRange(MakeUser(1, "u@x.com"), MakeUser(99, "a@x.com"));
+        var user = MakeUser("u");
+        var admin = MakeUser("a");
+        ctx.Users.AddRange(user, admin);
         await ctx.SaveChangesAsync();
-        var id = await svc.CreateRequestAsync(1, new CreateTenantRequestInput("Test", null, "111", null));
+        var id = await svc.CreateRequestAsync(user.Id, new CreateTenantRequestInput("Test", null, "111", null));
 
-        await svc.RejectAsync(id, 99, "Eksik belge");
+        await svc.RejectAsync(id, admin.Id, "Eksik belge");
 
         var r = await ctx.TenantRequests.AsAdminQuery().FirstAsync(x => x.Id == id);
         r.Status.Should().Be(TenantRequestStatus.Rejected);
         r.RejectionReason.Should().Be("Eksik belge");
         r.ProcessedAt.Should().NotBeNull();
-        r.ProcessedByUserId.Should().Be(99);
+        r.ProcessedByUserId.Should().Be(admin.Id);
 
         emailMock.Verify(x => x.SendAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -221,9 +251,11 @@ public class TenantRequestServiceTests
     public async Task ApproveAsync_EmailModel_SiteUrlFromConfig()
     {
         var (ctx, svc, _, rendererMock) = Setup();
-        ctx.Users.AddRange(MakeUser(1, "u@x.com"), MakeUser(99, "a@x.com"));
+        var user = MakeUser("u");
+        var admin = MakeUser("a");
+        ctx.Users.AddRange(user, admin);
         await ctx.SaveChangesAsync();
-        var reqId = await svc.CreateRequestAsync(1,
+        var reqId = await svc.CreateRequestAsync(user.Id,
             new CreateTenantRequestInput("Hukuk Bürosu C", null, "111", null));
 
         LexCalculus.Core.Email.Models.TenantRequestApprovedModel? captured = null;
@@ -236,7 +268,7 @@ public class TenantRequestServiceTests
             })
             .ReturnsAsync("<html></html>");
 
-        await svc.ApproveAsync(reqId, 99, new ApproveTenantRequestInput("Hukuk Bürosu C", null));
+        await svc.ApproveAsync(reqId, admin.Id, new ApproveTenantRequestInput("Hukuk Bürosu C", null));
 
         captured.Should().NotBeNull();
         captured!.SiteUrl.Should().Be(TestSiteUrl);
@@ -246,9 +278,11 @@ public class TenantRequestServiceTests
     public async Task RejectAsync_EmailModel_SiteUrlFromConfig()
     {
         var (ctx, svc, _, rendererMock) = Setup();
-        ctx.Users.AddRange(MakeUser(1, "u@x.com"), MakeUser(99, "a@x.com"));
+        var user = MakeUser("u");
+        var admin = MakeUser("a");
+        ctx.Users.AddRange(user, admin);
         await ctx.SaveChangesAsync();
-        var id = await svc.CreateRequestAsync(1, new CreateTenantRequestInput("Reject Test", null, "111", null));
+        var id = await svc.CreateRequestAsync(user.Id, new CreateTenantRequestInput("Reject Test", null, "111", null));
 
         LexCalculus.Core.Email.Models.TenantRequestRejectedModel? captured = null;
         rendererMock
@@ -260,7 +294,7 @@ public class TenantRequestServiceTests
             })
             .ReturnsAsync("<html></html>");
 
-        await svc.RejectAsync(id, 99, "Eksik belge");
+        await svc.RejectAsync(id, admin.Id, "Eksik belge");
 
         captured.Should().NotBeNull();
         captured!.SiteUrl.Should().Be(TestSiteUrl);

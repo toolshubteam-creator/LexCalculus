@@ -18,7 +18,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Profil;
 
-public class AvatarUploadTests : IDisposable
+public class AvatarUploadTests : SqlServerTestBase, IDisposable
 {
     private readonly string _tempRoot;
 
@@ -37,7 +37,7 @@ public class AvatarUploadTests : IDisposable
     private (MediaUploadService svc, ApplicationDbContext ctx, IMediaStorage storage)
         CreateService()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var env = new TestWebHostEnvironment(_tempRoot);
         var storage = new LocalDiskMediaStorage(env, NullLogger<LocalDiskMediaStorage>.Instance);
         var svc = new MediaUploadService(
@@ -46,15 +46,14 @@ public class AvatarUploadTests : IDisposable
         return (svc, ctx, storage);
     }
 
-    private async Task<ApplicationUser> SeedUserAsync(ApplicationDbContext ctx, int id = 42)
+    private async Task<ApplicationUser> SeedUserAsync(ApplicationDbContext ctx, string suffix = "avatar")
     {
         var user = new ApplicationUser
         {
-            Id = id,
-            UserName = $"u{id}@x.com",
-            NormalizedUserName = $"U{id}@X.COM",
-            Email = $"u{id}@x.com",
-            NormalizedEmail = $"U{id}@X.COM",
+            UserName = $"u{suffix}@x.com",
+            NormalizedUserName = $"U{suffix.ToUpperInvariant()}@X.COM",
+            Email = $"u{suffix}@x.com",
+            NormalizedEmail = $"U{suffix.ToUpperInvariant()}@X.COM",
             FullName = "Avatar Test",
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
@@ -62,7 +61,8 @@ public class AvatarUploadTests : IDisposable
             SecurityStamp = Guid.NewGuid().ToString()
         };
         ctx.Users.Add(user);
-        ctx.UserProfiles.Add(new UserProfile { UserId = id, DisplayName = "Avatar Test" });
+        await ctx.SaveChangesAsync();
+        ctx.UserProfiles.Add(new UserProfile { UserId = user.Id, DisplayName = "Avatar Test" });
         await ctx.SaveChangesAsync();
         return user;
     }

@@ -11,32 +11,22 @@ namespace LexCalculus.Tests.Profil;
 /// Faz 4.1 P2-fix — Yaklaşım 4 (görünmez slug). EnsureProfileExistsAsync
 /// kayıt anında çağrılır (Identity Register + DavetController.Kayit).
 /// </summary>
-public class EnsureProfileExistsTests
+public class EnsureProfileExistsTests : SqlServerTestBase
 {
     [Fact]
     public async Task EnsureProfileExists_CreatesProfileWithSlugFromDisplayName()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(new ApplicationUser
-        {
-            Id = 1,
-            UserName = "u1@x.com",
-            NormalizedUserName = "U1@X.COM",
-            Email = "u1@x.com",
-            NormalizedEmail = "U1@X.COM",
-            CreatedAt = DateTime.UtcNow,
-            IsActive = true,
-            EmailConfirmed = true,
-            SecurityStamp = Guid.NewGuid().ToString()
-        });
+        await using var ctx = _db.Create();
+        var user = MakeUser("u1@x.com");
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         var svc = new PublicProfileService(ctx);
 
-        var profile = await svc.EnsureProfileExistsAsync(1, "Mesut Gür");
+        var profile = await svc.EnsureProfileExistsAsync(user.Id, "Mesut Gür");
 
         profile.Should().NotBeNull();
-        profile.UserId.Should().Be(1);
+        profile.UserId.Should().Be(user.Id);
         profile.PublicSlug.Should().Be("mesut-gur",
             "SlugHelper Türkçe karakter normalize + lowercase + tire ile temizler");
         profile.IsPublicProfile.Should().BeFalse(
@@ -47,21 +37,23 @@ public class EnsureProfileExistsTests
     [Fact]
     public async Task EnsureProfileExists_AppendsSuffixOnSlugConflict()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.AddRange(
-            MakeUser(1, "u1@x.com"),
-            MakeUser(2, "u2@x.com"));
+        await using var ctx = _db.Create();
+        var user1 = MakeUser("u1@x.com");
+        var user2 = MakeUser("u2@x.com");
+        ctx.Users.AddRange(user1, user2);
+        await ctx.SaveChangesAsync();
+
         // İlk kullanıcının profili zaten "mesut-gur" slug'lı
         ctx.UserProfiles.Add(new UserProfile
         {
-            UserId = 1,
+            UserId = user1.Id,
             DisplayName = "Mesut Gür",
             PublicSlug = "mesut-gur"
         });
         await ctx.SaveChangesAsync();
 
         var svc = new PublicProfileService(ctx);
-        var profile2 = await svc.EnsureProfileExistsAsync(2, "Mesut Gür");
+        var profile2 = await svc.EnsureProfileExistsAsync(user2.Id, "Mesut Gür");
 
         profile2.PublicSlug.Should().Be("mesut-gur-2",
             "GenerateUniquePublicSlugAsync çakışmada -2/-3/... suffix ekler");
@@ -70,25 +62,29 @@ public class EnsureProfileExistsTests
     [Fact]
     public async Task EnsureProfileExists_FallsBackToUyeIdWhenDisplayNameEmpty()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(99, "anon@x.com"));
+        await using var ctx = _db.Create();
+        var user = MakeUser("anon@x.com");
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         var svc = new PublicProfileService(ctx);
-        var profile = await svc.EnsureProfileExistsAsync(99, "");
+        var profile = await svc.EnsureProfileExistsAsync(user.Id, "");
 
-        profile.PublicSlug.Should().Be("uye-99",
+        profile.PublicSlug.Should().Be($"uye-{user.Id}",
             "DisplayName boşsa fallback uye-{userId}");
     }
 
     [Fact]
     public async Task EnsureProfileExists_IsIdempotent_DoesNothingWhenProfileWithSlugExists()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(7, "u7@x.com"));
+        await using var ctx = _db.Create();
+        var user = MakeUser("u7@x.com");
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
         ctx.UserProfiles.Add(new UserProfile
         {
-            UserId = 7,
+            UserId = user.Id,
             DisplayName = "Mevcut",
             PublicSlug = "mevcut-slug",
             IsPublicProfile = true,
@@ -99,8 +95,8 @@ public class EnsureProfileExistsTests
         var svc = new PublicProfileService(ctx);
 
         // Aynı çağrıyı birden fazla kez yap
-        var p1 = await svc.EnsureProfileExistsAsync(7, "Yeni Display");
-        var p2 = await svc.EnsureProfileExistsAsync(7, "Başka Yeni");
+        var p1 = await svc.EnsureProfileExistsAsync(user.Id, "Yeni Display");
+        var p2 = await svc.EnsureProfileExistsAsync(user.Id, "Başka Yeni");
 
         p1.PublicSlug.Should().Be("mevcut-slug",
             "mevcut slug korunur, ikinci çağrıda da yeni üretilmez");
@@ -108,7 +104,7 @@ public class EnsureProfileExistsTests
         p2.IsPublicProfile.Should().BeTrue("mevcut alanlar dokunulmaz");
         p2.Bio.Should().Be("Var olan bio");
 
-        var count = await ctx.UserProfiles.CountAsync(x => x.UserId == 7);
+        var count = await ctx.UserProfiles.CountAsync(x => x.UserId == user.Id);
         count.Should().Be(1, "duplicate satır oluşturulmaz");
     }
 
@@ -118,11 +114,14 @@ public class EnsureProfileExistsTests
         // Geri uyumluluk: Faz 4.1 P1/3 öncesi oluşturulmuş profilenin
         // PublicSlug null olabilir; EnsureProfileExistsAsync slug doldurur,
         // diğer alanlara dokunmaz.
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(11, "legacy@x.com"));
+        await using var ctx = _db.Create();
+        var user = MakeUser("legacy@x.com");
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
         ctx.UserProfiles.Add(new UserProfile
         {
-            UserId = 11,
+            UserId = user.Id,
             DisplayName = "Eski Kayıt",
             PublicSlug = null,
             Bio = "Eski bio"
@@ -130,16 +129,15 @@ public class EnsureProfileExistsTests
         await ctx.SaveChangesAsync();
 
         var svc = new PublicProfileService(ctx);
-        var profile = await svc.EnsureProfileExistsAsync(11, "Eski Kayıt");
+        var profile = await svc.EnsureProfileExistsAsync(user.Id, "Eski Kayıt");
 
         profile.PublicSlug.Should().Be("eski-kayit",
             "null slug DisplayName'den (entity üstü) üretilir");
         profile.Bio.Should().Be("Eski bio", "diğer alanlar korunur");
     }
 
-    private static ApplicationUser MakeUser(int id, string email) => new()
+    private static ApplicationUser MakeUser(string email) => new()
     {
-        Id = id,
         UserName = email,
         NormalizedUserName = email.ToUpperInvariant(),
         Email = email,

@@ -20,11 +20,11 @@ namespace LexCalculus.Tests.Areas.Admin;
 /// </summary>
 [Collection("AdminWebHost")]
 public class ContentReportsAdminControllerTests
-    : IClassFixture<TestAuthWebApplicationFactory>
+    : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public ContentReportsAdminControllerTests(TestAuthWebApplicationFactory factory)
+    public ContentReportsAdminControllerTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }
@@ -236,6 +236,7 @@ public class ContentReportsAdminControllerTests
     [Fact]
     public async Task Dismiss_AsAdmin_RedirectsToIndex_AndUpdatesStatus()
     {
+        var admin = await SeedUserAsync("crc-adm-dis-admin@example.com");
         var owner = await SeedUserAsync("crc-adm-dis-o@example.com");
         var reporter = await SeedUserAsync("crc-adm-dis-r@example.com");
         var catId = await EnsureCategoryAsync();
@@ -244,7 +245,8 @@ public class ContentReportsAdminControllerTests
             var postId = await SeedPostAsync(owner.Id, catId, "crc-adm-dis");
             await SeedReportAsync(reporter.Id, postId);
 
-            using var client = CreateAdminClient();
+            // ContentReport.ReviewedByUserId FK to AspNetUsers → admin must exist (SQL Server enforces).
+            using var client = CreateAdminClient(admin.Id, admin.Email!);
             var token = await GetAntiforgeryTokenAsync(client,
                 $"/admin/sikayetler/{(int)ContentReportTargetType.Post}/{postId}");
 
@@ -271,12 +273,14 @@ public class ContentReportsAdminControllerTests
         {
             await CleanupUserAsync(reporter.Email!);
             await CleanupUserAsync(owner.Email!);
+            await CleanupUserAsync(admin.Email!);
         }
     }
 
     [Fact]
     public async Task Action_AsAdmin_DeletesPost_AndUpdatesStatus()
     {
+        var admin = await SeedUserAsync("crc-adm-act-admin@example.com");
         var owner = await SeedUserAsync("crc-adm-act-o@example.com");
         var reporter = await SeedUserAsync("crc-adm-act-r@example.com");
         var catId = await EnsureCategoryAsync();
@@ -285,7 +289,8 @@ public class ContentReportsAdminControllerTests
             var postId = await SeedPostAsync(owner.Id, catId, "crc-adm-act");
             await SeedReportAsync(reporter.Id, postId);
 
-            using var client = CreateAdminClient();
+            // ContentReport.ReviewedByUserId FK to AspNetUsers → admin must exist (SQL Server enforces).
+            using var client = CreateAdminClient(admin.Id, admin.Email!);
             var token = await GetAntiforgeryTokenAsync(client,
                 $"/admin/sikayetler/{(int)ContentReportTargetType.Post}/{postId}");
 
@@ -311,6 +316,7 @@ public class ContentReportsAdminControllerTests
         {
             await CleanupUserAsync(reporter.Email!);
             await CleanupUserAsync(owner.Email!);
+            await CleanupUserAsync(admin.Email!);
         }
     }
 }

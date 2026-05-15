@@ -5,11 +5,11 @@ using Xunit;
 namespace LexCalculus.Tests.Seo;
 
 [Collection("AdminWebHost")]
-public class SeoHygieneTests : IClassFixture<TestAuthWebApplicationFactory>
+public class SeoHygieneTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public SeoHygieneTests(TestAuthWebApplicationFactory factory)
+    public SeoHygieneTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

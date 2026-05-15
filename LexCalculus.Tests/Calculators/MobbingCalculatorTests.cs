@@ -10,14 +10,14 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class MobbingCalculatorTests
+public class MobbingCalculatorTests : SqlServerTestBase
 {
     private static IDistributedCache CreateCache() =>
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
-    private static MobbingCalculator Build()
+    private MobbingCalculator Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var paramSvc = new FormulaParameterService(ctx, CreateCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
         return new MobbingCalculator(paramSvc);
     }

@@ -7,11 +7,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Content;
 
-public class PostTagServiceTests
+public class PostTagServiceTests : SqlServerTestBase
 {
-    private static (PostTagService svc, ApplicationDbContext ctx) Setup()
+    private (PostTagService svc, ApplicationDbContext ctx) Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var svc = new PostTagService(ctx);
         return (svc, ctx);
     }

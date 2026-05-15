@@ -13,13 +13,13 @@ using Xunit;
 namespace LexCalculus.Tests.Profil;
 
 [Collection("AdminWebHost")]
-public class ProfilSifreDegistirPageTests : IClassFixture<TestAuthWebApplicationFactory>
+public class ProfilSifreDegistirPageTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
     private const string Url = "/profil/sifre-degistir";
 
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public ProfilSifreDegistirPageTests(TestAuthWebApplicationFactory factory)
+    public ProfilSifreDegistirPageTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

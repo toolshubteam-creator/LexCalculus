@@ -1,5 +1,6 @@
 using FluentAssertions;
 using LexCalculus.Core.Entities.Calculators;
+using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Infrastructure.Calculators;
 using LexCalculus.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class FormulaParameterServiceCrudTests
+public class FormulaParameterServiceCrudTests : SqlServerTestBase
 {
     private static IDistributedCache CreateInMemoryCache() =>
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
@@ -19,10 +20,32 @@ public class FormulaParameterServiceCrudTests
     private static FormulaParameterService CreateService(LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) =>
         new FormulaParameterService(ctx, CreateInMemoryCache(), new NullActivityLogService(), NullLogger<FormulaParameterService>.Instance);
 
+    // SQL Server FK_FormulaParameters_AspNetUsers_LastModifiedByUserId zorunlu —
+    // LastModifiedByUserId set edildiğinde gerçek bir user'ın Id'si lazım.
+    private static async Task<ApplicationUser> SeedUserAsync(
+        LexCalculus.Infrastructure.Data.ApplicationDbContext ctx, string suffix)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = $"fp-{suffix}@x.com",
+            NormalizedUserName = $"FP-{suffix}@X.COM",
+            Email = $"fp-{suffix}@x.com",
+            NormalizedEmail = $"FP-{suffix}@X.COM",
+            FullName = $"FP {suffix}",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+        return user;
+    }
+
     [Fact]
     public async Task GetAllAsync_ReturnsAllRows_OrderedByToolSlugThenKeyThenEffectiveDateDesc()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "z-tool", Key = "rate", Value = 1m, EffectiveDate = new DateTime(2024, 1, 1) },
             new FormulaParameter { ToolSlug = "a-tool", Key = "tavan", Value = 50m, EffectiveDate = new DateTime(2025, 1, 1) },
@@ -44,7 +67,8 @@ public class FormulaParameterServiceCrudTests
     [Fact]
     public async Task UpdateAsync_MutatesRow_AndSetsLastModifiedByUserId()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var modifier = await SeedUserAsync(ctx, "update");
         var seed = new FormulaParameter
         {
             ToolSlug = "kidem-tazminati",
@@ -60,16 +84,16 @@ public class FormulaParameterServiceCrudTests
 
         seed.Source = "Hazine 05.01.2024 Genelgesi";
         seed.Value = 35058.58m;
-        var updated = await service.UpdateAsync(seed, modifiedByUserId: 7);
+        var updated = await service.UpdateAsync(seed, modifiedByUserId: modifier.Id);
 
         updated.Source.Should().Be("Hazine 05.01.2024 Genelgesi");
-        updated.LastModifiedByUserId.Should().Be(7);
+        updated.LastModifiedByUserId.Should().Be(modifier.Id);
     }
 
     [Fact]
     public async Task UpdateAsync_ThrowsWhenIdNotFound()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var service = CreateService(ctx);
 
         var ghost = new FormulaParameter { Id = 99999, ToolSlug = "x", Key = "y" };
@@ -82,7 +106,8 @@ public class FormulaParameterServiceCrudTests
     [Fact]
     public async Task SoftDeleteAsync_SetsIsDeletedTrue_AndRowExcludedFromGetAllAsync()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var modifier = await SeedUserAsync(ctx, "delete");
         var seed = new FormulaParameter
         {
             ToolSlug = "kidem-tazminati",
@@ -95,7 +120,7 @@ public class FormulaParameterServiceCrudTests
 
         var service = CreateService(ctx);
 
-        await service.SoftDeleteAsync(seed.Id, modifiedByUserId: 7);
+        await service.SoftDeleteAsync(seed.Id, modifiedByUserId: modifier.Id);
 
         // GetAllAsync uses global query filter → soft-deleted row excluded
         var all = await service.GetAllAsync();
@@ -107,6 +132,6 @@ public class FormulaParameterServiceCrudTests
             .ToListAsync();
         withDeleted.Should().HaveCount(1);
         withDeleted[0].IsDeleted.Should().BeTrue();
-        withDeleted[0].LastModifiedByUserId.Should().Be(7);
+        withDeleted[0].LastModifiedByUserId.Should().Be(modifier.Id);
     }
 }

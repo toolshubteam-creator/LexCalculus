@@ -10,11 +10,11 @@ using Xunit;
 namespace LexCalculus.Tests.Areas.Admin;
 
 [Collection("AdminWebHost")]
-public class AdminHesaplarControllerTests : IClassFixture<TestAuthWebApplicationFactory>
+public class AdminHesaplarControllerTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public AdminHesaplarControllerTests(TestAuthWebApplicationFactory factory)
+    public AdminHesaplarControllerTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }
@@ -30,36 +30,41 @@ public class AdminHesaplarControllerTests : IClassFixture<TestAuthWebApplication
         await ctx.SaveChangesAsync();
 
         // 2 user seed (Identity üzerinden değil direkt EF üzerinden, test amaçlı)
-        var existingIds = await ctx.Users.Select(u => u.Id).ToListAsync();
-        if (!existingIds.Contains(101))
+        var alice = await ctx.Users.FirstOrDefaultAsync(u => u.UserName == "alice@test.local");
+        if (alice == null)
         {
-            ctx.Users.Add(new ApplicationUser
+            alice = new ApplicationUser
             {
-                Id = 101, UserName = "alice@test.local", NormalizedUserName = "ALICE@TEST.LOCAL",
+                UserName = "alice@test.local", NormalizedUserName = "ALICE@TEST.LOCAL",
                 Email = "alice@test.local", NormalizedEmail = "ALICE@TEST.LOCAL",
                 FullName = "Alice Demo", IsActive = true, SecurityStamp = Guid.NewGuid().ToString()
-            });
+            };
+            ctx.Users.Add(alice);
         }
-        if (!existingIds.Contains(102))
+        var bob = await ctx.Users.FirstOrDefaultAsync(u => u.UserName == "bob@test.local");
+        if (bob == null)
         {
-            ctx.Users.Add(new ApplicationUser
+            bob = new ApplicationUser
             {
-                Id = 102, UserName = "bob@test.local", NormalizedUserName = "BOB@TEST.LOCAL",
+                UserName = "bob@test.local", NormalizedUserName = "BOB@TEST.LOCAL",
                 Email = "bob@test.local", NormalizedEmail = "BOB@TEST.LOCAL",
                 FullName = "Bob Demo", IsActive = true, SecurityStamp = Guid.NewGuid().ToString()
-            });
+            };
+            ctx.Users.Add(bob);
         }
+        // Users'ı kaydet — üretilen Id'leri CalculationHistory referansları için al
+        await ctx.SaveChangesAsync();
 
         ctx.Set<CalculationHistory>().AddRange(
             new CalculationHistory
             {
-                UserId = 101, CategorySlug = "is-hukuku", ToolSlug = "kidem-tazminati",
+                UserId = alice.Id, CategorySlug = "is-hukuku", ToolSlug = "kidem-tazminati",
                 ToolTitle = "Kıdem Tazminatı", InputJson = "{}", OutputJson = "{}",
                 TotalAmount = 12345m, Unit = "TL"
             },
             new CalculationHistory
             {
-                UserId = 102, CategorySlug = "faiz", ToolSlug = "yasal-faiz",
+                UserId = bob.Id, CategorySlug = "faiz", ToolSlug = "yasal-faiz",
                 ToolTitle = "Yasal Faiz", InputJson = "{}", OutputJson = "{}",
                 TotalAmount = 543m, Unit = "TL"
             }

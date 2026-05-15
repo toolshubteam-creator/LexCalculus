@@ -18,7 +18,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Admin.Dashboard;
 
-public class DashboardSummaryServiceTests
+public class DashboardSummaryServiceTests : SqlServerTestBase
 {
     private static UserManager<ApplicationUser> MockUserManagerWithDbUsers(
         LexCalculus.Infrastructure.Data.ApplicationDbContext ctx)
@@ -51,7 +51,13 @@ public class DashboardSummaryServiceTests
     [Fact]
     public async Task GetSummaryAsync_HappyPath_ReturnsAllDbWidgets()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+
+        // 2 aktif kullanıcı — önce kaydet, üretilen Id'leri al
+        var u1 = new ApplicationUser { UserName = "u1", IsActive = true, LastLoginAt = DateTime.UtcNow.AddDays(-5) };
+        var u2 = new ApplicationUser { UserName = "u2", IsActive = true, LastLoginAt = DateTime.UtcNow.AddDays(-40) };
+        ctx.Users.AddRange(u1, u2);
+        await ctx.SaveChangesAsync();
 
         // 5 parametre, 1'i stale (Biannual + 200 gün eski)
         ctx.Set<FormulaParameter>().AddRange(
@@ -79,31 +85,25 @@ public class DashboardSummaryServiceTests
 
         // 3 hesap geçmişi (son 7 gün — auditor CreatedAt=now)
         ctx.Set<CalculationHistory>().AddRange(
-            new CalculationHistory { UserId = 1, CategorySlug = "is-hukuku", ToolSlug = "kidem",
+            new CalculationHistory { UserId = u1.Id, CategorySlug = "is-hukuku", ToolSlug = "kidem",
                 ToolTitle = "Kıdem", InputJson = "{}", OutputJson = "{}" },
-            new CalculationHistory { UserId = 1, CategorySlug = "is-hukuku", ToolSlug = "kidem",
+            new CalculationHistory { UserId = u1.Id, CategorySlug = "is-hukuku", ToolSlug = "kidem",
                 ToolTitle = "Kıdem", InputJson = "{}", OutputJson = "{}" },
-            new CalculationHistory { UserId = 2, CategorySlug = "faiz", ToolSlug = "yasal-faiz",
+            new CalculationHistory { UserId = u2.Id, CategorySlug = "faiz", ToolSlug = "yasal-faiz",
                 ToolTitle = "Yasal Faiz", InputJson = "{}", OutputJson = "{}" }
         );
 
-        // 2 aktif kullanıcı
-        ctx.Users.AddRange(
-            new ApplicationUser { Id = 1, UserName = "u1", IsActive = true, LastLoginAt = DateTime.UtcNow.AddDays(-5) },
-            new ApplicationUser { Id = 2, UserName = "u2", IsActive = true, LastLoginAt = DateTime.UtcNow.AddDays(-40) }
-        );
-
-        // 1 okunmamış bildirim (admin id=1 için)
+        // 1 okunmamış bildirim (admin u1 için)
         ctx.Notifications.Add(new Notification
         {
-            UserId = 1, Type = NotificationType.SystemAlert,
+            UserId = u1.Id, Type = NotificationType.SystemAlert,
             Title = "T", Body = "B", IsRead = false, CreatedAt = DateTime.UtcNow
         });
 
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx);
-        var summary = await svc.GetSummaryAsync(currentAdminUserId: 1);
+        var summary = await svc.GetSummaryAsync(currentAdminUserId: u1.Id);
 
         // Veri Tazelik
         summary.Freshness.Should().NotBeNull();
@@ -133,7 +133,7 @@ public class DashboardSummaryServiceTests
     [Fact]
     public async Task GetSummaryAsync_FreshnessFails_OtherWidgetsStillReturn()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
             ToolSlug = "kidem", Key = "tavan", Value = 1m,
@@ -141,7 +141,8 @@ public class DashboardSummaryServiceTests
             ExpectedUpdateFrequency = "Monthly",
             LastUpdatedDate = DateTime.UtcNow.AddDays(-10)
         });
-        ctx.Users.Add(new ApplicationUser { Id = 1, UserName = "u", IsActive = true });
+        var user = new ApplicationUser { UserName = "u", IsActive = true };
+        ctx.Users.Add(user);
         await ctx.SaveChangesAsync();
 
         var freshnessMock = new Mock<IFormulaFreshnessChecker>();
@@ -149,7 +150,7 @@ public class DashboardSummaryServiceTests
                      .Throws<InvalidOperationException>();
 
         var svc = CreateService(ctx, freshnessMock.Object);
-        var summary = await svc.GetSummaryAsync(currentAdminUserId: 1);
+        var summary = await svc.GetSummaryAsync(currentAdminUserId: user.Id);
 
         summary.Freshness.Should().BeNull();         // throw → defensive null
         summary.Activity.Should().NotBeNull();        // bağımsız çalıştı

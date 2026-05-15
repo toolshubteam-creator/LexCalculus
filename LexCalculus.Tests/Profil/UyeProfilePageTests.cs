@@ -14,11 +14,11 @@ using Xunit;
 namespace LexCalculus.Tests.Profil;
 
 [Collection("AdminWebHost")]
-public class UyeProfilePageTests : IClassFixture<TestAuthWebApplicationFactory>
+public class UyeProfilePageTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public UyeProfilePageTests(TestAuthWebApplicationFactory factory)
+    public UyeProfilePageTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

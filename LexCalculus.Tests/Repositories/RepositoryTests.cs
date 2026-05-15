@@ -1,5 +1,6 @@
 using FluentAssertions;
 using LexCalculus.Core.Entities.Identity;
+using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Repositories;
 using LexCalculus.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
@@ -7,15 +8,37 @@ using Xunit;
 
 namespace LexCalculus.Tests.Repositories;
 
-public class RepositoryTests
+public class RepositoryTests : SqlServerTestBase
 {
+    // SQL Server FK_UserProfiles_AspNetUsers_UserId zorunlu — her testte
+    // önce ApplicationUser seed et, UserProfile.UserId'sini gerçek user.Id'ye bağla.
+    private static async Task<ApplicationUser> SeedUserAsync(ApplicationDbContext ctx, string suffix)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = $"u{suffix}@x.com",
+            NormalizedUserName = $"U{suffix}@X.COM",
+            Email = $"u{suffix}@x.com",
+            NormalizedEmail = $"U{suffix}@X.COM",
+            FullName = $"U{suffix}",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+        return user;
+    }
+
     [Fact]
     public async Task AddAsync_Sets_CreatedAt_To_UtcNow()
     {
         // Arrange
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var user = await SeedUserAsync(ctx, "add");
         var repo = new Repository<UserProfile>(ctx);
-        var profile = new UserProfile { UserId = 1, DisplayName = "Test User" };
+        var profile = new UserProfile { UserId = user.Id, DisplayName = "Test User" };
         var beforeUtc = DateTime.UtcNow;
 
         // Act
@@ -33,9 +56,10 @@ public class RepositoryTests
     public async Task GetByIdAsync_Returns_Entity_When_Exists()
     {
         // Arrange
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var user = await SeedUserAsync(ctx, "get");
         var repo = new Repository<UserProfile>(ctx);
-        var profile = new UserProfile { UserId = 2, DisplayName = "Existing" };
+        var profile = new UserProfile { UserId = user.Id, DisplayName = "Existing" };
         await repo.AddAsync(profile);
         await ctx.SaveChangesAsync();
 
@@ -50,7 +74,7 @@ public class RepositoryTests
     [Fact]
     public async Task GetByIdAsync_Returns_Null_When_Missing()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var repo = new Repository<UserProfile>(ctx);
 
         var result = await repo.GetByIdAsync(999);
@@ -62,9 +86,10 @@ public class RepositoryTests
     public async Task DeleteAsync_Sets_IsDeleted_True_And_Updates_UpdatedAt()
     {
         // Arrange
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var user = await SeedUserAsync(ctx, "del");
         var repo = new Repository<UserProfile>(ctx);
-        var profile = new UserProfile { UserId = 3, DisplayName = "Soft Delete Me" };
+        var profile = new UserProfile { UserId = user.Id, DisplayName = "Soft Delete Me" };
         await repo.AddAsync(profile);
         await ctx.SaveChangesAsync();
         var idToDelete = profile.Id;
@@ -87,11 +112,13 @@ public class RepositoryTests
     public async Task GetAllAsync_Excludes_SoftDeleted_Entities()
     {
         // Arrange
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var userKeep = await SeedUserAsync(ctx, "keep");
+        var userRemove = await SeedUserAsync(ctx, "remove");
         var repo = new Repository<UserProfile>(ctx);
 
-        var keep = new UserProfile { UserId = 10, DisplayName = "Keep" };
-        var remove = new UserProfile { UserId = 11, DisplayName = "Remove" };
+        var keep = new UserProfile { UserId = userKeep.Id, DisplayName = "Keep" };
+        var remove = new UserProfile { UserId = userRemove.Id, DisplayName = "Remove" };
         await repo.AddAsync(keep);
         await repo.AddAsync(remove);
         await ctx.SaveChangesAsync();
@@ -111,9 +138,10 @@ public class RepositoryTests
     public async Task Update_Sets_UpdatedAt_On_Save()
     {
         // Arrange
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var user = await SeedUserAsync(ctx, "upd");
         var repo = new Repository<UserProfile>(ctx);
-        var profile = new UserProfile { UserId = 20, DisplayName = "Original" };
+        var profile = new UserProfile { UserId = user.Id, DisplayName = "Original" };
         await repo.AddAsync(profile);
         await ctx.SaveChangesAsync();
 
@@ -133,7 +161,7 @@ public class RepositoryTests
     [Fact]
     public async Task AddAsync_Throws_On_Null_Entity()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var repo = new Repository<UserProfile>(ctx);
 
         var act = async () => await repo.AddAsync(null!);
@@ -144,9 +172,10 @@ public class RepositoryTests
     [Fact]
     public async Task DeleteAsync_Is_Idempotent_For_Already_Deleted()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
+        var user = await SeedUserAsync(ctx, "idem");
         var repo = new Repository<UserProfile>(ctx);
-        var profile = new UserProfile { UserId = 30, DisplayName = "Twice Deleted" };
+        var profile = new UserProfile { UserId = user.Id, DisplayName = "Twice Deleted" };
         await repo.AddAsync(profile);
         await ctx.SaveChangesAsync();
 
@@ -162,7 +191,7 @@ public class RepositoryTests
     [Fact]
     public async Task DeleteAsync_On_Missing_Id_Is_NoOp()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var repo = new Repository<UserProfile>(ctx);
 
         var act = async () => { await repo.DeleteAsync(99999); await ctx.SaveChangesAsync(); };

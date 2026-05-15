@@ -17,21 +17,30 @@ namespace LexCalculus.Tests.Messaging;
 /// - Sender için hidden mesaj listede kalır (view'da placeholder)
 /// - Polling (GetNewerThanAsync) hidden mesajları hiç dönmez (alıcı için)
 /// </summary>
-public class MessageHiddenFilterTests
+public class MessageHiddenFilterTests : SqlServerTestBase
 {
-    private static (MessageService msgSvc, ApplicationDbContext ctx) Setup()
+    // Setup sonrası seed edilen kullanıcıların DB-generated Id'leri.
+    private int _user1Id, _user2Id;
+
+    private (MessageService msgSvc, ApplicationDbContext ctx) Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
         var storage = new FakeMediaStorage();
         var convSvc = new ConversationService(ctx, blockSvc, storage, new NullActivityLogService());
         var msgSvc = new MessageService(ctx, convSvc, new CommentSanitizer(),
             new NullActivityLogService(), new NoOpMessagingNotifier());
 
-        ctx.Users.AddRange(MakeUser(1), MakeUser(2));
+        var u1 = MakeUser("a");
+        var u2 = MakeUser("b");
+        ctx.Users.AddRange(u1, u2);
+        ctx.SaveChanges();
+        _user1Id = u1.Id;
+        _user2Id = u2.Id;
+
         ctx.UserConnections.Add(new UserConnection
         {
-            RequesterId = 1, TargetId = 2,
+            RequesterId = _user1Id, TargetId = _user2Id,
             Status = UserConnectionStatus.Accepted,
             CreatedAt = DateTime.UtcNow.AddDays(-1)
         });
@@ -39,14 +48,13 @@ public class MessageHiddenFilterTests
         return (msgSvc, ctx);
     }
 
-    private static ApplicationUser MakeUser(int id) => new()
+    private static ApplicationUser MakeUser(string suffix) => new()
     {
-        Id = id,
-        UserName = $"u{id}@x.com",
-        NormalizedUserName = $"U{id}@X.COM",
-        Email = $"u{id}@x.com",
-        NormalizedEmail = $"U{id}@X.COM",
-        FullName = $"User {id}",
+        UserName = $"u{suffix}@x.com",
+        NormalizedUserName = $"U{suffix.ToUpperInvariant()}@X.COM",
+        Email = $"u{suffix}@x.com",
+        NormalizedEmail = $"U{suffix.ToUpperInvariant()}@X.COM",
+        FullName = $"User {suffix}",
         CreatedAt = DateTime.UtcNow,
         IsActive = true,
         EmailConfirmed = true,
@@ -57,7 +65,7 @@ public class MessageHiddenFilterTests
     public async Task GetByConversation_HiddenForRecipient_FiltersOut()
     {
         var (svc, ctx) = Setup();
-        var send = await svc.SendAsync(senderId: 1, recipientId: 2, "Gizlenecek mesaj");
+        var send = await svc.SendAsync(senderId: _user1Id, recipientId: _user2Id, "Gizlenecek mesaj");
         send.Success.Should().BeTrue();
 
         // Admin gizledi
@@ -66,7 +74,7 @@ public class MessageHiddenFilterTests
         await ctx.SaveChangesAsync();
 
         // Recipient (2) listeden çekiyor: hidden mesaj filter
-        var list = await svc.GetByConversationAsync(msg.ConversationId, viewerId: 2, 0, 50);
+        var list = await svc.GetByConversationAsync(msg.ConversationId, viewerId: _user2Id, 0, 50);
         list.Should().BeEmpty("recipient hidden mesajı görmemeli");
     }
 
@@ -74,13 +82,13 @@ public class MessageHiddenFilterTests
     public async Task GetByConversation_HiddenForSender_StaysInList()
     {
         var (svc, ctx) = Setup();
-        var send = await svc.SendAsync(senderId: 1, recipientId: 2, "Sahip görmeli");
+        var send = await svc.SendAsync(senderId: _user1Id, recipientId: _user2Id, "Sahip görmeli");
         var msg = ctx.Messages.First();
         msg.IsModeratorHidden = true;
         await ctx.SaveChangesAsync();
 
         // Sender (1) listede mesajını görür (view placeholder render edecek)
-        var list = await svc.GetByConversationAsync(msg.ConversationId, viewerId: 1, 0, 50);
+        var list = await svc.GetByConversationAsync(msg.ConversationId, viewerId: _user1Id, 0, 50);
         list.Should().HaveCount(1);
         list[0].IsModeratorHidden.Should().BeTrue();
     }
@@ -89,10 +97,10 @@ public class MessageHiddenFilterTests
     public async Task GetByConversation_NotHidden_ReturnsBody()
     {
         var (svc, ctx) = Setup();
-        await svc.SendAsync(1, 2, "Normal mesaj");
+        await svc.SendAsync(_user1Id, _user2Id, "Normal mesaj");
         var msg = ctx.Messages.First();
 
-        var list = await svc.GetByConversationAsync(msg.ConversationId, viewerId: 2, 0, 50);
+        var list = await svc.GetByConversationAsync(msg.ConversationId, viewerId: _user2Id, 0, 50);
         list.Should().HaveCount(1);
         list[0].IsModeratorHidden.Should().BeFalse();
         list[0].Body.Should().Contain("Normal mesaj");
@@ -103,13 +111,13 @@ public class MessageHiddenFilterTests
     {
         var (svc, ctx) = Setup();
         var since = DateTime.UtcNow.AddSeconds(-1);
-        await svc.SendAsync(1, 2, "Yeni mesaj"); // since sonrası
+        await svc.SendAsync(_user1Id, _user2Id, "Yeni mesaj"); // since sonrası
         var msg = ctx.Messages.First();
         msg.IsModeratorHidden = true;
         await ctx.SaveChangesAsync();
 
         // Recipient (2) polling: hidden filter dışı
-        var list = await svc.GetNewerThanAsync(msg.ConversationId, viewerId: 2, since);
+        var list = await svc.GetNewerThanAsync(msg.ConversationId, viewerId: _user2Id, since);
         list.Should().BeEmpty("polling hidden mesajları alıcıya iletmez");
     }
 

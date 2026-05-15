@@ -1,33 +1,14 @@
 using FluentAssertions;
 using LexCalculus.Core.Entities;
-using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Services;
 using LexCalculus.Tests.TestHelpers;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace LexCalculus.Tests.Services;
 
-public class CalculationHistoryServiceReadTests
+public class CalculationHistoryServiceReadTests : SqlServerTestBase
 {
-    /// <summary>
-    /// Audit interceptor'sız context — özelleştirilmiş CreatedAt seed'i için.
-    /// In-memory DB aynı isimde olduğu için service tarafı (TestDbContextFactory)
-    /// aynı veriyi görür.
-    /// </summary>
-    private static ApplicationDbContext CreateNoAuditCtx(string dbName, int? actAsUserId = null)
-    {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(dbName)
-            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
-            .Options;
-        var tenantCtx = actAsUserId.HasValue
-            ? new TestTenantContext { CurrentUserId = actAsUserId }
-            : new TestTenantContext();
-        return new ApplicationDbContext(options, tenantCtx);
-    }
 
     private static CalculationHistory MakeEntry(int userId, string toolSlug = "kidem-tazminati") =>
         new()
@@ -43,7 +24,7 @@ public class CalculationHistoryServiceReadTests
     [Fact]
     public async Task GetForUserAsync_ReturnsOnlyForGivenUser()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 1);
+        await using var ctx = _db.Create(actAsUserId: 1);
         ctx.Set<CalculationHistory>().AddRange(
             MakeEntry(1), MakeEntry(1), MakeEntry(1),
             MakeEntry(2), MakeEntry(2), MakeEntry(2)
@@ -61,7 +42,7 @@ public class CalculationHistoryServiceReadTests
     [Fact]
     public async Task GetForUserAsync_PaginatesCorrectly()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 1);
+        await using var ctx = _db.Create(actAsUserId: 1);
         for (int i = 0; i < 30; i++) ctx.Set<CalculationHistory>().Add(MakeEntry(1));
         await ctx.SaveChangesAsync();
 
@@ -83,7 +64,7 @@ public class CalculationHistoryServiceReadTests
     [Fact]
     public async Task GetForUserAsync_FilterByToolSlug()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 1);
+        await using var ctx = _db.Create(actAsUserId: 1);
         ctx.Set<CalculationHistory>().AddRange(
             MakeEntry(1, "kidem-tazminati"),
             MakeEntry(1, "kidem-tazminati"),
@@ -106,12 +87,11 @@ public class CalculationHistoryServiceReadTests
     [Fact]
     public async Task GetForUserAsync_FilterByDateRange()
     {
-        var dbName = Guid.NewGuid().ToString();
         var now = DateTime.UtcNow;
 
         // Seed: 3 satır son hafta içinde, 2 satır 30 gün eski.
         // Audit interceptor'ı bypass eden context ile özel CreatedAt set ediliyor.
-        using (var seedCtx = CreateNoAuditCtx(dbName))
+        using (var seedCtx = _db.CreateNoAuditContext())
         {
             seedCtx.Set<CalculationHistory>().AddRange(
                 new CalculationHistory { UserId = 1, CategorySlug = "is-hukuku",
@@ -133,7 +113,7 @@ public class CalculationHistoryServiceReadTests
             await seedCtx.SaveChangesAsync();
         }
 
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 1, databaseName: dbName);
+        await using var ctx = _db.Create(actAsUserId: 1);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         var page = await svc.GetForUserAsync(
@@ -146,7 +126,7 @@ public class CalculationHistoryServiceReadTests
     [Fact]
     public async Task GetByIdForUserAsync_ReturnsNullForOtherOwner()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 1);
+        await using var ctx = _db.Create(actAsUserId: 1);
         var entry = MakeEntry(userId: 1);
         ctx.Set<CalculationHistory>().Add(entry);
         await ctx.SaveChangesAsync();
@@ -163,7 +143,7 @@ public class CalculationHistoryServiceReadTests
     [Fact]
     public async Task GetUsedToolSlugsForUserAsync_ReturnsDistinctSorted()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 1);
+        await using var ctx = _db.Create(actAsUserId: 1);
         ctx.Set<CalculationHistory>().AddRange(
             MakeEntry(1, "kidem-tazminati"),
             MakeEntry(1, "kidem-tazminati"),

@@ -11,17 +11,19 @@ using Xunit;
 
 namespace LexCalculus.Tests.Tenancy;
 
-public class TenantAdminServiceTests
+public class TenantAdminServiceTests : SqlServerTestBase
 {
-    private static ApplicationUser MakeUser(int id, string email, int? tenantId = null) =>
+    // IDENTITY_INSERT fix (Adım 5.8 P2): explicit Id atamak yerine EF'in
+    // ürettiği Id'yi kullan. UserName/Email her test içinde unique olmalı —
+    // suffix bunu garanti eder.
+    private static ApplicationUser MakeUser(string suffix, int? tenantId = null) =>
         new()
         {
-            Id = id,
-            UserName = email,
-            NormalizedUserName = email.ToUpperInvariant(),
-            Email = email,
-            NormalizedEmail = email.ToUpperInvariant(),
-            FullName = email,
+            UserName = $"u{suffix}@x.com",
+            NormalizedUserName = $"U{suffix}@X.COM",
+            Email = $"u{suffix}@x.com",
+            NormalizedEmail = $"U{suffix}@X.COM",
+            FullName = $"User {suffix}",
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
             EmailConfirmed = true,
@@ -29,9 +31,9 @@ public class TenantAdminServiceTests
             SecurityStamp = Guid.NewGuid().ToString()
         };
 
-    private static (ApplicationDbContext ctx, TenantAdminService svc) Setup()
+    private (ApplicationDbContext ctx, TenantAdminService svc) Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var svc = new TenantAdminService(ctx, new NullActivityLogService());
         return (ctx, svc);
     }
@@ -40,10 +42,11 @@ public class TenantAdminServiceTests
     public async Task CreateAsync_WithAutoSlug_GeneratesFromName()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.Add(MakeUser(1, "owner@x.com"));
+        var owner = MakeUser("owner");
+        ctx.Users.Add(owner);
         await ctx.SaveChangesAsync();
 
-        var id = await svc.CreateAsync(new CreateTenantRequest("Hukuk Bürosu A", null, 1));
+        var id = await svc.CreateAsync(new CreateTenantRequest("Hukuk Bürosu A", null, owner.Id));
 
         var tenant = await ctx.Tenants.AsNoTracking().FirstAsync(t => t.Id == id);
         tenant.Slug.Should().Be("hukuk-burosu-a");
@@ -54,12 +57,14 @@ public class TenantAdminServiceTests
     public async Task CreateAsync_WithDuplicateSlug_Throws()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.AddRange(MakeUser(1, "a@x.com"), MakeUser(2, "b@x.com"));
+        var u1 = MakeUser("a");
+        var u2 = MakeUser("b");
+        ctx.Users.AddRange(u1, u2);
         await ctx.SaveChangesAsync();
 
-        await svc.CreateAsync(new CreateTenantRequest("Test", "shared-slug", 1));
+        await svc.CreateAsync(new CreateTenantRequest("Test", "shared-slug", u1.Id));
 
-        var act = () => svc.CreateAsync(new CreateTenantRequest("Test 2", "shared-slug", 2));
+        var act = () => svc.CreateAsync(new CreateTenantRequest("Test 2", "shared-slug", u2.Id));
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Slug*");
     }
@@ -68,10 +73,27 @@ public class TenantAdminServiceTests
     public async Task CreateAsync_WithUserAlreadyInTenant_Throws()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.Add(MakeUser(1, "boundOwner@x.com", tenantId: 99));
+        // Circular FK staging: önce başka bir tenant'ın owner'ı olan user'ı
+        // seed et (TenantId null), sonra placeholder tenant, sonra TenantId set.
+        var placeholderOwner = MakeUser("placeholder-owner");
+        ctx.Users.Add(placeholderOwner);
         await ctx.SaveChangesAsync();
 
-        var act = () => svc.CreateAsync(new CreateTenantRequest("Test", null, 1));
+        var placeholderTenant = new Tenant
+        {
+            Name = "Placeholder", Slug = "placeholder",
+            CreatedAt = DateTime.UtcNow, OwnerUserId = placeholderOwner.Id
+        };
+        ctx.Tenants.Add(placeholderTenant);
+        await ctx.SaveChangesAsync();
+
+        var bound = MakeUser("bound-owner");
+        ctx.Users.Add(bound);
+        await ctx.SaveChangesAsync();
+        bound.TenantId = placeholderTenant.Id;
+        await ctx.SaveChangesAsync();
+
+        var act = () => svc.CreateAsync(new CreateTenantRequest("Test", null, bound.Id));
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*tenant*");
     }
@@ -80,46 +102,64 @@ public class TenantAdminServiceTests
     public async Task CreateAsync_HappyPath_OwnerTenantIdSet()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.Add(MakeUser(1, "owner@x.com"));
+        var owner = MakeUser("owner");
+        ctx.Users.Add(owner);
         await ctx.SaveChangesAsync();
 
-        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", null, 1));
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", null, owner.Id));
 
-        var owner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == 1);
-        owner.TenantId.Should().Be(tenantId);
+        var owner2 = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == owner.Id);
+        owner2.TenantId.Should().Be(tenantId);
     }
 
     [Fact]
     public async Task UpdateAsync_ChangeOwner_NewOwnerTenantIdSet()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.AddRange(
-            MakeUser(1, "old@x.com"),
-            MakeUser(2, "new@x.com"));
+        var oldOwner = MakeUser("old");
+        var newOwner = MakeUser("new");
+        ctx.Users.AddRange(oldOwner, newOwner);
         await ctx.SaveChangesAsync();
 
-        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
-        await svc.UpdateAsync(tenantId, new UpdateTenantRequest("Test", "test", OwnerUserId: 2));
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", oldOwner.Id));
+        await svc.UpdateAsync(tenantId, new UpdateTenantRequest("Test", "test", OwnerUserId: newOwner.Id));
 
-        var newOwner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == 2);
-        newOwner.TenantId.Should().Be(tenantId);
+        var refreshedNewOwner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == newOwner.Id);
+        refreshedNewOwner.TenantId.Should().Be(tenantId);
 
         var tenant = await ctx.Tenants.AsAdminQuery().FirstAsync(t => t.Id == tenantId);
-        tenant.OwnerUserId.Should().Be(2);
+        tenant.OwnerUserId.Should().Be(newOwner.Id);
     }
 
     [Fact]
     public async Task AddMemberAsync_UserAlreadyInTenant_Throws()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.AddRange(
-            MakeUser(1, "owner@x.com"),
-            MakeUser(2, "outsider@x.com", tenantId: 99));
+        var owner = MakeUser("owner");
+        ctx.Users.Add(owner);
         await ctx.SaveChangesAsync();
 
-        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
+        // Placeholder tenant for "outsider already bound to another tenant"
+        var placeholderOwner = MakeUser("placeholder-owner");
+        ctx.Users.Add(placeholderOwner);
+        await ctx.SaveChangesAsync();
+        var placeholderTenant = new Tenant
+        {
+            Name = "Placeholder", Slug = "placeholder",
+            CreatedAt = DateTime.UtcNow, OwnerUserId = placeholderOwner.Id
+        };
+        ctx.Tenants.Add(placeholderTenant);
+        await ctx.SaveChangesAsync();
 
-        var act = () => svc.AddMemberAsync(tenantId, 2);
+        var outsider = MakeUser("outsider");
+        ctx.Users.Add(outsider);
+        await ctx.SaveChangesAsync();
+        outsider.TenantId = placeholderTenant.Id;
+        await ctx.SaveChangesAsync();
+
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", owner.Id));
+
+        var act = () => svc.AddMemberAsync(tenantId, outsider.Id);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*tenant*");
     }
@@ -128,12 +168,13 @@ public class TenantAdminServiceTests
     public async Task RemoveMemberAsync_RemovingOwner_Throws()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.Add(MakeUser(1, "owner@x.com"));
+        var owner = MakeUser("owner");
+        ctx.Users.Add(owner);
         await ctx.SaveChangesAsync();
 
-        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", owner.Id));
 
-        var act = () => svc.RemoveMemberAsync(tenantId, 1);
+        var act = () => svc.RemoveMemberAsync(tenantId, owner.Id);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Owner*");
     }
@@ -142,13 +183,13 @@ public class TenantAdminServiceTests
     public async Task SoftDeleteAsync_SetsMembersTenantIdToNull()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.AddRange(
-            MakeUser(1, "owner@x.com"),
-            MakeUser(2, "member@x.com"));
+        var owner = MakeUser("owner");
+        var member = MakeUser("member");
+        ctx.Users.AddRange(owner, member);
         await ctx.SaveChangesAsync();
 
-        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
-        await svc.AddMemberAsync(tenantId, 2);
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", owner.Id));
+        await svc.AddMemberAsync(tenantId, member.Id);
 
         await svc.SoftDeleteAsync(tenantId);
 
@@ -169,18 +210,18 @@ public class TenantAdminServiceTests
     public async Task RemoveMemberAsync_PreservesCalculationHistoryTenantId()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.AddRange(
-            MakeUser(1, "owner@x.com"),
-            MakeUser(2, "member@x.com"));
+        var owner = MakeUser("owner");
+        var member = MakeUser("member");
+        ctx.Users.AddRange(owner, member);
         await ctx.SaveChangesAsync();
 
-        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
-        await svc.AddMemberAsync(tenantId, 2);
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", owner.Id));
+        await svc.AddMemberAsync(tenantId, member.Id);
 
         // Üye, paylaşılmış bir hesap kayıt eder.
         ctx.Set<CalculationHistory>().Add(new CalculationHistory
         {
-            UserId = 2,
+            UserId = member.Id,
             CategorySlug = "is-hukuku",
             ToolSlug = "kidem-tazminati",
             ToolTitle = "Kıdem Tazminatı",
@@ -190,15 +231,15 @@ public class TenantAdminServiceTests
         });
         await ctx.SaveChangesAsync();
 
-        await svc.RemoveMemberAsync(tenantId, 2);
+        await svc.RemoveMemberAsync(tenantId, member.Id);
 
-        var member = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == 2);
-        member.TenantId.Should().BeNull();
+        var refreshedMember = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == member.Id);
+        refreshedMember.TenantId.Should().BeNull();
 
         // Karar 6: hesabın TenantId'si HÂLÂ aynı; paylaşım korunur.
         var calc = await ctx.Set<CalculationHistory>()
             .AsAdminQuery()
-            .FirstAsync(h => h.UserId == 2);
+            .FirstAsync(h => h.UserId == member.Id);
         calc.TenantId.Should().Be(tenantId);
     }
 
@@ -211,14 +252,15 @@ public class TenantAdminServiceTests
     public async Task SoftDeleteAsync_PreservesCalculationHistoryTenantId()
     {
         var (ctx, svc) = Setup();
-        ctx.Users.Add(MakeUser(1, "owner@x.com"));
+        var owner = MakeUser("owner");
+        ctx.Users.Add(owner);
         await ctx.SaveChangesAsync();
 
-        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", 1));
+        var tenantId = await svc.CreateAsync(new CreateTenantRequest("Test", "test", owner.Id));
 
         ctx.Set<CalculationHistory>().Add(new CalculationHistory
         {
-            UserId = 1,
+            UserId = owner.Id,
             CategorySlug = "faiz",
             ToolSlug = "yasal-faiz",
             ToolTitle = "Yasal Faiz",
@@ -233,12 +275,12 @@ public class TenantAdminServiceTests
         var tenant = await ctx.Tenants.AsAdminQuery().FirstAsync(t => t.Id == tenantId);
         tenant.IsDeleted.Should().BeTrue();
 
-        var owner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == 1);
-        owner.TenantId.Should().BeNull();
+        var refreshedOwner = await ctx.Users.AsAdminQuery().FirstAsync(u => u.Id == owner.Id);
+        refreshedOwner.TenantId.Should().BeNull();
 
         var calc = await ctx.Set<CalculationHistory>()
             .AsAdminQuery()
-            .FirstAsync(h => h.UserId == 1);
+            .FirstAsync(h => h.UserId == owner.Id);
         calc.TenantId.Should().Be(tenantId);
     }
 }

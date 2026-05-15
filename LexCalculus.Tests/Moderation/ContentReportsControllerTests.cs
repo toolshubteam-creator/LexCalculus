@@ -16,11 +16,11 @@ using Xunit;
 namespace LexCalculus.Tests.Moderation;
 
 [Collection("AdminWebHost")]
-public class ContentReportsControllerTests : IClassFixture<TestAuthWebApplicationFactory>
+public class ContentReportsControllerTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public ContentReportsControllerTests(TestAuthWebApplicationFactory factory)
+    public ContentReportsControllerTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

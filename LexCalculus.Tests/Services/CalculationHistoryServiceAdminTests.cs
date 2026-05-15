@@ -7,7 +7,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Services;
 
-public class CalculationHistoryServiceAdminTests
+public class CalculationHistoryServiceAdminTests : SqlServerTestBase
 {
     private static CalculationHistory MakeEntry(int userId, string toolSlug = "kidem-tazminati") =>
         new()
@@ -23,7 +23,7 @@ public class CalculationHistoryServiceAdminTests
     [Fact]
     public async Task GetAllPaginatedAsync_ReturnsAcrossUsers()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         // 3 user, 2 satır her biri = 6 satır
         for (int u = 1; u <= 3; u++)
         {
@@ -47,7 +47,7 @@ public class CalculationHistoryServiceAdminTests
     [Fact]
     public async Task GetUsersWithHistoryAsync_ReturnsDistinctSorted()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         // 3 user, her birinin 2 satırı
         for (int u = 1; u <= 3; u++)
         {
@@ -65,7 +65,7 @@ public class CalculationHistoryServiceAdminTests
     [Fact]
     public async Task GetByIdForAdminAsync_ReturnsAcrossOwners()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var entry = MakeEntry(userId: 1);
         ctx.Set<CalculationHistory>().Add(entry);
         await ctx.SaveChangesAsync();

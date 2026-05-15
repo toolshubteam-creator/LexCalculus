@@ -9,11 +9,11 @@ using Xunit;
 namespace LexCalculus.Tests.Hesaplarim;
 
 [Collection("AdminWebHost")]
-public class HesaplarimControllerTests : IClassFixture<TestAuthWebApplicationFactory>
+public class HesaplarimControllerTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public HesaplarimControllerTests(TestAuthWebApplicationFactory factory)
+    public HesaplarimControllerTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

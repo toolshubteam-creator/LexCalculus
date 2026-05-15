@@ -12,11 +12,11 @@ using Xunit;
 namespace LexCalculus.Tests.Areas.Admin;
 
 [Collection("AdminWebHost")]
-public class PostCategoriesControllerTests : IClassFixture<TestAuthWebApplicationFactory>
+public class PostCategoriesControllerTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public PostCategoriesControllerTests(TestAuthWebApplicationFactory factory)
+    public PostCategoriesControllerTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

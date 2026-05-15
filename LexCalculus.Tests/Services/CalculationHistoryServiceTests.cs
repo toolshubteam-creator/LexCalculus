@@ -8,12 +8,12 @@ using Xunit;
 
 namespace LexCalculus.Tests.Services;
 
-public class CalculationHistoryServiceTests
+public class CalculationHistoryServiceTests : SqlServerTestBase
 {
     [Fact]
     public async Task Anonim_Kullanici_Loglanmaz()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         await svc.LogAsync<object, object>(
@@ -33,7 +33,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Sifir_Veya_Negatif_UserId_Loglanmaz()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         await svc.LogAsync<object, object>(
@@ -53,7 +53,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Logged_In_Kullanici_Loglanir()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 123);
+        await using var ctx = _db.Create(actAsUserId: 123);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         await svc.LogAsync(
@@ -80,7 +80,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Buyuk_Payload_Atlanir()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         var bigOutput = new { Data = new string('x', 600_000) };
@@ -102,7 +102,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Birden_Fazla_Log_Sirayla()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 123);
+        await using var ctx = _db.Create(actAsUserId: 123);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         for (int i = 0; i < 5; i++)
@@ -130,7 +130,7 @@ public class CalculationHistoryServiceTests
     [Fact]
     public async Task Soft_Delete_Filter_Calisir()
     {
-        await using var ctx = TestDbContextFactory.Create(actAsUserId: 123);
+        await using var ctx = _db.Create(actAsUserId: 123);
         var svc = new CalculationHistoryService(ctx, NullLogger<CalculationHistoryService>.Instance);
 
         await svc.LogAsync(

@@ -9,11 +9,11 @@ using Xunit;
 namespace LexCalculus.Tests.Areas.Admin;
 
 [Collection("AdminWebHost")]
-public class LifeTablesControllerTests : IClassFixture<TestAuthWebApplicationFactory>
+public class LifeTablesControllerTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public LifeTablesControllerTests(TestAuthWebApplicationFactory factory)
+    public LifeTablesControllerTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

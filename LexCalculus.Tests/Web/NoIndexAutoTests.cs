@@ -11,11 +11,11 @@ namespace LexCalculus.Tests.Web;
 /// [Authorize] sayfa veya admin area otomatik noindex meta render eder.
 /// </summary>
 [Collection("AdminWebHost")]
-public class NoIndexAutoTests : IClassFixture<TestAuthWebApplicationFactory>
+public class NoIndexAutoTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public NoIndexAutoTests(TestAuthWebApplicationFactory factory)
+    public NoIndexAutoTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

@@ -11,14 +11,14 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class KidemTazminatiCalculatorTests
+public class KidemTazminatiCalculatorTests : SqlServerTestBase
 {
     private static IDistributedCache CreateCache() =>
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
-    private static (KidemTazminatiCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (KidemTazminatiCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 41828.42m, EffectiveDate = new DateTime(2025, 7, 1) },
             new FormulaParameter { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 53919.68m, EffectiveDate = new DateTime(2026, 1, 1) },
@@ -150,7 +150,7 @@ public class KidemTazminatiCalculatorTests
     [Fact]
     public async Task Eksik_Tavan_Parametresinde_Anlamli_Exception()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         ctx.Set<FormulaParameter>().Add(
             new FormulaParameter { ToolSlug = "*", Key = "damga-vergisi-orani", Value = 0.00759m, EffectiveDate = new DateTime(2020, 1, 1) }
         );

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class FormulaParameterServiceTests
+public class FormulaParameterServiceTests : SqlServerTestBase
 {
     private static IDistributedCache CreateInMemoryCache() =>
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
@@ -21,7 +21,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetValueAsync_Returns_Null_When_No_Rows_Exist()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var service = CreateService(ctx);
 
         var value = await service.GetValueAsync("kidem-tazminati", "tavan", new DateTime(2026, 5, 1));
@@ -32,7 +32,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetValueAsync_Returns_Latest_Effective_Date_LessThanOrEqual_AsOf()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 50000m, EffectiveDate = new DateTime(2025, 1, 1) },
@@ -56,7 +56,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetValueAsync_Falls_Back_To_Shared_ToolSlug_When_Tool_Specific_Missing()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         ctx.Set<FormulaParameter>().Add(
             new FormulaParameter { ToolSlug = "*", Key = "asgari-ucret-brut", Value = 22104.67m, EffectiveDate = new DateTime(2026, 1, 1) }
@@ -72,7 +72,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetValueAsync_Prefers_Tool_Specific_Over_Shared_When_Both_Exist()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "*",                Key = "x", Value = 100m, EffectiveDate = new DateTime(2026, 1, 1) },
@@ -89,7 +89,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetParameterAsync_Returns_Full_Row_With_Source_And_Note()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         ctx.Set<FormulaParameter>().Add(new FormulaParameter
         {
@@ -115,7 +115,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetHistoryAsync_Returns_All_Versions_Descending()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "kidem-tazminati", Key = "tavan", Value = 50000m,    EffectiveDate = new DateTime(2025, 1, 1) },
@@ -137,7 +137,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task AddAsync_Persists_New_Version_And_Invalidates_Cache()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         ctx.Set<FormulaParameter>().Add(
             new FormulaParameter { ToolSlug = "x", Key = "y", Value = 100m, EffectiveDate = new DateTime(2026, 1, 1) }
@@ -161,7 +161,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetValueAsync_Throws_On_Empty_ToolSlug()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var service = CreateService(ctx);
 
         var act = async () => await service.GetValueAsync("", "key", DateTime.UtcNow);
@@ -172,7 +172,7 @@ public class FormulaParameterServiceTests
     [Fact]
     public async Task GetValueAsync_Throws_On_Empty_Key()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var service = CreateService(ctx);
 
         var act = async () => await service.GetValueAsync("tool", "", DateTime.UtcNow);

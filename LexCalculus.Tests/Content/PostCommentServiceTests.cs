@@ -10,45 +10,54 @@ using Xunit;
 
 namespace LexCalculus.Tests.Content;
 
-public class PostCommentServiceTests
+public class PostCommentServiceTests : SqlServerTestBase
 {
-    private static (PostCommentService svc, ApplicationDbContext ctx, RecordingNotificationService notif)
+    // Setup sonrası seed edilen kayıtların DB-generated Id'leri.
+    private int _ownerId, _commenterId, _strangerId, _categoryId;
+
+    private (PostCommentService svc, ApplicationDbContext ctx, RecordingNotificationService notif)
         Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var notif = new RecordingNotificationService();
         var svc = new PostCommentService(
             ctx, new CommentSanitizer(), notif, new NullActivityLogService());
 
-        ctx.Users.AddRange(
-            MakeUser(1, "owner@x.com"),
-            MakeUser(2, "commenter@x.com"),
-            MakeUser(3, "stranger@x.com"));
-        ctx.PostCategories.Add(new PostCategory
+        var owner = MakeUser("owner@x.com");
+        var commenter = MakeUser("commenter@x.com");
+        var stranger = MakeUser("stranger@x.com");
+        ctx.Users.AddRange(owner, commenter, stranger);
+        var category = new PostCategory
         {
-            Id = 1, Name = "Genel", Slug = "genel",
+            Name = "Genel", Slug = "genel",
             DisplayOrder = 1, IsActive = true, CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         ctx.SaveChanges();
+
+        _ownerId = owner.Id;
+        _commenterId = commenter.Id;
+        _strangerId = stranger.Id;
+        _categoryId = category.Id;
         return (svc, ctx, notif);
     }
 
-    private static ApplicationUser MakeUser(int id, string email) => new()
+    private static ApplicationUser MakeUser(string email) => new()
     {
-        Id = id, UserName = email, NormalizedUserName = email.ToUpperInvariant(),
+        UserName = email, NormalizedUserName = email.ToUpperInvariant(),
         Email = email, NormalizedEmail = email.ToUpperInvariant(),
-        FullName = $"User {id}", CreatedAt = DateTime.UtcNow,
+        FullName = $"User {email}", CreatedAt = DateTime.UtcNow,
         IsActive = true, EmailConfirmed = true,
         SecurityStamp = Guid.NewGuid().ToString()
     };
 
-    private static async Task<int> SeedPostAsync(ApplicationDbContext ctx,
+    private async Task<int> SeedPostAsync(ApplicationDbContext ctx,
         int userId, bool isPublished = true, string slug = "test-post")
     {
         var now = DateTime.UtcNow;
         var p = new UserPost
         {
-            UserId = userId, CategoryId = 1, Title = "Test", Slug = slug,
+            UserId = userId, CategoryId = _categoryId, Title = "Test", Slug = slug,
             Body = "<p>x</p>", IsPublished = isPublished,
             PublishedAt = isPublished ? now : null,
             CreatedAt = now, UpdatedAt = now
@@ -62,9 +71,9 @@ public class PostCommentServiceTests
     public async Task CreateAsync_Valid_PersistsAndReturnsComment()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
-        var result = await svc.CreateAsync(postId, userId: 2, "İlk yorum");
+        var result = await svc.CreateAsync(postId, userId: _commenterId, "İlk yorum");
 
         result.Success.Should().BeTrue();
         result.Comment.Should().NotBeNull();
@@ -76,9 +85,9 @@ public class PostCommentServiceTests
     public async Task CreateAsync_DraftPost_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1, isPublished: false);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId, isPublished: false);
 
-        var result = await svc.CreateAsync(postId, userId: 2, "yorum");
+        var result = await svc.CreateAsync(postId, userId: _commenterId, "yorum");
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("Yayında olmayan");
@@ -88,9 +97,9 @@ public class PostCommentServiceTests
     public async Task CreateAsync_EmptyBody_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
-        var result = await svc.CreateAsync(postId, userId: 2, "   ");
+        var result = await svc.CreateAsync(postId, userId: _commenterId, "   ");
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("boş");
@@ -100,10 +109,10 @@ public class PostCommentServiceTests
     public async Task CreateAsync_TooLongBody_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
         var longBody = new string('a', 1001);
 
-        var result = await svc.CreateAsync(postId, userId: 2, longBody);
+        var result = await svc.CreateAsync(postId, userId: _commenterId, longBody);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("1000");
@@ -113,9 +122,9 @@ public class PostCommentServiceTests
     public async Task CreateAsync_BodyWithScript_StripsAndEscapes()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
-        var result = await svc.CreateAsync(postId, userId: 2,
+        var result = await svc.CreateAsync(postId, userId: _commenterId,
             "<script>alert(1)</script>kötü içerik");
 
         result.Success.Should().BeTrue();
@@ -129,13 +138,13 @@ public class PostCommentServiceTests
     public async Task CreateAsync_NotifiesPostOwner()
     {
         var (svc, ctx, notif) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
-        await svc.CreateAsync(postId, userId: 2, "İlk yorum");
+        await svc.CreateAsync(postId, userId: _commenterId, "İlk yorum");
 
         notif.Created.Should().HaveCount(1);
         notif.Created[0].Type.Should().Be(NotificationType.PostComment);
-        notif.Created[0].UserId.Should().Be(1, "post sahibi alır");
+        notif.Created[0].UserId.Should().Be(_ownerId, "post sahibi alır");
         notif.Created[0].RelatedEntityType.Should().Be(nameof(PostComment));
     }
 
@@ -143,9 +152,9 @@ public class PostCommentServiceTests
     public async Task CreateAsync_OwnPost_DoesNotNotifySelf()
     {
         var (svc, ctx, notif) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
-        await svc.CreateAsync(postId, userId: 1, "Kendi yorumum");
+        await svc.CreateAsync(postId, userId: _ownerId, "Kendi yorumum");
 
         notif.Created.Should().BeEmpty("kullanıcı kendi makalesine yorum yapsa kendine notify olmaz");
     }
@@ -154,10 +163,10 @@ public class PostCommentServiceTests
     public async Task UpdateAsync_NonOwner_ReturnsUnauthorized()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var c = await svc.CreateAsync(postId, userId: 2, "orijinal");
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var c = await svc.CreateAsync(postId, userId: _commenterId, "orijinal");
 
-        var result = await svc.UpdateAsync(c.Comment!.Id, actingUserId: 3, "kötü düzenleme");
+        var result = await svc.UpdateAsync(c.Comment!.Id, actingUserId: _strangerId, "kötü düzenleme");
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("düzenleyemezsiniz");
@@ -167,11 +176,11 @@ public class PostCommentServiceTests
     public async Task UpdateAsync_Valid_SetsIsEditedTrue()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var c = await svc.CreateAsync(postId, userId: 2, "ilk");
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var c = await svc.CreateAsync(postId, userId: _commenterId, "ilk");
         c.Comment!.IsEdited.Should().BeFalse();
 
-        var updated = await svc.UpdateAsync(c.Comment.Id, actingUserId: 2, "düzeltildi");
+        var updated = await svc.UpdateAsync(c.Comment.Id, actingUserId: _commenterId, "düzeltildi");
 
         updated.Success.Should().BeTrue();
         updated.Comment!.IsEdited.Should().BeTrue();
@@ -182,11 +191,11 @@ public class PostCommentServiceTests
     public async Task DeleteAsync_PostOwner_AllowsRemoval()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var c = await svc.CreateAsync(postId, userId: 2, "yorum");
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var c = await svc.CreateAsync(postId, userId: _commenterId, "yorum");
 
-        // Post sahibi (1) başkasının yorumunu (2) silebilir
-        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: 1, isAdmin: false);
+        // Post sahibi başkasının yorumunu silebilir
+        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: _ownerId, isAdmin: false);
 
         result.Success.Should().BeTrue();
         (await ctx.PostComments.AnyAsync(x => x.Id == c.Comment.Id)).Should().BeFalse();
@@ -196,10 +205,10 @@ public class PostCommentServiceTests
     public async Task DeleteAsync_OwnerCanDeleteOwn()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var c = await svc.CreateAsync(postId, userId: 2, "yorum");
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var c = await svc.CreateAsync(postId, userId: _commenterId, "yorum");
 
-        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: 2, isAdmin: false);
+        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: _commenterId, isAdmin: false);
 
         result.Success.Should().BeTrue();
     }
@@ -208,10 +217,10 @@ public class PostCommentServiceTests
     public async Task DeleteAsync_AdminCanDeleteAny()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var c = await svc.CreateAsync(postId, userId: 2, "yorum");
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var c = await svc.CreateAsync(postId, userId: _commenterId, "yorum");
 
-        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: 3, isAdmin: true);
+        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: _strangerId, isAdmin: true);
 
         result.Success.Should().BeTrue();
     }
@@ -220,10 +229,10 @@ public class PostCommentServiceTests
     public async Task DeleteAsync_OtherUser_NotAdmin_ReturnsUnauthorized()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var c = await svc.CreateAsync(postId, userId: 2, "yorum");
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var c = await svc.CreateAsync(postId, userId: _commenterId, "yorum");
 
-        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: 3, isAdmin: false);
+        var result = await svc.DeleteAsync(c.Comment!.Id, actingUserId: _strangerId, isAdmin: false);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("yetk");
@@ -233,12 +242,12 @@ public class PostCommentServiceTests
     public async Task GetByPostId_OrderedByCreatedAtAsc()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var c1 = await svc.CreateAsync(postId, userId: 2, "ilk");
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var c1 = await svc.CreateAsync(postId, userId: _commenterId, "ilk");
         await Task.Delay(15);
-        var c2 = await svc.CreateAsync(postId, userId: 3, "ikinci");
+        var c2 = await svc.CreateAsync(postId, userId: _strangerId, "ikinci");
         await Task.Delay(15);
-        var c3 = await svc.CreateAsync(postId, userId: 2, "üçüncü");
+        var c3 = await svc.CreateAsync(postId, userId: _commenterId, "üçüncü");
 
         var list = await svc.GetByPostIdAsync(postId);
 

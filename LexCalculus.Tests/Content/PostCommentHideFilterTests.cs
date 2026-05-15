@@ -12,41 +12,53 @@ namespace LexCalculus.Tests.Content;
 /// Faz 5.3 — PostCommentService.GetByPostIdAsync ve GetCountForPostAsync
 /// IsModeratorHidden filtreleme testleri.
 /// </summary>
-public class PostCommentHideFilterTests
+public class PostCommentHideFilterTests : SqlServerTestBase
 {
-    private static (PostCommentService svc, ApplicationDbContext ctx) Setup()
+    // Setup sonrası seed edilen kayıtların DB-generated Id'leri.
+    private int _ownerId, _commenterId, _categoryId, _postId;
+
+    private (PostCommentService svc, ApplicationDbContext ctx) Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var svc = new PostCommentService(
             ctx, new CommentSanitizer(),
             new NullNotificationService(),
             new NullActivityLogService());
 
-        ctx.Users.AddRange(
-            MakeUser(1, "owner@x.com"),
-            MakeUser(2, "commenter@x.com"));
-        ctx.PostCategories.Add(new PostCategory
+        var owner = MakeUser("owner@x.com");
+        var commenter = MakeUser("commenter@x.com");
+        ctx.Users.AddRange(owner, commenter);
+        var category = new PostCategory
         {
-            Id = 1, Name = "Genel", Slug = "genel",
+            Name = "Genel", Slug = "genel",
             DisplayOrder = 1, IsActive = true, CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
+        ctx.SaveChanges();
+
         var now = DateTime.UtcNow;
-        ctx.UserPosts.Add(new UserPost
+        var post = new UserPost
         {
-            Id = 100, UserId = 1, CategoryId = 1,
+            UserId = owner.Id, CategoryId = category.Id,
             Title = "T", Slug = "t", Body = "<p>x</p>",
             IsPublished = true, PublishedAt = now,
             CreatedAt = now, UpdatedAt = now
-        });
+        };
+        ctx.UserPosts.Add(post);
         ctx.SaveChanges();
+
+        _ownerId = owner.Id;
+        _commenterId = commenter.Id;
+        _categoryId = category.Id;
+        _postId = post.Id;
         return (svc, ctx);
     }
 
-    private static ApplicationUser MakeUser(int id, string email) => new()
+    private static ApplicationUser MakeUser(string email) => new()
     {
-        Id = id, UserName = email, NormalizedUserName = email.ToUpperInvariant(),
+        UserName = email, NormalizedUserName = email.ToUpperInvariant(),
         Email = email, NormalizedEmail = email.ToUpperInvariant(),
-        FullName = $"User {id}", CreatedAt = DateTime.UtcNow,
+        FullName = $"User {email}", CreatedAt = DateTime.UtcNow,
         IsActive = true, EmailConfirmed = true,
         SecurityStamp = Guid.NewGuid().ToString()
     };
@@ -70,10 +82,10 @@ public class PostCommentHideFilterTests
     public async Task GetByPostIdAsync_DefaultExcludesHidden()
     {
         var (svc, ctx) = Setup();
-        var visibleId = await SeedCommentAsync(ctx, 100, 2, isHidden: false, "görünür");
-        var hiddenId = await SeedCommentAsync(ctx, 100, 2, isHidden: true, "gizli");
+        var visibleId = await SeedCommentAsync(ctx, _postId, _commenterId, isHidden: false, "görünür");
+        var hiddenId = await SeedCommentAsync(ctx, _postId, _commenterId, isHidden: true, "gizli");
 
-        var list = await svc.GetByPostIdAsync(100);
+        var list = await svc.GetByPostIdAsync(_postId);
 
         list.Should().HaveCount(1);
         list[0].Id.Should().Be(visibleId);
@@ -84,10 +96,10 @@ public class PostCommentHideFilterTests
     public async Task GetByPostIdAsync_IncludeHiddenTrue_ReturnsAll()
     {
         var (svc, ctx) = Setup();
-        await SeedCommentAsync(ctx, 100, 2, isHidden: false);
-        await SeedCommentAsync(ctx, 100, 2, isHidden: true);
+        await SeedCommentAsync(ctx, _postId, _commenterId, isHidden: false);
+        await SeedCommentAsync(ctx, _postId, _commenterId, isHidden: true);
 
-        var list = await svc.GetByPostIdAsync(100, includeHidden: true);
+        var list = await svc.GetByPostIdAsync(_postId, includeHidden: true);
 
         list.Should().HaveCount(2);
     }
@@ -96,11 +108,11 @@ public class PostCommentHideFilterTests
     public async Task GetCountForPostAsync_ExcludesHidden()
     {
         var (svc, ctx) = Setup();
-        await SeedCommentAsync(ctx, 100, 2, isHidden: false);
-        await SeedCommentAsync(ctx, 100, 2, isHidden: false);
-        await SeedCommentAsync(ctx, 100, 2, isHidden: true);
+        await SeedCommentAsync(ctx, _postId, _commenterId, isHidden: false);
+        await SeedCommentAsync(ctx, _postId, _commenterId, isHidden: false);
+        await SeedCommentAsync(ctx, _postId, _commenterId, isHidden: true);
 
-        var count = await svc.GetCountForPostAsync(100);
+        var count = await svc.GetCountForPostAsync(_postId);
 
         count.Should().Be(2);
     }

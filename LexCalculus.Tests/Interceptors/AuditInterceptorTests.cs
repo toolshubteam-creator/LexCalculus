@@ -5,12 +5,12 @@ using Xunit;
 
 namespace LexCalculus.Tests.Interceptors;
 
-public class AuditInterceptorTests
+public class AuditInterceptorTests : SqlServerTestBase
 {
     [Fact]
     public async Task ApplicationUser_Insert_Sets_CreatedAt()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var beforeUtc = DateTime.UtcNow;
 
         var user = new ApplicationUser
@@ -29,7 +29,7 @@ public class AuditInterceptorTests
     [Fact]
     public async Task ApplicationUser_Insert_Does_Not_Override_Explicit_CreatedAt()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var explicitTime = new DateTime(2020, 1, 1, 12, 0, 0, DateTimeKind.Utc);
 
         var user = new ApplicationUser
@@ -48,8 +48,25 @@ public class AuditInterceptorTests
     [Fact]
     public async Task BaseEntity_Modify_Updates_UpdatedAt_But_Not_CreatedAt()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        var profile = new UserProfile { UserId = 100, DisplayName = "Audit Original" };
+        await using var ctx = _db.Create();
+
+        // SQL Server FK_UserProfiles_AspNetUsers_UserId zorunlu — önce user seed et.
+        var user = new ApplicationUser
+        {
+            UserName = "audit-profile@test.local",
+            NormalizedUserName = "AUDIT-PROFILE@TEST.LOCAL",
+            Email = "audit-profile@test.local",
+            NormalizedEmail = "AUDIT-PROFILE@TEST.LOCAL",
+            FullName = "Audit Profile",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
+        var profile = new UserProfile { UserId = user.Id, DisplayName = "Audit Original" };
         ctx.UserProfiles.Add(profile);
         await ctx.SaveChangesAsync();
 

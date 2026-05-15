@@ -14,11 +14,11 @@ using Xunit;
 namespace LexCalculus.Tests.Social;
 
 [Collection("AdminWebHost")]
-public class BaglantilarimPageTests : IClassFixture<TestAuthWebApplicationFactory>
+public class BaglantilarimPageTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public BaglantilarimPageTests(TestAuthWebApplicationFactory factory)
+    public BaglantilarimPageTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }
@@ -118,7 +118,7 @@ public class BaglantilarimPageTests : IClassFixture<TestAuthWebApplicationFactor
     public async Task OnGet_AnonymousUser_RejectsWithChallenge()
     {
         // Production'da cookie auth → 302 /Identity/Account/Login redirect.
-        // Test ortamında (TestAuthWebApplicationFactory) TestAuthHandler default
+        // Test ortamında (SqlServerTestAuthWebApplicationFactory) TestAuthHandler default
         // challenge scheme'i ve HandleChallengeAsync 401 döner. Her iki durum da
         // [Authorize] korumasının çalıştığını gösterir.
         using var client = CreateAnonClient();

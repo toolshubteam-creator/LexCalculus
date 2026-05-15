@@ -9,11 +9,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class MenfiTespitFaizCalculatorTests
+public class MenfiTespitFaizCalculatorTests : SqlServerTestBase
 {
-    private static (MenfiTespitFaizCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (MenfiTespitFaizCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 1, 1) },
             new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.24m, EffectiveDate = new DateTime(2024, 6, 1) }

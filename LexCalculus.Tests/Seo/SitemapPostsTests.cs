@@ -11,7 +11,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Seo;
 
-public class SitemapPostsTests
+public class SitemapPostsTests : SqlServerTestBase
 {
     private static DefaultSitemapBuilder CreateBuilder(
         LexCalculus.Infrastructure.Data.ApplicationDbContext ctx,
@@ -26,9 +26,8 @@ public class SitemapPostsTests
         return new DefaultSitemapBuilder(seo, registry.Object, ctx);
     }
 
-    private static ApplicationUser MakeUser(int id, string email, bool isActive) => new()
+    private static ApplicationUser MakeUser(string email, bool isActive) => new()
     {
-        Id = id,
         UserName = email, NormalizedUserName = email.ToUpperInvariant(),
         Email = email, NormalizedEmail = email.ToUpperInvariant(),
         FullName = email, CreatedAt = DateTime.UtcNow,
@@ -36,10 +35,10 @@ public class SitemapPostsTests
         SecurityStamp = Guid.NewGuid().ToString()
     };
 
-    private static UserPost MakePost(int id, int userId, int catId, string slug, bool isPublished) => new()
+    private static UserPost MakePost(int userId, int catId, string slug, bool isPublished) => new()
     {
-        Id = id, UserId = userId, CategoryId = catId,
-        Title = $"Post {id}", Slug = slug, Body = "<p>x</p>",
+        UserId = userId, CategoryId = catId,
+        Title = $"Post {slug}", Slug = slug, Body = "<p>x</p>",
         IsPublished = isPublished,
         PublishedAt = isPublished ? DateTime.UtcNow : null,
         CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
@@ -48,21 +47,23 @@ public class SitemapPostsTests
     [Fact]
     public async Task Sitemap_IncludesPublishedPostsWithPublicAuthor()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(1, "pub@x.com", isActive: true));
-        ctx.UserProfiles.Add(new UserProfile
+        await using var ctx = _db.Create();
+        var user = MakeUser("pub@x.com", isActive: true);
+        ctx.Users.Add(user);
+        var category = new PostCategory
         {
-            UserId = 1, DisplayName = "Pub", PublicSlug = "pub-yazar",
-            IsPublicProfile = true
-        });
-        ctx.PostCategories.Add(new PostCategory
-        {
-            Id = 1, Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
+            Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         await ctx.SaveChangesAsync();
 
-        ctx.UserPosts.Add(MakePost(10, 1, 1, "is-makalesi", isPublished: true));
+        ctx.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id, DisplayName = "Pub", PublicSlug = "pub-yazar",
+            IsPublicProfile = true
+        });
+        ctx.UserPosts.Add(MakePost(user.Id, category.Id, "is-makalesi", isPublished: true));
         await ctx.SaveChangesAsync();
 
         var builder = CreateBuilder(ctx);
@@ -75,21 +76,23 @@ public class SitemapPostsTests
     [Fact]
     public async Task Sitemap_ExcludesDraftPosts()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(1, "drf@x.com", isActive: true));
-        ctx.UserProfiles.Add(new UserProfile
+        await using var ctx = _db.Create();
+        var user = MakeUser("drf@x.com", isActive: true);
+        ctx.Users.Add(user);
+        var category = new PostCategory
         {
-            UserId = 1, DisplayName = "Drf", PublicSlug = "drf-yazar",
-            IsPublicProfile = true
-        });
-        ctx.PostCategories.Add(new PostCategory
-        {
-            Id = 1, Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
+            Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         await ctx.SaveChangesAsync();
 
-        ctx.UserPosts.Add(MakePost(20, 1, 1, "taslak-makale", isPublished: false));
+        ctx.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id, DisplayName = "Drf", PublicSlug = "drf-yazar",
+            IsPublicProfile = true
+        });
+        ctx.UserPosts.Add(MakePost(user.Id, category.Id, "taslak-makale", isPublished: false));
         await ctx.SaveChangesAsync();
 
         var builder = CreateBuilder(ctx);
@@ -102,21 +105,23 @@ public class SitemapPostsTests
     [Fact]
     public async Task Sitemap_ExcludesPostsWithPrivateAuthor()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(1, "priv@x.com", isActive: true));
-        ctx.UserProfiles.Add(new UserProfile
+        await using var ctx = _db.Create();
+        var user = MakeUser("priv@x.com", isActive: true);
+        ctx.Users.Add(user);
+        var category = new PostCategory
         {
-            UserId = 1, DisplayName = "Priv", PublicSlug = "priv-yazar",
-            IsPublicProfile = false   // gizli profil
-        });
-        ctx.PostCategories.Add(new PostCategory
-        {
-            Id = 1, Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
+            Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         await ctx.SaveChangesAsync();
 
-        ctx.UserPosts.Add(MakePost(30, 1, 1, "gizli-yazar-yayinda", isPublished: true));
+        ctx.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id, DisplayName = "Priv", PublicSlug = "priv-yazar",
+            IsPublicProfile = false   // gizli profil
+        });
+        ctx.UserPosts.Add(MakePost(user.Id, category.Id, "gizli-yazar-yayinda", isPublished: true));
         await ctx.SaveChangesAsync();
 
         var builder = CreateBuilder(ctx);
@@ -129,21 +134,23 @@ public class SitemapPostsTests
     [Fact]
     public async Task Sitemap_ExcludesPostsWithInactiveAuthor()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(1, "inact@x.com", isActive: false));
-        ctx.UserProfiles.Add(new UserProfile
+        await using var ctx = _db.Create();
+        var user = MakeUser("inact@x.com", isActive: false);
+        ctx.Users.Add(user);
+        var category = new PostCategory
         {
-            UserId = 1, DisplayName = "Inact", PublicSlug = "inact-yazar",
-            IsPublicProfile = true
-        });
-        ctx.PostCategories.Add(new PostCategory
-        {
-            Id = 1, Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
+            Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         await ctx.SaveChangesAsync();
 
-        ctx.UserPosts.Add(MakePost(40, 1, 1, "pasif-yazar-makale", isPublished: true));
+        ctx.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id, DisplayName = "Inact", PublicSlug = "inact-yazar",
+            IsPublicProfile = true
+        });
+        ctx.UserPosts.Add(MakePost(user.Id, category.Id, "pasif-yazar-makale", isPublished: true));
         await ctx.SaveChangesAsync();
 
         var builder = CreateBuilder(ctx);
@@ -155,21 +162,23 @@ public class SitemapPostsTests
     [Fact]
     public async Task Sitemap_ExcludesHiddenPosts()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(1, "hid@x.com", isActive: true));
-        ctx.UserProfiles.Add(new UserProfile
+        await using var ctx = _db.Create();
+        var user = MakeUser("hid@x.com", isActive: true);
+        ctx.Users.Add(user);
+        var category = new PostCategory
         {
-            UserId = 1, DisplayName = "Hid", PublicSlug = "hid-yazar",
-            IsPublicProfile = true
-        });
-        ctx.PostCategories.Add(new PostCategory
-        {
-            Id = 1, Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
+            Name = "İş", Slug = "is", DisplayOrder = 1, IsActive = true,
             CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         await ctx.SaveChangesAsync();
 
-        var hidden = MakePost(50, 1, 1, "gizlenmis-makale", isPublished: true);
+        ctx.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id, DisplayName = "Hid", PublicSlug = "hid-yazar",
+            IsPublicProfile = true
+        });
+        var hidden = MakePost(user.Id, category.Id, "gizlenmis-makale", isPublished: true);
         hidden.IsModeratorHidden = true;
         ctx.UserPosts.Add(hidden);
         await ctx.SaveChangesAsync();

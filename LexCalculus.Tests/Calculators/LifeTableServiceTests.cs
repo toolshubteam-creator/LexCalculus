@@ -11,14 +11,14 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class LifeTableServiceTests
+public class LifeTableServiceTests : SqlServerTestBase
 {
     private static IDistributedCache CreateCache() =>
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
-    private static (LifeTableService svc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (LifeTableService svc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var trh2010 = new LifeTable
         {
             Code = "TRH-2010",
@@ -87,7 +87,7 @@ public class LifeTableServiceTests
     [Fact]
     public async Task Birden_Fazla_Tablo_Aynı_Anda_Bulunabilir()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         ctx.Set<LifeTable>().AddRange(
             new LifeTable
             {

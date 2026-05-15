@@ -11,14 +11,14 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class AsgariUcretCalculatorTests
+public class AsgariUcretCalculatorTests : SqlServerTestBase
 {
     private static IDistributedCache CreateCache() =>
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
-    private static (AsgariUcretCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (AsgariUcretCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "*", Key = "asgari-ucret-brut", Value = 20002.50m, EffectiveDate = new DateTime(2024, 1, 1) },
             new FormulaParameter { ToolSlug = "*", Key = "asgari-ucret-brut", Value = 26005.50m, EffectiveDate = new DateTime(2025, 1, 1) },

@@ -16,11 +16,11 @@ namespace LexCalculus.Tests.Areas.Admin;
 /// Charter Karar 6 — KVKK uyumlu hesap anonimize.
 /// </summary>
 [Collection("AdminWebHost")]
-public class UsersControllerAnonymizeTests : IClassFixture<TestAuthWebApplicationFactory>
+public class UsersControllerAnonymizeTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public UsersControllerAnonymizeTests(TestAuthWebApplicationFactory factory)
+    public UsersControllerAnonymizeTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

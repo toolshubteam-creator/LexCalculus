@@ -10,7 +10,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Seo;
 
-public class SitemapPublicProfileTests
+public class SitemapPublicProfileTests : SqlServerTestBase
 {
     private static DefaultSitemapBuilder CreateBuilder(
         LexCalculus.Infrastructure.Data.ApplicationDbContext ctx,
@@ -28,20 +28,22 @@ public class SitemapPublicProfileTests
     [Fact]
     public async Task Sitemap_IncludesPublicProfileUrls_AndExcludesPrivate()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
-        ctx.Users.AddRange(
-            MakeUser(1, "u1@x.com", isActive: true),
-            MakeUser(2, "u2@x.com", isActive: true));
+        var u1 = MakeUser("1", "u1@x.com", isActive: true);
+        var u2 = MakeUser("2", "u2@x.com", isActive: true);
+        ctx.Users.AddRange(u1, u2);
+        await ctx.SaveChangesAsync();
+
         ctx.UserProfiles.AddRange(
             new UserProfile
             {
-                UserId = 1, DisplayName = "Public User",
+                UserId = u1.Id, DisplayName = "Public User",
                 PublicSlug = "public-user", IsPublicProfile = true
             },
             new UserProfile
             {
-                UserId = 2, DisplayName = "Private User",
+                UserId = u2.Id, DisplayName = "Private User",
                 PublicSlug = "private-user", IsPublicProfile = false
             });
         await ctx.SaveChangesAsync();
@@ -58,11 +60,14 @@ public class SitemapPublicProfileTests
     [Fact]
     public async Task Sitemap_ExcludesInactiveUsers_EvenIfPublic()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(99, "inactive@x.com", isActive: false));
+        await using var ctx = _db.Create();
+        var user = MakeUser("99", "inactive@x.com", isActive: false);
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
         ctx.UserProfiles.Add(new UserProfile
         {
-            UserId = 99, DisplayName = "Inactive Public",
+            UserId = user.Id, DisplayName = "Inactive Public",
             PublicSlug = "inactive-public", IsPublicProfile = true
         });
         await ctx.SaveChangesAsync();
@@ -77,11 +82,14 @@ public class SitemapPublicProfileTests
     [Fact]
     public async Task Sitemap_ExcludesProfilesWithNullSlug()
     {
-        await using var ctx = TestDbContextFactory.Create();
-        ctx.Users.Add(MakeUser(50, "noslug@x.com", isActive: true));
+        await using var ctx = _db.Create();
+        var user = MakeUser("50", "noslug@x.com", isActive: true);
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+
         ctx.UserProfiles.Add(new UserProfile
         {
-            UserId = 50, DisplayName = "No Slug",
+            UserId = user.Id, DisplayName = "No Slug",
             PublicSlug = null, IsPublicProfile = true
         });
         await ctx.SaveChangesAsync();
@@ -93,14 +101,15 @@ public class SitemapPublicProfileTests
             "PublicSlug=null kullanıcı sitemap'te yer almamalı");
     }
 
-    private static ApplicationUser MakeUser(int id, string email, bool isActive) => new()
+    // IDENTITY_INSERT fix (Adım 5.8 P2): explicit Id atamak yerine EF'in
+    // ürettiği Id'yi kullan. UserName/Email her test içinde unique.
+    private static ApplicationUser MakeUser(string suffix, string email, bool isActive) => new()
     {
-        Id = id,
         UserName = email,
         NormalizedUserName = email.ToUpperInvariant(),
         Email = email,
         NormalizedEmail = email.ToUpperInvariant(),
-        FullName = email,
+        FullName = $"User {suffix}",
         CreatedAt = DateTime.UtcNow,
         IsActive = isActive,
         EmailConfirmed = true,

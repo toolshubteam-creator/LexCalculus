@@ -12,11 +12,11 @@ public class AdminWebHostCollection { }
 /// Uses the regular cookie-auth factory.
 /// </summary>
 [Collection("AdminWebHost")]
-public class AdminAnonymousAccessTests : IClassFixture<WebApplicationFactoryFixture>
+public class AdminAnonymousAccessTests : IClassFixture<SqlServerWebApplicationFactoryFixture>
 {
-    private readonly WebApplicationFactoryFixture _factory;
+    private readonly SqlServerWebApplicationFactoryFixture _factory;
 
-    public AdminAnonymousAccessTests(WebApplicationFactoryFixture factory)
+    public AdminAnonymousAccessTests(SqlServerWebApplicationFactoryFixture factory)
     {
         _factory = factory;
     }
@@ -41,11 +41,11 @@ public class AdminAnonymousAccessTests : IClassFixture<WebApplicationFactoryFixt
 /// Set X-Test-User header for identity; X-Test-Roles for roles.
 /// </summary>
 [Collection("AdminWebHost")]
-public class AdminRoleAuthorizationTests : IClassFixture<TestAuthWebApplicationFactory>
+public class AdminRoleAuthorizationTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public AdminRoleAuthorizationTests(TestAuthWebApplicationFactory factory)
+    public AdminRoleAuthorizationTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

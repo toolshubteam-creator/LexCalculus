@@ -12,46 +12,56 @@ using Xunit;
 
 namespace LexCalculus.Tests.Moderation;
 
-public class ContentReportServiceTests
+public class ContentReportServiceTests : SqlServerTestBase
 {
-    private static (ContentReportService svc, ApplicationDbContext ctx, RecordingNotificationService notif)
+    // Setup sonrası seed edilen kayıtların DB-generated Id'leri.
+    private int _ownerId, _reporterId, _strangerId, _adminId, _categoryId;
+
+    private (ContentReportService svc, ApplicationDbContext ctx, RecordingNotificationService notif)
         Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var notif = new RecordingNotificationService();
         var svc = new ContentReportService(ctx, notif, new NullActivityLogService(),
             new NoOpMessagingNotifier());
 
-        ctx.Users.AddRange(
-            MakeUser(1, "owner@x.com"),
-            MakeUser(2, "reporter@x.com"),
-            MakeUser(3, "stranger@x.com"),
-            MakeUser(4, "admin@x.com"));
-        ctx.PostCategories.Add(new PostCategory
+        var owner = MakeUser("owner@x.com");
+        var reporter = MakeUser("reporter@x.com");
+        var stranger = MakeUser("stranger@x.com");
+        var admin = MakeUser("admin@x.com");
+        ctx.Users.AddRange(owner, reporter, stranger, admin);
+        var category = new PostCategory
         {
-            Id = 1, Name = "Genel", Slug = "genel",
+            Name = "Genel", Slug = "genel",
             DisplayOrder = 1, IsActive = true, CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         ctx.SaveChanges();
+
+        _ownerId = owner.Id;
+        _reporterId = reporter.Id;
+        _strangerId = stranger.Id;
+        _adminId = admin.Id;
+        _categoryId = category.Id;
         return (svc, ctx, notif);
     }
 
-    private static ApplicationUser MakeUser(int id, string email) => new()
+    private static ApplicationUser MakeUser(string email) => new()
     {
-        Id = id, UserName = email, NormalizedUserName = email.ToUpperInvariant(),
+        UserName = email, NormalizedUserName = email.ToUpperInvariant(),
         Email = email, NormalizedEmail = email.ToUpperInvariant(),
-        FullName = $"User {id}", CreatedAt = DateTime.UtcNow,
+        FullName = $"User {email}", CreatedAt = DateTime.UtcNow,
         IsActive = true, EmailConfirmed = true,
         SecurityStamp = Guid.NewGuid().ToString()
     };
 
-    private static async Task<int> SeedPostAsync(ApplicationDbContext ctx,
+    private async Task<int> SeedPostAsync(ApplicationDbContext ctx,
         int userId, bool isPublished = true, string slug = "test-post")
     {
         var now = DateTime.UtcNow;
         var p = new UserPost
         {
-            UserId = userId, CategoryId = 1, Title = "Test", Slug = slug,
+            UserId = userId, CategoryId = _categoryId, Title = "Test", Slug = slug,
             Body = "<p>x</p>", IsPublished = isPublished,
             PublishedAt = isPublished ? now : null,
             CreatedAt = now, UpdatedAt = now
@@ -79,10 +89,10 @@ public class ContentReportServiceTests
     public async Task CreateAsync_Valid_Persists()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Spam, note: null);
 
         result.Success.Should().BeTrue();
@@ -96,10 +106,10 @@ public class ContentReportServiceTests
     public async Task CreateAsync_SelfReport_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 1,
+            ContentReportTargetType.Post, postId, reporterId: _ownerId,
             ContentReportReason.Spam, note: null);
 
         result.Success.Should().BeFalse();
@@ -110,10 +120,10 @@ public class ContentReportServiceTests
     public async Task CreateAsync_DraftPost_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1, isPublished: false);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId, isPublished: false);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Spam, note: null);
 
         result.Success.Should().BeFalse();
@@ -126,7 +136,7 @@ public class ContentReportServiceTests
         var (svc, _, _) = Setup();
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Post, targetId: 9999, reporterId: 2,
+            ContentReportTargetType.Post, targetId: 9999, reporterId: _reporterId,
             ContentReportReason.Spam, note: null);
 
         result.Success.Should().BeFalse();
@@ -137,15 +147,15 @@ public class ContentReportServiceTests
     public async Task CreateAsync_DuplicateReport_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var first = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Spam, note: null);
         first.Success.Should().BeTrue();
 
         var second = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Harassment, note: null);
 
         second.Success.Should().BeFalse();
@@ -157,10 +167,10 @@ public class ContentReportServiceTests
     public async Task CreateAsync_OtherReason_RequiresLongEnoughNote()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Other, note: "kısa");
 
         result.Success.Should().BeFalse();
@@ -171,10 +181,10 @@ public class ContentReportServiceTests
     public async Task CreateAsync_OtherReason_EmptyNote_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Other, note: null);
 
         result.Success.Should().BeFalse();
@@ -185,10 +195,10 @@ public class ContentReportServiceTests
     public async Task CreateAsync_OtherReason_LongEnoughNote_Succeeds()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Post, postId, reporterId: 2,
+            ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Other, note: "Bu yeterince uzun bir açıklama metni.");
 
         result.Success.Should().BeTrue();
@@ -199,17 +209,17 @@ public class ContentReportServiceTests
     public async Task HasReportedAsync_AfterCreate_ReturnsTrue()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
-        (await svc.HasReportedAsync(ContentReportTargetType.Post, postId, userId: 2))
+        (await svc.HasReportedAsync(ContentReportTargetType.Post, postId, userId: _reporterId))
             .Should().BeFalse();
 
         await svc.CreateAsync(ContentReportTargetType.Post, postId,
-            reporterId: 2, ContentReportReason.Spam, null);
+            reporterId: _reporterId, ContentReportReason.Spam, null);
 
-        (await svc.HasReportedAsync(ContentReportTargetType.Post, postId, userId: 2))
+        (await svc.HasReportedAsync(ContentReportTargetType.Post, postId, userId: _reporterId))
             .Should().BeTrue();
-        (await svc.HasReportedAsync(ContentReportTargetType.Post, postId, userId: 3))
+        (await svc.HasReportedAsync(ContentReportTargetType.Post, postId, userId: _strangerId))
             .Should().BeFalse();
     }
 
@@ -217,11 +227,11 @@ public class ContentReportServiceTests
     public async Task CreateAsync_ForComment_Persists()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var commentId = await SeedCommentAsync(ctx, postId, userId: 3);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var commentId = await SeedCommentAsync(ctx, postId, userId: _strangerId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Comment, commentId, reporterId: 2,
+            ContentReportTargetType.Comment, commentId, reporterId: _reporterId,
             ContentReportReason.Harassment, note: null);
 
         result.Success.Should().BeTrue();
@@ -233,11 +243,11 @@ public class ContentReportServiceTests
     public async Task CreateAsync_OwnComment_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var commentId = await SeedCommentAsync(ctx, postId, userId: 2);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var commentId = await SeedCommentAsync(ctx, postId, userId: _reporterId);
 
         var result = await svc.CreateAsync(
-            ContentReportTargetType.Comment, commentId, reporterId: 2,
+            ContentReportTargetType.Comment, commentId, reporterId: _reporterId,
             ContentReportReason.Spam, note: null);
 
         result.Success.Should().BeFalse();
@@ -248,16 +258,16 @@ public class ContentReportServiceTests
     public async Task GetPendingGroupedAsync_GroupsByTarget_OrdersByLatest()
     {
         var (svc, ctx, _) = Setup();
-        var postId1 = await SeedPostAsync(ctx, userId: 1, slug: "p1");
-        var postId2 = await SeedPostAsync(ctx, userId: 1, slug: "p2");
+        var postId1 = await SeedPostAsync(ctx, userId: _ownerId, slug: "p1");
+        var postId2 = await SeedPostAsync(ctx, userId: _ownerId, slug: "p2");
 
-        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: 2,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: _reporterId,
             ContentReportReason.Spam, null);
         await Task.Delay(15);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: 3,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: _strangerId,
             ContentReportReason.Spam, null);
         await Task.Delay(15);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId2, reporterId: 2,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId2, reporterId: _reporterId,
             ContentReportReason.Misleading, null);
 
         var groups = await svc.GetPendingGroupedAsync();
@@ -274,15 +284,15 @@ public class ContentReportServiceTests
     public async Task DismissAsync_PendingReports_SetsDismissed()
     {
         var (svc, ctx, notif) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: 2,
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Spam, null);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: 3,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: _strangerId,
             ContentReportReason.Spam, null);
 
         var result = await svc.DismissAsync(
             ContentReportTargetType.Post, postId,
-            adminUserId: 4, reviewNote: "İhlal yok");
+            adminUserId: _adminId, reviewNote: "İhlal yok");
 
         result.Success.Should().BeTrue();
 
@@ -290,7 +300,7 @@ public class ContentReportServiceTests
         reports.Should().AllSatisfy(r =>
         {
             r.Status.Should().Be(ContentReportStatus.Dismissed);
-            r.ReviewedByUserId.Should().Be(4);
+            r.ReviewedByUserId.Should().Be(_adminId);
             r.ReviewedAt.Should().NotBeNull();
             r.ReviewNote.Should().Be("İhlal yok");
         });
@@ -305,13 +315,13 @@ public class ContentReportServiceTests
     public async Task ActionAsync_DeletesPostAndUpdatesReports()
     {
         var (svc, ctx, notif) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: 2,
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Harassment, null);
 
         var result = await svc.ActionAsync(
             ContentReportTargetType.Post, postId,
-            adminUserId: 4, reviewNote: "Kuralları ihlal");
+            adminUserId: _adminId, reviewNote: "Kuralları ihlal");
 
         result.Success.Should().BeTrue();
         (await ctx.UserPosts.AnyAsync(p => p.Id == postId)).Should().BeFalse();
@@ -330,32 +340,32 @@ public class ContentReportServiceTests
     public async Task ActionAsync_DeletesCommentAndUpdatesReports()
     {
         var (svc, ctx, notif) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
-        var commentId = await SeedCommentAsync(ctx, postId, userId: 3);
-        await svc.CreateAsync(ContentReportTargetType.Comment, commentId, reporterId: 2,
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
+        var commentId = await SeedCommentAsync(ctx, postId, userId: _strangerId);
+        await svc.CreateAsync(ContentReportTargetType.Comment, commentId, reporterId: _reporterId,
             ContentReportReason.Obscene, null);
 
         var result = await svc.ActionAsync(
             ContentReportTargetType.Comment, commentId,
-            adminUserId: 4, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         result.Success.Should().BeTrue();
         (await ctx.PostComments.AnyAsync(c => c.Id == commentId)).Should().BeFalse();
 
         // Comment sahibine ContentRemoved bildirim
         notif.Created.Should().Contain(n =>
-            n.Type == NotificationType.ContentRemoved && n.UserId == 3);
+            n.Type == NotificationType.ContentRemoved && n.UserId == _strangerId);
     }
 
     [Fact]
     public async Task DismissAsync_NoPendingReports_ReturnsError()
     {
         var (svc, ctx, _) = Setup();
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
 
         var result = await svc.DismissAsync(
             ContentReportTargetType.Post, postId,
-            adminUserId: 4, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("bekleyen");
@@ -368,7 +378,7 @@ public class ContentReportServiceTests
 
         var result = await svc.ActionAsync(
             ContentReportTargetType.Post, targetId: 99999,
-            adminUserId: 4, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("bekleyen");
@@ -378,23 +388,23 @@ public class ContentReportServiceTests
     public async Task GetPendingCountAsync_ReturnsAccurateCount()
     {
         var (svc, ctx, _) = Setup();
-        var postId1 = await SeedPostAsync(ctx, userId: 1, slug: "p1");
-        var postId2 = await SeedPostAsync(ctx, userId: 1, slug: "p2");
+        var postId1 = await SeedPostAsync(ctx, userId: _ownerId, slug: "p1");
+        var postId2 = await SeedPostAsync(ctx, userId: _ownerId, slug: "p2");
 
         (await svc.GetPendingCountAsync()).Should().Be(0);
 
-        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: 2,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: _reporterId,
             ContentReportReason.Spam, null);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: 3,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId1, reporterId: _strangerId,
             ContentReportReason.Spam, null);
-        await svc.CreateAsync(ContentReportTargetType.Post, postId2, reporterId: 2,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId2, reporterId: _reporterId,
             ContentReportReason.Misleading, null);
 
         (await svc.GetPendingCountAsync()).Should().Be(3);
 
         // Dismiss postId1 → pending count azalır (sadece postId2 kalır)
         await svc.DismissAsync(ContentReportTargetType.Post, postId1,
-            adminUserId: 4, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         (await svc.GetPendingCountAsync()).Should().Be(1);
     }
@@ -409,18 +419,18 @@ public class ContentReportServiceTests
         ctx.PostTags.AddRange(tag1, tag2);
         await ctx.SaveChangesAsync();
 
-        var postId = await SeedPostAsync(ctx, userId: 1);
+        var postId = await SeedPostAsync(ctx, userId: _ownerId);
         ctx.PostTagLinks.AddRange(
             new PostTagLink { PostId = postId, TagId = tag1.Id, CreatedAt = DateTime.UtcNow },
             new PostTagLink { PostId = postId, TagId = tag2.Id, CreatedAt = DateTime.UtcNow });
         await ctx.SaveChangesAsync();
 
-        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: 2,
+        await svc.CreateAsync(ContentReportTargetType.Post, postId, reporterId: _reporterId,
             ContentReportReason.Spam, null);
 
         var result = await svc.ActionAsync(
             ContentReportTargetType.Post, postId,
-            adminUserId: 4, reviewNote: null);
+            adminUserId: _adminId, reviewNote: null);
 
         result.Success.Should().BeTrue();
 

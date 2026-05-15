@@ -20,11 +20,11 @@ namespace LexCalculus.Tests.Infrastructure;
 /// counter çakışması olmaz. Charter Karar 7.
 /// </summary>
 [Collection("AdminWebHost")]
-public class RateLimitingTests : IClassFixture<TestAuthWebApplicationFactory>
+public class RateLimitingTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public RateLimitingTests(TestAuthWebApplicationFactory factory)
+    public RateLimitingTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

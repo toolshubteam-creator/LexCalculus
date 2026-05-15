@@ -11,37 +11,33 @@ using Xunit;
 
 namespace LexCalculus.Tests.Messaging;
 
-// Adım 5.8 P1 — pilot geçiş: InMemory TestDbContextFactory →
-// SQL Server LocalDB SqlServerTestFixture (IClassFixture).
-public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
+// Adım 5.8 — SQL Server LocalDB servis testi (SqlServerTestBase, per-test DB).
+public class ConversationServiceTests : SqlServerTestBase
 {
-    private readonly SqlServerTestFixture _fixture;
-
-    public ConversationServiceTests(SqlServerTestFixture fixture)
+    // Setup 4 user seed eder; generated Id'leri u1..u4 ile döner.
+    private (ConversationService svc, ApplicationDbContext ctx,
+        ApplicationUser u1, ApplicationUser u2, ApplicationUser u3, ApplicationUser u4) Setup()
     {
-        _fixture = fixture;
-    }
-
-    private (ConversationService svc, ApplicationDbContext ctx) Setup()
-    {
-        var ctx = _fixture.CreateContext();
+        var ctx = _db.Create();
         var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
         var storage = new FakeMediaStorage();
         var svc = new ConversationService(ctx, blockSvc, storage, new NullActivityLogService());
 
-        // 4 user seed
-        ctx.Users.AddRange(
-            MakeUser(1), MakeUser(2), MakeUser(3), MakeUser(4));
+        // 4 user seed — Id'ler EF tarafından üretilir
+        var u1 = MakeUser("1");
+        var u2 = MakeUser("2");
+        var u3 = MakeUser("3");
+        var u4 = MakeUser("4");
+        ctx.Users.AddRange(u1, u2, u3, u4);
         ctx.SaveChanges();
-        return (svc, ctx);
+        return (svc, ctx, u1, u2, u3, u4);
     }
 
-    private static ApplicationUser MakeUser(int id, int? tenantId = null) => new()
+    private static ApplicationUser MakeUser(string suffix, int? tenantId = null) => new()
     {
-        Id = id,
-        UserName = $"u{id}@x.com", NormalizedUserName = $"U{id}@X.COM",
-        Email = $"u{id}@x.com", NormalizedEmail = $"U{id}@X.COM",
-        FullName = $"User {id}", CreatedAt = DateTime.UtcNow,
+        UserName = $"u{suffix}@x.com", NormalizedUserName = $"U{suffix}@X.COM",
+        Email = $"u{suffix}@x.com", NormalizedEmail = $"U{suffix}@X.COM",
+        FullName = $"User {suffix}", CreatedAt = DateTime.UtcNow,
         IsActive = true, EmailConfirmed = true,
         SecurityStamp = Guid.NewGuid().ToString(),
         TenantId = tenantId
@@ -63,8 +59,8 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetOrCreateAsync_SelfMessage_ReturnsError()
     {
-        var (svc, _) = Setup();
-        var result = await svc.GetOrCreateAsync(1, 1);
+        var (svc, _, u1, _, _, _) = Setup();
+        var result = await svc.GetOrCreateAsync(u1.Id, u1.Id);
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("Kendinize");
     }
@@ -72,8 +68,8 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetOrCreateAsync_NoConnectionNoTenant_ReturnsError()
     {
-        var (svc, _) = Setup();
-        var result = await svc.GetOrCreateAsync(1, 2);
+        var (svc, _, u1, u2, _, _) = Setup();
+        var result = await svc.GetOrCreateAsync(u1.Id, u2.Id);
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("gönderilemiyor");
     }
@@ -81,25 +77,25 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetOrCreateAsync_AcceptedConnection_CreatesConversation()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
+        var (svc, ctx, u1, u2, _, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
 
-        var result = await svc.GetOrCreateAsync(1, 2);
+        var result = await svc.GetOrCreateAsync(u1.Id, u2.Id);
 
         result.Success.Should().BeTrue();
         result.Conversation.Should().NotBeNull();
-        result.Conversation!.User1Id.Should().Be(1);  // Math.Min
-        result.Conversation.User2Id.Should().Be(2);
+        result.Conversation!.User1Id.Should().Be(Math.Min(u1.Id, u2.Id));  // Math.Min
+        result.Conversation.User2Id.Should().Be(Math.Max(u1.Id, u2.Id));
     }
 
     [Fact]
     public async Task GetOrCreateAsync_DeterministicOrder_BothDirectionsSameConversation()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
+        var (svc, ctx, u1, u2, _, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
 
-        var first = await svc.GetOrCreateAsync(1, 2);
-        var second = await svc.GetOrCreateAsync(2, 1);
+        var first = await svc.GetOrCreateAsync(u1.Id, u2.Id);
+        var second = await svc.GetOrCreateAsync(u2.Id, u1.Id);
 
         first.Success.Should().BeTrue();
         second.Success.Should().BeTrue();
@@ -110,20 +106,31 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetOrCreateAsync_SameTenant_AllowsCreate()
     {
-        var ctx = _fixture.CreateContext();
+        var ctx = _db.Create();
         var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
         var storage = new FakeMediaStorage();
         var svc = new ConversationService(ctx, blockSvc, storage, new NullActivityLogService());
 
-        ctx.Tenants.Add(new Tenant
-        {
-            Id = 100, Name = "T", Slug = "t",
-            CreatedAt = DateTime.UtcNow, OwnerUserId = 1
-        });
-        ctx.Users.AddRange(MakeUser(1, 100), MakeUser(2, 100));
+        // Circular FK staging: (a) user'lar TenantId = null ile, (b) Tenant OwnerUserId ile,
+        // (c) user.TenantId güncelle.
+        var u1 = MakeUser("1");
+        var u2 = MakeUser("2");
+        ctx.Users.AddRange(u1, u2);
         await ctx.SaveChangesAsync();
 
-        var result = await svc.GetOrCreateAsync(1, 2);
+        var tenant = new Tenant
+        {
+            Name = "T", Slug = "t",
+            CreatedAt = DateTime.UtcNow, OwnerUserId = u1.Id
+        };
+        ctx.Tenants.Add(tenant);
+        await ctx.SaveChangesAsync();
+
+        u1.TenantId = tenant.Id;
+        u2.TenantId = tenant.Id;
+        await ctx.SaveChangesAsync();
+
+        var result = await svc.GetOrCreateAsync(u1.Id, u2.Id);
 
         result.Success.Should().BeTrue();
     }
@@ -131,15 +138,15 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetOrCreateAsync_BlockedEitherWay_ReturnsError()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
+        var (svc, ctx, u1, u2, _, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
         ctx.UserBlocks.Add(new UserBlock
         {
-            BlockerId = 2, BlockedId = 1, CreatedAt = DateTime.UtcNow
+            BlockerId = u2.Id, BlockedId = u1.Id, CreatedAt = DateTime.UtcNow
         });
         await ctx.SaveChangesAsync();
 
-        var result = await svc.GetOrCreateAsync(1, 2);
+        var result = await svc.GetOrCreateAsync(u1.Id, u2.Id);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("gönderilemiyor");
@@ -148,11 +155,11 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetByIdAsync_NonParticipant_ReturnsNull()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
-        var created = await svc.GetOrCreateAsync(1, 2);
+        var (svc, ctx, u1, u2, u3, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
+        var created = await svc.GetOrCreateAsync(u1.Id, u2.Id);
 
-        var result = await svc.GetByIdAsync(created.Conversation!.Id, viewerId: 3);
+        var result = await svc.GetByIdAsync(created.Conversation!.Id, viewerId: u3.Id);
 
         result.Should().BeNull();
     }
@@ -160,11 +167,11 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetByIdAsync_Participant_ReturnsConversation()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
-        var created = await svc.GetOrCreateAsync(1, 2);
+        var (svc, ctx, u1, u2, _, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
+        var created = await svc.GetOrCreateAsync(u1.Id, u2.Id);
 
-        var result = await svc.GetByIdAsync(created.Conversation!.Id, viewerId: 1);
+        var result = await svc.GetByIdAsync(created.Conversation!.Id, viewerId: u1.Id);
 
         result.Should().NotBeNull();
     }
@@ -172,11 +179,13 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task MarkAsReadAsync_UpdatesUser1LastReadAt_WhenViewerIsUser1()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
-        var created = await svc.GetOrCreateAsync(1, 2);
+        var (svc, ctx, u1, u2, _, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
+        var created = await svc.GetOrCreateAsync(u1.Id, u2.Id);
 
-        var result = await svc.MarkAsReadAsync(created.Conversation!.Id, userId: 1);
+        // Math.Min/Max ile User1 belirlenir — viewer User1 olmalı
+        var user1Id = Math.Min(u1.Id, u2.Id);
+        var result = await svc.MarkAsReadAsync(created.Conversation!.Id, userId: user1Id);
 
         result.Success.Should().BeTrue();
         var conv = await ctx.Conversations.FirstAsync(c => c.Id == created.Conversation.Id);
@@ -187,73 +196,73 @@ public class ConversationServiceTests : IClassFixture<SqlServerTestFixture>
     [Fact]
     public async Task GetUnreadCountAsync_CountsOnlyOtherSenderAfterLastRead()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
-        var conv = (await svc.GetOrCreateAsync(1, 2)).Conversation!;
+        var (svc, ctx, u1, u2, _, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
+        var conv = (await svc.GetOrCreateAsync(u1.Id, u2.Id)).Conversation!;
         var now = DateTime.UtcNow;
 
         // 2'den 1'e 3 mesaj
         ctx.Messages.AddRange(
-            new Message { ConversationId = conv.Id, SenderId = 2, Body = "<p>m1</p>", CreatedAt = now.AddMinutes(-3), IsDeleted = false },
-            new Message { ConversationId = conv.Id, SenderId = 2, Body = "<p>m2</p>", CreatedAt = now.AddMinutes(-2), IsDeleted = false },
-            new Message { ConversationId = conv.Id, SenderId = 2, Body = "<p>m3</p>", CreatedAt = now.AddMinutes(-1), IsDeleted = false });
+            new Message { ConversationId = conv.Id, SenderId = u2.Id, Body = "<p>m1</p>", CreatedAt = now.AddMinutes(-3), IsDeleted = false },
+            new Message { ConversationId = conv.Id, SenderId = u2.Id, Body = "<p>m2</p>", CreatedAt = now.AddMinutes(-2), IsDeleted = false },
+            new Message { ConversationId = conv.Id, SenderId = u2.Id, Body = "<p>m3</p>", CreatedAt = now.AddMinutes(-1), IsDeleted = false });
         // 1'den 2'ye mesaj — User1 unread sayımına dahil olmamalı
         ctx.Messages.Add(new Message
         {
-            ConversationId = conv.Id, SenderId = 1, Body = "<p>self</p>",
+            ConversationId = conv.Id, SenderId = u1.Id, Body = "<p>self</p>",
             CreatedAt = now, IsDeleted = false
         });
         await ctx.SaveChangesAsync();
 
-        var unread = await svc.GetUnreadCountAsync(userId: 1);
+        var unread = await svc.GetUnreadCountAsync(userId: u1.Id);
         unread.Should().Be(3);
 
         // MarkAsRead sonrası 0
-        await svc.MarkAsReadAsync(conv.Id, 1);
-        var afterRead = await svc.GetUnreadCountAsync(userId: 1);
+        await svc.MarkAsReadAsync(conv.Id, u1.Id);
+        var afterRead = await svc.GetUnreadCountAsync(userId: u1.Id);
         afterRead.Should().Be(0);
     }
 
     [Fact]
     public async Task GetForUserAsync_ExcludesBlockedConversations()
     {
-        var (svc, ctx) = Setup();
+        var (svc, ctx, u1, u2, u3, _) = Setup();
         // 1<->2 + 1<->3 conversation
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
-        await SeedAcceptedConnectionAsync(ctx, 1, 3);
-        await svc.GetOrCreateAsync(1, 2);
-        await svc.GetOrCreateAsync(1, 3);
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u3.Id);
+        await svc.GetOrCreateAsync(u1.Id, u2.Id);
+        await svc.GetOrCreateAsync(u1.Id, u3.Id);
 
         // 1, 3'ü engelliyor
         ctx.UserBlocks.Add(new UserBlock
         {
-            BlockerId = 1, BlockedId = 3, CreatedAt = DateTime.UtcNow
+            BlockerId = u1.Id, BlockedId = u3.Id, CreatedAt = DateTime.UtcNow
         });
         await ctx.SaveChangesAsync();
 
-        var list = await svc.GetForUserAsync(1);
+        var list = await svc.GetForUserAsync(u1.Id);
 
         list.Should().HaveCount(1);
-        list[0].OtherUserId.Should().Be(2);
+        list[0].OtherUserId.Should().Be(u2.Id);
     }
 
     [Fact]
     public async Task GetForUserAsync_OrdersByLastMessageAtDesc()
     {
-        var (svc, ctx) = Setup();
-        await SeedAcceptedConnectionAsync(ctx, 1, 2);
-        await SeedAcceptedConnectionAsync(ctx, 1, 3);
+        var (svc, ctx, u1, u2, u3, _) = Setup();
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u2.Id);
+        await SeedAcceptedConnectionAsync(ctx, u1.Id, u3.Id);
 
-        var c12 = (await svc.GetOrCreateAsync(1, 2)).Conversation!;
+        var c12 = (await svc.GetOrCreateAsync(u1.Id, u2.Id)).Conversation!;
         await Task.Delay(20);
-        var c13 = (await svc.GetOrCreateAsync(1, 3)).Conversation!;
+        var c13 = (await svc.GetOrCreateAsync(u1.Id, u3.Id)).Conversation!;
 
         // c12'ye sonra mesaj — LastMessageAt güncellenmiş gibi simüle
         var trackedC12 = await ctx.Conversations.FirstAsync(c => c.Id == c12.Id);
         trackedC12.LastMessageAt = DateTime.UtcNow.AddSeconds(10);
         await ctx.SaveChangesAsync();
 
-        var list = await svc.GetForUserAsync(1);
+        var list = await svc.GetForUserAsync(u1.Id);
 
         list.Should().HaveCount(2);
         list[0].ConversationId.Should().Be(c12.Id);

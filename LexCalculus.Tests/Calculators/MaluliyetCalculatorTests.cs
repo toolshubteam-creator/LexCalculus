@@ -12,14 +12,14 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class MaluliyetCalculatorTests
+public class MaluliyetCalculatorTests : SqlServerTestBase
 {
     private static IDistributedCache CreateCache() =>
         new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 
-    private static (MaluliyetCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (MaluliyetCalculator calc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var trh = new LifeTable
         {
             Code = "TRH-2010",

@@ -19,11 +19,11 @@ namespace LexCalculus.Tests.Moderation;
 /// render edildiği ve hide aksiyonunun doğru çalıştığı integration test.
 /// </summary>
 [Collection("AdminWebHost")]
-public class AdminMessageReportTests : IClassFixture<TestAuthWebApplicationFactory>
+public class AdminMessageReportTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public AdminMessageReportTests(TestAuthWebApplicationFactory factory)
+    public AdminMessageReportTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

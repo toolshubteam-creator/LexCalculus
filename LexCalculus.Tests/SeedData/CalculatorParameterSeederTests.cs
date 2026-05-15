@@ -8,12 +8,12 @@ using Xunit;
 
 namespace LexCalculus.Tests.SeedData;
 
-public class CalculatorParameterSeederTests
+public class CalculatorParameterSeederTests : SqlServerTestBase
 {
     [Fact]
     public async Task SeedAsync_RunsTwice_NoDuplicateOrConstraintError()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         await CalculatorParameterSeeder.SeedAsync(ctx, NullLogger.Instance);
         var afterFirst = await ctx.Set<FormulaParameter>().IgnoreQueryFilters().CountAsync();
@@ -28,7 +28,7 @@ public class CalculatorParameterSeederTests
     [Fact]
     public async Task SeedAsync_CanonicalRowSoftDeleted_RestoredOnNextRun()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         // İlk seed — kanonik satırlar yüklü
         await CalculatorParameterSeeder.SeedAsync(ctx, NullLogger.Instance);

@@ -4,11 +4,11 @@ using Xunit;
 namespace LexCalculus.Tests.Integration;
 
 [Collection("AdminWebHost")]
-public class HomeIntegrationTests : IClassFixture<WebApplicationFactoryFixture>
+public class HomeIntegrationTests : IClassFixture<SqlServerWebApplicationFactoryFixture>
 {
-    private readonly WebApplicationFactoryFixture _factory;
+    private readonly SqlServerWebApplicationFactoryFixture _factory;
 
-    public HomeIntegrationTests(WebApplicationFactoryFixture factory)
+    public HomeIntegrationTests(SqlServerWebApplicationFactoryFixture factory)
     {
         _factory = factory;
     }

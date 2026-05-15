@@ -9,42 +9,51 @@ using Xunit;
 
 namespace LexCalculus.Tests.Content;
 
-public class PostLikeServiceTests
+public class PostLikeServiceTests : SqlServerTestBase
 {
-    private static (PostLikeService svc, ApplicationDbContext ctx) Setup()
+    // Setup sonrası seed edilen kayıtların DB-generated Id'leri.
+    private int _authorId, _likerId, _otherId, _categoryId;
+
+    private (PostLikeService svc, ApplicationDbContext ctx) Setup()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var svc = new PostLikeService(ctx, new NullActivityLogService());
 
-        ctx.Users.AddRange(
-            MakeUser(1, "author@x.com"),
-            MakeUser(2, "liker@x.com"),
-            MakeUser(3, "other@x.com"));
-        ctx.PostCategories.Add(new PostCategory
+        var author = MakeUser("author@x.com");
+        var liker = MakeUser("liker@x.com");
+        var other = MakeUser("other@x.com");
+        ctx.Users.AddRange(author, liker, other);
+        var category = new PostCategory
         {
-            Id = 1, Name = "Genel", Slug = "genel",
+            Name = "Genel", Slug = "genel",
             DisplayOrder = 1, IsActive = true, CreatedAt = DateTime.UtcNow
-        });
+        };
+        ctx.PostCategories.Add(category);
         ctx.SaveChanges();
+
+        _authorId = author.Id;
+        _likerId = liker.Id;
+        _otherId = other.Id;
+        _categoryId = category.Id;
         return (svc, ctx);
     }
 
-    private static ApplicationUser MakeUser(int id, string email) => new()
+    private static ApplicationUser MakeUser(string email) => new()
     {
-        Id = id, UserName = email, NormalizedUserName = email.ToUpperInvariant(),
+        UserName = email, NormalizedUserName = email.ToUpperInvariant(),
         Email = email, NormalizedEmail = email.ToUpperInvariant(),
-        FullName = $"User {id}", CreatedAt = DateTime.UtcNow,
+        FullName = $"User {email}", CreatedAt = DateTime.UtcNow,
         IsActive = true, EmailConfirmed = true,
         SecurityStamp = Guid.NewGuid().ToString()
     };
 
-    private static async Task<int> SeedPostAsync(ApplicationDbContext ctx,
+    private async Task<int> SeedPostAsync(ApplicationDbContext ctx,
         bool isPublished = true)
     {
         var now = DateTime.UtcNow;
         var p = new UserPost
         {
-            UserId = 1, CategoryId = 1, Title = "T", Slug = "t",
+            UserId = _authorId, CategoryId = _categoryId, Title = "T", Slug = "t",
             Body = "<p>x</p>", IsPublished = isPublished,
             PublishedAt = isPublished ? now : null,
             CreatedAt = now, UpdatedAt = now
@@ -60,12 +69,12 @@ public class PostLikeServiceTests
         var (svc, ctx) = Setup();
         var postId = await SeedPostAsync(ctx);
 
-        var result = await svc.ToggleAsync(postId, userId: 2);
+        var result = await svc.ToggleAsync(postId, userId: _likerId);
 
         result.Success.Should().BeTrue();
         result.IsLiked.Should().BeTrue();
         result.LikeCount.Should().Be(1);
-        (await ctx.PostLikes.AnyAsync(l => l.PostId == postId && l.UserId == 2))
+        (await ctx.PostLikes.AnyAsync(l => l.PostId == postId && l.UserId == _likerId))
             .Should().BeTrue();
     }
 
@@ -74,9 +83,9 @@ public class PostLikeServiceTests
     {
         var (svc, ctx) = Setup();
         var postId = await SeedPostAsync(ctx);
-        await svc.ToggleAsync(postId, userId: 2);
+        await svc.ToggleAsync(postId, userId: _likerId);
 
-        var second = await svc.ToggleAsync(postId, userId: 2);
+        var second = await svc.ToggleAsync(postId, userId: _likerId);
 
         second.Success.Should().BeTrue();
         second.IsLiked.Should().BeFalse();
@@ -89,7 +98,7 @@ public class PostLikeServiceTests
         var (svc, ctx) = Setup();
         var postId = await SeedPostAsync(ctx, isPublished: false);
 
-        var result = await svc.ToggleAsync(postId, userId: 2);
+        var result = await svc.ToggleAsync(postId, userId: _likerId);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("Yayında olmayan");
@@ -99,7 +108,7 @@ public class PostLikeServiceTests
     public async Task ToggleAsync_NonExistingPost_ReturnsError()
     {
         var (svc, _) = Setup();
-        var result = await svc.ToggleAsync(postId: 9999, userId: 2);
+        var result = await svc.ToggleAsync(postId: 9999, userId: _likerId);
 
         result.Success.Should().BeFalse();
         result.ErrorMessage.Should().Contain("bulunamadı");
@@ -111,11 +120,11 @@ public class PostLikeServiceTests
         var (svc, ctx) = Setup();
         var postId = await SeedPostAsync(ctx);
 
-        (await svc.IsLikedByAsync(postId, userId: 2)).Should().BeFalse();
+        (await svc.IsLikedByAsync(postId, userId: _likerId)).Should().BeFalse();
 
-        await svc.ToggleAsync(postId, userId: 2);
-        (await svc.IsLikedByAsync(postId, userId: 2)).Should().BeTrue();
-        (await svc.IsLikedByAsync(postId, userId: 3)).Should().BeFalse();
+        await svc.ToggleAsync(postId, userId: _likerId);
+        (await svc.IsLikedByAsync(postId, userId: _likerId)).Should().BeTrue();
+        (await svc.IsLikedByAsync(postId, userId: _otherId)).Should().BeFalse();
     }
 
     [Fact]
@@ -124,8 +133,8 @@ public class PostLikeServiceTests
         var (svc, ctx) = Setup();
         var postId = await SeedPostAsync(ctx);
 
-        await svc.ToggleAsync(postId, userId: 2);
-        await svc.ToggleAsync(postId, userId: 3);
+        await svc.ToggleAsync(postId, userId: _likerId);
+        await svc.ToggleAsync(postId, userId: _otherId);
 
         (await svc.GetCountForPostAsync(postId)).Should().Be(2);
     }
@@ -136,8 +145,8 @@ public class PostLikeServiceTests
         var (svc, ctx) = Setup();
         var postId = await SeedPostAsync(ctx);
 
-        var r1 = await svc.ToggleAsync(postId, userId: 2);
-        var r2 = await svc.ToggleAsync(postId, userId: 3);
+        var r1 = await svc.ToggleAsync(postId, userId: _likerId);
+        var r2 = await svc.ToggleAsync(postId, userId: _otherId);
 
         r1.LikeCount.Should().Be(1);
         r2.LikeCount.Should().Be(2);

@@ -15,12 +15,15 @@ namespace LexCalculus.Tests.Messaging;
 /// Notifier mock üzerinden recipientId/messageId/conversationId argümanları
 /// ve davranışlar (sessiz fail, izinsizde no-call) test edilir.
 /// </summary>
-public class MessageServiceNotifierTests
+public class MessageServiceNotifierTests : SqlServerTestBase
 {
-    private static (MessageService svc, ApplicationDbContext ctx, RecordingNotifier notifier) Setup(
+    // Setup sonrası seed edilen kullanıcıların DB-generated Id'leri.
+    private int _u1, _u2, _u3;
+
+    private (MessageService svc, ApplicationDbContext ctx, RecordingNotifier notifier) Setup(
         IMessagingNotifier? overrideNotifier = null)
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         var blockSvc = new UserBlockService(ctx, new NullActivityLogService());
         var storage = new FakeMediaStorage();
         var convSvc = new ConversationService(ctx, blockSvc, storage, new NullActivityLogService());
@@ -28,10 +31,18 @@ public class MessageServiceNotifierTests
         var msgSvc = new MessageService(ctx, convSvc, new CommentSanitizer(),
             new NullActivityLogService(), overrideNotifier ?? notifier);
 
-        ctx.Users.AddRange(MakeUser(1), MakeUser(2), MakeUser(3));
+        var u1 = MakeUser("a");
+        var u2 = MakeUser("b");
+        var u3 = MakeUser("c");
+        ctx.Users.AddRange(u1, u2, u3);
+        ctx.SaveChanges();
+        _u1 = u1.Id;
+        _u2 = u2.Id;
+        _u3 = u3.Id;
+
         ctx.UserConnections.Add(new UserConnection
         {
-            RequesterId = 1, TargetId = 2,
+            RequesterId = _u1, TargetId = _u2,
             Status = UserConnectionStatus.Accepted,
             CreatedAt = DateTime.UtcNow.AddDays(-1)
         });
@@ -39,14 +50,13 @@ public class MessageServiceNotifierTests
         return (msgSvc, ctx, notifier);
     }
 
-    private static ApplicationUser MakeUser(int id) => new()
+    private static ApplicationUser MakeUser(string suffix) => new()
     {
-        Id = id,
-        UserName = $"u{id}@x.com",
-        NormalizedUserName = $"U{id}@X.COM",
-        Email = $"u{id}@x.com",
-        NormalizedEmail = $"U{id}@X.COM",
-        FullName = $"User {id}",
+        UserName = $"u{suffix}@x.com",
+        NormalizedUserName = $"U{suffix.ToUpperInvariant()}@X.COM",
+        Email = $"u{suffix}@x.com",
+        NormalizedEmail = $"U{suffix.ToUpperInvariant()}@X.COM",
+        FullName = $"User {suffix}",
         CreatedAt = DateTime.UtcNow,
         IsActive = true,
         EmailConfirmed = true,
@@ -58,21 +68,21 @@ public class MessageServiceNotifierTests
     {
         var (svc, _, notifier) = Setup();
 
-        var result = await svc.SendAsync(senderId: 1, recipientId: 2, "selam");
+        var result = await svc.SendAsync(senderId: _u1, recipientId: _u2, "selam");
 
         result.Success.Should().BeTrue();
         notifier.ReceivedCalls.Should().HaveCount(1);
-        notifier.ReceivedCalls[0].RecipientId.Should().Be(2);
+        notifier.ReceivedCalls[0].RecipientId.Should().Be(_u2);
         notifier.ReceivedCalls[0].MessageId.Should().Be(result.Message!.Id);
     }
 
     [Fact]
     public async Task SendAsync_NoPermission_DoesNotCallNotifier()
     {
-        // 1 ↔ 3 arasında ne bağlantı ne tenant — yetki yok
+        // u1 ↔ u3 arasında ne bağlantı ne tenant — yetki yok
         var (svc, _, notifier) = Setup();
 
-        var result = await svc.SendAsync(senderId: 1, recipientId: 3, "yetkisiz");
+        var result = await svc.SendAsync(senderId: _u1, recipientId: _u3, "yetkisiz");
 
         result.Success.Should().BeFalse();
         notifier.ReceivedCalls.Should().BeEmpty();
@@ -83,14 +93,14 @@ public class MessageServiceNotifierTests
     public async Task DeleteAsync_Owner_CallsNotifyMessageDeletedOnce()
     {
         var (svc, _, notifier) = Setup();
-        var send = await svc.SendAsync(1, 2, "silinecek");
+        var send = await svc.SendAsync(_u1, _u2, "silinecek");
 
         notifier.Reset();
-        var del = await svc.DeleteAsync(send.Message!.Id, actingUserId: 1);
+        var del = await svc.DeleteAsync(send.Message!.Id, actingUserId: _u1);
 
         del.Success.Should().BeTrue();
         notifier.DeletedCalls.Should().HaveCount(1);
-        notifier.DeletedCalls[0].RecipientId.Should().Be(2);
+        notifier.DeletedCalls[0].RecipientId.Should().Be(_u2);
         notifier.DeletedCalls[0].ConversationId.Should().Be(send.Message.ConversationId);
         notifier.DeletedCalls[0].MessageId.Should().Be(send.Message.Id);
     }
@@ -99,10 +109,10 @@ public class MessageServiceNotifierTests
     public async Task DeleteAsync_NonOwner_DoesNotCallNotifier()
     {
         var (svc, _, notifier) = Setup();
-        var send = await svc.SendAsync(1, 2, "kendi mesajım");
+        var send = await svc.SendAsync(_u1, _u2, "kendi mesajım");
 
         notifier.Reset();
-        var del = await svc.DeleteAsync(send.Message!.Id, actingUserId: 2);
+        var del = await svc.DeleteAsync(send.Message!.Id, actingUserId: _u2);
 
         del.Success.Should().BeFalse();
         notifier.DeletedCalls.Should().BeEmpty();
@@ -114,7 +124,7 @@ public class MessageServiceNotifierTests
         var throwing = new ThrowingNotifier();
         var (svc, ctx, _) = Setup(throwing);
 
-        var result = await svc.SendAsync(1, 2, "fırlatan notifier");
+        var result = await svc.SendAsync(_u1, _u2, "fırlatan notifier");
 
         // Notifier hata fırlatsa bile mesaj DB'ye yazılmış olmalı, sonuç success
         result.Success.Should().BeTrue();

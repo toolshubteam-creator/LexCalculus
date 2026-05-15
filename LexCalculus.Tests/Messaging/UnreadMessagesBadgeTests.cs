@@ -14,11 +14,11 @@ using Xunit;
 namespace LexCalculus.Tests.Messaging;
 
 [Collection("AdminWebHost")]
-public class UnreadMessagesBadgeTests : IClassFixture<TestAuthWebApplicationFactory>
+public class UnreadMessagesBadgeTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public UnreadMessagesBadgeTests(TestAuthWebApplicationFactory factory)
+    public UnreadMessagesBadgeTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
     }

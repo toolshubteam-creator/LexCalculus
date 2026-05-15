@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using FluentAssertions;
+using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Notifications;
 using LexCalculus.Core.Notifications;
 using LexCalculus.Infrastructure.Data;
@@ -13,13 +14,41 @@ using Xunit;
 namespace LexCalculus.Tests.Notifications;
 
 [Collection("AdminWebHost")]
-public class NotificationsControllerTests : IClassFixture<TestAuthWebApplicationFactory>
+public class NotificationsControllerTests : IClassFixture<SqlServerTestAuthWebApplicationFactory>
 {
-    private readonly TestAuthWebApplicationFactory _factory;
+    private readonly SqlServerTestAuthWebApplicationFactory _factory;
 
-    public NotificationsControllerTests(TestAuthWebApplicationFactory factory)
+    public NotificationsControllerTests(SqlServerTestAuthWebApplicationFactory factory)
     {
         _factory = factory;
+    }
+
+    // SQL Server FK_Notifications_AspNetUsers_UserId zorunlu. IClassFixture
+    // ile DB testler arası paylaşılıyor — user'ı email üzerinden
+    // idempotent seed et, EF'in atadığı Id'yi kullan.
+    private async Task<int> EnsureUserAsync(string emailSuffix)
+    {
+        var email = $"notif-{emailSuffix}@x.com";
+        using var scope = _factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var existing = await ctx.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (existing is not null) return existing.Id;
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            NormalizedUserName = email.ToUpperInvariant(),
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            FullName = $"Notif {emailSuffix}",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            EmailConfirmed = true,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+        return user.Id;
     }
 
     private async Task ClearAndSeedNotificationsAsync(params Notification[] rows)
@@ -35,7 +64,7 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
         }
     }
 
-    private HttpClient CreateUserClient(bool authenticated = true, bool allowAutoRedirect = false)
+    private HttpClient CreateUserClient(int? actAsUserId = null, bool authenticated = true, bool allowAutoRedirect = false)
     {
         var options = new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
         {
@@ -44,8 +73,9 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
         var client = _factory.CreateClient(options);
         if (authenticated)
         {
-            // TestAuthHandler hardcodes NameIdentifier="1", so userId=1
             client.DefaultRequestHeaders.Add("X-Test-User", "test-user@local");
+            if (actAsUserId.HasValue)
+                client.DefaultRequestHeaders.Add("X-Test-UserId", actAsUserId.Value.ToString());
         }
         return client;
     }
@@ -74,16 +104,17 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
     [Fact]
     public async Task Sayim_AsUser_ReturnsJsonWithUnreadCount()
     {
+        var userId = await EnsureUserAsync("sayim");
         await ClearAndSeedNotificationsAsync(
-            new Notification { UserId = 1, Type = NotificationType.SystemAlert,
+            new Notification { UserId = userId, Type = NotificationType.SystemAlert,
                 Title = "A", Body = "A", IsRead = false, CreatedAt = DateTime.UtcNow },
-            new Notification { UserId = 1, Type = NotificationType.SystemAlert,
+            new Notification { UserId = userId, Type = NotificationType.SystemAlert,
                 Title = "B", Body = "B", IsRead = false, CreatedAt = DateTime.UtcNow },
-            new Notification { UserId = 1, Type = NotificationType.SystemAlert,
+            new Notification { UserId = userId, Type = NotificationType.SystemAlert,
                 Title = "C", Body = "C", IsRead = true, ReadAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow });
 
-        var client = CreateUserClient();
+        var client = CreateUserClient(actAsUserId: userId);
         var response = await client.GetAsync("/bildirimler/sayim");
 
         response.IsSuccessStatusCode.Should().BeTrue();
@@ -94,12 +125,13 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
     [Fact]
     public async Task Index_AsUser_ReturnsList_WithSummary()
     {
+        var userId = await EnsureUserAsync("index");
         await ClearAndSeedNotificationsAsync(
-            new Notification { UserId = 1, Type = NotificationType.DataFreshness,
+            new Notification { UserId = userId, Type = NotificationType.DataFreshness,
                 Title = "Stale", Body = "Stale body", IsRead = false, CreatedAt = DateTime.UtcNow }
         );
 
-        var client = CreateUserClient(allowAutoRedirect: true);
+        var client = CreateUserClient(actAsUserId: userId, allowAutoRedirect: true);
         var response = await client.GetAsync("/bildirimler");
 
         response.IsSuccessStatusCode.Should().BeTrue();
@@ -112,9 +144,10 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
     [Fact]
     public async Task Oku_AsUser_MarksOwnNotificationAsRead()
     {
+        var userId = await EnsureUserAsync("oku");
         var notif = new Notification
         {
-            UserId = 1,
+            UserId = userId,
             Type = NotificationType.SystemAlert,
             Title = "T",
             Body = "B",
@@ -123,7 +156,7 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
         };
         await ClearAndSeedNotificationsAsync(notif);
 
-        var client = CreateUserClient();
+        var client = CreateUserClient(actAsUserId: userId);
         var token = await GetAntiforgeryTokenAsync(client, "/bildirimler");
 
         var content = new FormUrlEncodedContent(new[]
@@ -145,12 +178,14 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
     [Fact]
     public async Task Oku_AsUser_DifferentOwnersNotification_Returns404()
     {
-        // Bildirim user 2'ye ait, ama biz user 1 olarak login.
-        // User 1'in bildirimi de olsun ki /bildirimler sayfası antiforgery
+        // Bildirim user "other"e ait, ama biz user "self" olarak login.
+        // self user'ın bildirimi de olsun ki /bildirimler sayfası antiforgery
         // token'lı form render etsin (boş sayfada token üretilmiyor).
+        var selfId = await EnsureUserAsync("self");
+        var otherId = await EnsureUserAsync("other");
         var notif = new Notification
         {
-            UserId = 2,
+            UserId = otherId,
             Type = NotificationType.SystemAlert,
             Title = "Other",
             Body = "Body",
@@ -159,7 +194,7 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
         };
         var ownNotif = new Notification
         {
-            UserId = 1,
+            UserId = selfId,
             Type = NotificationType.SystemAlert,
             Title = "Own",
             Body = "Own body",
@@ -168,7 +203,7 @@ public class NotificationsControllerTests : IClassFixture<TestAuthWebApplication
         };
         await ClearAndSeedNotificationsAsync(notif, ownNotif);
 
-        var client = CreateUserClient();
+        var client = CreateUserClient(actAsUserId: selfId);
         var token = await GetAntiforgeryTokenAsync(client, "/bildirimler");
 
         var content = new FormUrlEncodedContent(new[]

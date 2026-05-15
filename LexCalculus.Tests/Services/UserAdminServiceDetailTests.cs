@@ -13,7 +13,7 @@ using Xunit;
 
 namespace LexCalculus.Tests.Services;
 
-public class UserAdminServiceDetailTests
+public class UserAdminServiceDetailTests : SqlServerTestBase
 {
     private static Mock<UserManager<ApplicationUser>> MockUserManager(ApplicationDbContext ctx)
     {
@@ -39,11 +39,10 @@ public class UserAdminServiceDetailTests
     [Fact]
     public async Task GetUserDetailAsync_ReturnsCompleteData()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         var user = new ApplicationUser
         {
-            Id = 1,
             UserName = "test@example.com",
             NormalizedUserName = "TEST@EXAMPLE.COM",
             Email = "test@example.com",
@@ -56,7 +55,6 @@ public class UserAdminServiceDetailTests
             SecurityStamp = Guid.NewGuid().ToString(),
             Profile = new UserProfile
             {
-                UserId = 1,
                 DisplayName = "Test User",
                 MeslekTuru = MeslekTuru.Avukat,
                 BaroNo = "12345"
@@ -64,15 +62,17 @@ public class UserAdminServiceDetailTests
         };
         ctx.Users.Add(user);
 
-        var role = new ApplicationRole { Id = 10, Name = "Kullanici", NormalizedName = "KULLANICI" };
+        var role = new ApplicationRole { Name = "Kullanici", NormalizedName = "KULLANICI" };
         ctx.Roles.Add(role);
-        ctx.UserRoles.Add(new IdentityUserRole<int> { UserId = 1, RoleId = 10 });
+        await ctx.SaveChangesAsync();
+
+        ctx.UserRoles.Add(new IdentityUserRole<int> { UserId = user.Id, RoleId = role.Id });
 
         for (int i = 0; i < 5; i++)
         {
             ctx.CalculationHistories.Add(new CalculationHistory
             {
-                UserId = 1,
+                UserId = user.Id,
                 ToolSlug = $"tool-{i}",
                 ToolTitle = $"Tool {i}",
                 CategorySlug = "test",
@@ -88,7 +88,7 @@ public class UserAdminServiceDetailTests
             .ReturnsAsync(new[] { "Kullanici" });
 
         var svc = CreateService(ctx, umMock);
-        var detail = await svc.GetUserDetailAsync(1);
+        var detail = await svc.GetUserDetailAsync(user.Id);
 
         detail.Should().NotBeNull();
         detail!.Email.Should().Be("test@example.com");
@@ -103,7 +103,7 @@ public class UserAdminServiceDetailTests
     [Fact]
     public async Task GetUserDetailAsync_NonexistentUser_ReturnsNull()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = CreateService(ctx);
         var detail = await svc.GetUserDetailAsync(999);
         detail.Should().BeNull();
@@ -112,7 +112,7 @@ public class UserAdminServiceDetailTests
     [Fact]
     public async Task ChangeRoleAsync_InvalidRole_ReturnsFalse()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
         var svc = CreateService(ctx);
 
         var ok = await svc.ChangeRoleAsync(1, "GeçersizRol");
@@ -123,11 +123,10 @@ public class UserAdminServiceDetailTests
     [Fact]
     public async Task SendPasswordResetEmailAsync_GeneratesTokenAndSendsEmail()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         var user = new ApplicationUser
         {
-            Id = 1,
             UserName = "reset@example.com",
             NormalizedUserName = "RESET@EXAMPLE.COM",
             Email = "reset@example.com",
@@ -139,7 +138,7 @@ public class UserAdminServiceDetailTests
         await ctx.SaveChangesAsync();
 
         var umMock = MockUserManager(ctx);
-        umMock.Setup(x => x.FindByIdAsync("1")).ReturnsAsync(user);
+        umMock.Setup(x => x.FindByIdAsync(user.Id.ToString())).ReturnsAsync(user);
         umMock.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("fake-token");
 
         var rendererMock = new Mock<IEmailTemplateRenderer>();
@@ -155,7 +154,7 @@ public class UserAdminServiceDetailTests
             .ReturnsAsync(true);
 
         var svc = CreateService(ctx, umMock, emailMock, rendererMock);
-        var ok = await svc.SendPasswordResetEmailAsync(1, "https://test.local");
+        var ok = await svc.SendPasswordResetEmailAsync(user.Id, "https://test.local");
 
         ok.Should().BeTrue();
         captured.Should().NotBeNull();
@@ -167,7 +166,7 @@ public class UserAdminServiceDetailTests
     [Fact]
     public async Task SendPasswordResetEmailAsync_NonexistentUser_ReturnsFalse()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         var umMock = MockUserManager(ctx);
         umMock.Setup(x => x.FindByIdAsync("999")).ReturnsAsync((ApplicationUser?)null);
@@ -181,11 +180,10 @@ public class UserAdminServiceDetailTests
     [Fact]
     public async Task SetActiveAsync_DeactivatingOwnerOfActiveTenant_Throws()
     {
-        await using var ctx = TestDbContextFactory.Create();
+        await using var ctx = _db.Create();
 
         var owner = new ApplicationUser
         {
-            Id = 1,
             UserName = "owner@x.com",
             NormalizedUserName = "OWNER@X.COM",
             Email = "owner@x.com",
@@ -197,23 +195,24 @@ public class UserAdminServiceDetailTests
             SecurityStamp = Guid.NewGuid().ToString()
         };
         ctx.Users.Add(owner);
+        await ctx.SaveChangesAsync();
 
+        // Circular FK staging: owner önce kaydedildi; Tenant'ı OwnerUserId ile ekle.
         ctx.Tenants.Add(new Tenant
         {
-            Id = 100,
             Name = "Test Tenant",
             Slug = "test-tenant",
-            OwnerUserId = 1,
+            OwnerUserId = owner.Id,
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false
         });
         await ctx.SaveChangesAsync();
 
         var umMock = MockUserManager(ctx);
-        umMock.Setup(x => x.FindByIdAsync("1")).ReturnsAsync(owner);
+        umMock.Setup(x => x.FindByIdAsync(owner.Id.ToString())).ReturnsAsync(owner);
         var svc = CreateService(ctx, umMock);
 
-        var act = () => svc.SetActiveAsync(1, active: false);
+        var act = () => svc.SetActiveAsync(owner.Id, active: false);
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*owner*");
     }

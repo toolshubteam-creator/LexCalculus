@@ -7,11 +7,11 @@ using Xunit;
 
 namespace LexCalculus.Tests.Calculators;
 
-public class InterestRateServiceTests
+public class InterestRateServiceTests : SqlServerTestBase
 {
-    private static (InterestRateService svc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
+    private (InterestRateService svc, LexCalculus.Infrastructure.Data.ApplicationDbContext ctx) Build()
     {
-        var ctx = TestDbContextFactory.Create();
+        var ctx = _db.Create();
         ctx.Set<FormulaParameter>().AddRange(
             new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.09m, EffectiveDate = new DateTime(2006, 1, 1) },
             new FormulaParameter { ToolSlug = "yasal-faiz", Key = "yillik-oran", Value = 0.24m, EffectiveDate = new DateTime(2024, 6, 1) }
