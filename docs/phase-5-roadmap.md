@@ -9,7 +9,9 @@
 
 🟢 **Dalga A tamamlandı (3 Mayıs 2026)** — Tag: `phase-5-wave-a-complete`
 🟢 **Dalga B tamamlandı (5 Mayıs 2026)** — Tag: `phase-5-wave-b-complete`
-🟡 **Dalga C (Test infra + closeout) sırada** — 5.8-5.9
+🟢 **Dalga C tamamlandı (15 Mayıs 2026)** — Tag: `phase-5-complete` (manuel doğrulama sonrası)
+
+**Faz 5 fiili süre:** 2 Mayıs → 15 Mayıs 2026 (~2 hafta, charter 6 hafta tahmini)
 
 ## Dalga Yapısı
 
@@ -17,7 +19,7 @@
 |---|---|---|---|---|
 | A | Olgunlaştırma (KVKK + güvenlik) | 5.1 - 5.3 | 1.5-2 hafta → ~1 gün | ✅ |
 | B | Mesajlaşma altyapısı (Conversation + SignalR) | 5.4 - 5.7 | 3 hafta → ~2 gün | ✅ |
-| C | Test infrastructure + Faz closeout | 5.8 - 5.9 | 1 hafta | ⏳ |
+| C | Test infrastructure + Faz closeout | 5.8 - 5.9 | 1 hafta → ~2 gün | ✅ |
 
 ## Adımlar
 
@@ -30,8 +32,8 @@
 | 5.5 | Mesajlaşma UI (polling fallback) | 5.4 | 9 | ✅ |
 | 5.6 | SignalR real-time entegrasyonu | 5.5 | 2, 8 | ✅ |
 | 5.7 | Mesaj moderasyon + Notification + Dalga B closeout | 5.4-5.6 | 3 | ✅ |
-| 5.8 | SQL Server LocalDB test migration | — (paralel olabilir) | 10 | ⏳ |
-| 5.9 | Faz 5 closeout (roadmap, README, tech-debt, tag) | tüm | — | ⏳ |
+| 5.8 | SQL Server LocalDB test migration (P1 + P2) | — (paralel olabilir) | 10 | ✅ |
+| 5.9 | Faz 5 closeout (roadmap, README, tech-debt, tag) | tüm | — | ✅ |
 
 ---
 

@@ -358,5 +358,52 @@ Bunların hiçbiri Faz 5 kapsamında değildir.
 
 ---
 
+## §11 Implementation Status (kapanış notu, 15 Mayıs 2026)
+
+Faz 5 = Dalga A + B + C (9 alt adım) tamamlandı.
+
+**Charter Karar Implementation:**
+
+| # | Karar | Adım | Durum |
+|---|---|---|---|
+| 1  | Mesajlaşma minimum: 1-1 metin, görsel/grup/edit yok | 5.4-5.5 | ✅ |
+| 2  | Real-time SignalR doğrudan, tek instance | 5.6 | ✅ |
+| 3  | Yetki: bağlantı OR aynı tenant + NOT engelleme | 5.4 (CanMessageAsync) | ✅ |
+| 4  | Engelleme: sessiz pattern + arşivleme (conversation gizleme) | 5.4 (filter) | ✅ |
+| 5  | Mesaj retention süresiz, anonimize entegrasyonu | 5.1 + 5.4 | ✅ |
+| 6  | KVKK anonimize stratejisi (hard delete yok) | 5.1 | ✅ |
+| 7  | Rate limiting 5 named policy (ChainedRateLimiter Faz 6+) | 5.2 | ✅ kısmen |
+| 8  | SignalR cookie auth, ek CSRF gerek yok | 5.6 | ✅ |
+| 9  | Mesaj UI: `/mesajlar` liste + `/mesajlar/{id}` detay | 5.5 | ✅ |
+| 10 | SQL Server LocalDB test infrastructure | 5.8 (P1+P2) | ✅ |
+| 11 | Hide vs Delete moderation (UserPost/PostComment/Message) | 5.3 + 5.7 | ✅ |
+| 12 | NoIndex auto on `[Authorize]` endpoints | 5.3 | ✅ |
+
+**Süre karşılaştırması:**
+- Charter tahmini: 6 hafta
+- Gerçek: 2 Mayıs → 15 Mayıs 2026 (~2 hafta)
+- Hızlanma: ~3x (yanıltıcı baseline notu — Faz 4 pattern reuse + olgun altyapı +
+  Claude Code assistance; yeni bir takım için baseline tahmini hâlâ ~4-6 hafta)
+
+---
+
+## §12 Faz 6 Önizleme (kapanış güncellemesi)
+
+§9'daki orijinal önizleme korunuyor; aşağıda Faz 5'in açığa çıkardığı ek
+tech-debt aday maddeleri:
+
+- ChainedRateLimiter (saat+dakika çift limit, §3 Karar 7 spec gereği)
+- ConversationService N+1 (#29 `GetForUserAsync`, #30 `GetUnreadCountAsync`)
+- Polling sayfa görünürlüğüne duyarsız (#24)
+- SignalR multi-tab mark-as-read race (#26)
+- SignalR JS production self-host (#27 integrity hash)
+- IPartialRenderer reuse pattern (#28)
+- Admin mesaj "Tüm konuşmayı incele" (#33)
+- Test infrastructure hızlandırma (Respawn / snapshot — per-test migrate maliyeti)
+
+Faz 6 charter bu maddelerle birlikte §9'daki orijinal listeden öncelikleri seçecek.
+
+---
+
 *Charter sürümü 1.0 — 2 Mayıs 2026. Faz 5 boyunca güncel kalır;
-charter değişiklikleri commit'lerle işlenir.*
+charter değişiklikleri commit'lerle işlenir. §11-§12 kapanış notu: 15 Mayıs 2026.*

@@ -370,7 +370,19 @@ yorum silmede sorun yok.
 
 ---
 
-## 13. Hide vs Delete moderation (ContentReportService)
+## ✅ 13. Hide vs Delete moderation (ContentReportService) — ÇÖZÜLDÜ (Adım 5.3 + 5.7, 15 Mayıs 2026)
+
+**Çözüm:** `UserPost.IsModeratorHidden` ve `PostComment.IsModeratorHidden`
+flag'leri Adım 5.3'te eklendi; `ContentReportService.HideAsync`/`UnhideAsync`
+tarafından kullanılıyor. `Message.IsModeratorHidden` Adım 5.7'de eklendi
+(`MessageService` admin Hide akışı). Hard delete `Action` butonu artık
+opsiyonel — admin önce hide, son çare sil.
+
+---
+
+## 13. (Orijinal kayıt — referans için)
+
+### Hide vs Delete moderation (ContentReportService)
 
 **Bağlam:** Adım 4.10 P2'de ActionAsync sadece "Sil" yapabiliyor.
 Geri alınamaz, yanlış silme riski. UserPostService.DeleteAsync ile
@@ -496,7 +508,19 @@ Tahmini iş: ~1 gün (servis + storage path naming + view helper).
 
 ---
 
-## 19. Hesap silme + KVKK anonimize
+## ✅ 19. Hesap silme + KVKK anonimize — ÇÖZÜLDÜ (Adım 5.1, 15 Mayıs 2026)
+
+**Çözüm:** `UserAnonymizationService` Adım 5.1'de eklendi (`PasswordHash`=null,
+`UserName`/`Email` anonymized form, profil temizlik, ilişkili veri korunur).
+Admin paneli "Hesabı anonimize et" akışı + KVKK kullanıcıya kendi-kendine silme
+butonu yayında. Hard delete YOK — FK Restrict + content owner referansları
+korunarak yasal sorumluluk denetlenebilir.
+
+---
+
+## 19. (Orijinal kayıt — referans için)
+
+### Hesap silme + KVKK anonimize
 
 **Bağlam:** Adım 4.6-4.10 boyunca biriken FK yapısı: ApplicationUser →
 UserPost, PostComment, PostLike, ContentReport (Reporter +
@@ -523,7 +547,19 @@ onay flow).
 
 ---
 
-## 20. Bot/spam detection (yorum + şikayet rate limiting)
+## ✅ 20. Bot/spam detection (yorum + şikayet rate limiting) — ÇÖZÜLDÜ (Adım 5.2, 15 Mayıs 2026)
+
+**Çözüm:** ASP.NET Core `RateLimiter` middleware Adım 5.2'de eklendi; 5 named
+policy: `comment` (dakikada 5), `report` (saatte 10), `message` (dakikada 30),
+`connection` (saatte 20), `ajax-general` (dakikada 60). Per-user partition.
+`ChainedRateLimiter` (saat+dakika çift limit) Faz 6+'a bırakıldı (kısmen — charter
+Karar 7 spec gereği).
+
+---
+
+## 20. (Orijinal kayıt — referans için)
+
+### Bot/spam detection (yorum + şikayet rate limiting)
 
 **Bağlam:** Adım 4.9 (yorum AJAX) ve 4.10 P1 (şikayet AJAX) anti-forgery
 korumalı ama rate limiting yok.
@@ -593,7 +629,18 @@ notifications güçlü.
 
 ---
 
-## 23. Authorize sayfaları için otomatik NoIndex
+## ✅ 23. Authorize sayfaları için otomatik NoIndex — ÇÖZÜLDÜ (Adım 5.3, 15 Mayıs 2026)
+
+**Çözüm:** Endpoint metadata middleware Adım 5.3'te eklendi: bir endpoint
+`AuthorizeAttribute` taşıyorsa response'a `X-Robots-Tag: noindex, nofollow`
+header'ı otomatik eklenir. Manuel `<meta name="robots">` koymaya gerek yok.
+`NoIndexAutoTests` ile doğrulandı (admin/profil/hesaplarım sayfaları noindex).
+
+---
+
+## 23. (Orijinal kayıt — referans için)
+
+### Authorize sayfaları için otomatik NoIndex
 
 **Bağlam:** Adım 4.6 P2'de `/makalelerim` için NoIndex meta tag eklendi
 (robots.txt indeks önler ama view-source temizliği için meta de).

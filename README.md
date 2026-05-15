@@ -4,10 +4,8 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
-**Faz 5 — Real-time + Olgunlaştırma + KVKK başladı (2 Mayıs 2026).**
+**Faz 5 — Real-time + Olgunlaştırma + KVKK tamamlandı (15 Mayıs 2026).**
 [Charter](./docs/phase-5-charter.md) · [Roadmap](./docs/phase-5-roadmap.md)
-
-**Faz 5 Dalga B — Mesajlaşma altyapısı tamamlandı (5 Mayıs 2026).**
 
 - 17/17 hesaplayıcı aktif
 - 779/779 test geçiyor
@@ -273,10 +271,58 @@ moderasyonu (Hide/Sil + Şikayet), engelleme + anonimize entegrasyonu.
 | Yeni teknoloji | — | SignalR + WebSocket + IHubContext | — |
 | Genişletilen enum | — | ContentReportTargetType.Message=3 | — |
 
-### Sonraki: Dalga C (5.8-5.9)
+## Faz 5 — Tamamlandı (15 Mayıs 2026)
 
-- 5.8 SQL Server LocalDB test migration (InMemory'den geçiş)
-- 5.9 Faz 5 closeout (roadmap, README final, tech-debt, `phase-5-complete` tag)
+**Tag:** `phase-5-complete` (manuel doğrulama sonrası) · **Süre:** 2 Mayıs → 15 Mayıs 2026 (~2 hafta, charter 6 hafta tahmini)
+
+Faz 5 = Dalga A + B + C (9 alt adım). 1-1 mesajlaşma, KVKK uyumlu hesap silme,
+spam koruması (rate limiting), hide moderation, ve tüm test altyapısının InMemory'den
+SQL Server LocalDB'ye geçişi.
+
+### Dalga A — Olgunlaştırma (3 Mayıs 2026)
+- **5.1** KVKK hesap silme + anonimize (UserAnonymizationService, hard delete YOK)
+- **5.2** Rate limiting middleware (5 named policy: comment/report/message/connection/ajax-general)
+- **5.3** Hide moderation (UserPost/Comment `IsModeratorHidden`) + Authorize endpoint'lerine otomatik NoIndex
+
+### Dalga B — Mesajlaşma altyapısı (5 Mayıs 2026)
+- **5.4** Conversation + Message entity + servis (CanMessage: bağlantı OR aynı tenant + NOT engelleme; deterministic User1Id<User2Id)
+- **5.5** `/mesajlar` UI + 5 AJAX endpoint + 30 sn polling fallback
+- **5.6** SignalR real-time (`IMessagingNotifier` abstraction, Hub `/hubs/messages`, polling fallback korunur)
+- **5.7** Mesaj moderasyon (kebab Şikayet + admin Hide/Unhide/Sil + real-time MessageHidden event)
+
+### Dalga C — Test infrastructure + closeout (15 Mayıs 2026)
+- **5.8** SQL Server LocalDB test migration (P1 pilot + P2 tam geçiş; InMemory provider kaldırıldı)
+- **5.9** Faz 5 closeout (bu commit)
+
+### Metrikler
+
+| Metrik | Faz 4 sonu | Faz 5 sonu | Delta |
+|---|---|---|---|
+| Test | 666 | 779 | +113 (+%17) |
+| Migration | 30 | 32+ | +2 (AddMessaging, AddMessageModeratorHide) |
+| Yeni entity | — | 2 | Conversation, Message |
+| Yeni Razor Page | — | 3 | `/mesajlar`, `/mesajlar/{id}`, `/mesajlar/yeni` |
+| Yeni AJAX endpoint | — | 5 | send, delete, get, new (polling), mark-read |
+| Yeni teknoloji | — | SignalR + WebSocket + IHubContext | — |
+| Yeni rate limit policy | — | 5 named | comment/report/message/connection/ajax-general |
+| Test altyapısı | InMemory | SQL Server LocalDB | per-test fresh DB, production-yakın semantik |
+
+### Lex Calculus artık
+- Hukuki hesaplamalar (Faz 1-3): 17/17 hesaplayıcı aktif
+- Kullanıcı kayıt + tenant (hukuk büroları), multi-tenant izolasyon
+- Public profil + LinkedIn-style bağlantı + engelleme + notification
+- Makale + Quill editor + featured/inline image + tag/kategori
+- Public makale + SEO + sitemap
+- Yorum + beğeni + AJAX
+- Moderasyon: şikayet + admin Hide/Sil paneli (Post + Comment + Message)
+- **Real-time mesajlaşma** (SignalR, polling fallback)
+- **KVKK uyumlu** hesap silme (anonimize stratejisi, hard delete YOK)
+- **Spam koruması** (rate limiting middleware, 5 named policy)
+- **Test infrastructure:** SQL Server LocalDB (production-yakın IDENTITY/FK/transaction semantiği)
+
+### Sonraki: Faz 6
+
+Charter ayrı bir adımda hazırlanacak. Aday konular `docs/phase-5-charter.md` §12'de.
 
 ---
 
