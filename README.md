@@ -4,6 +4,9 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
+**Faz 6 — Olgunlaştırma + UX + Performance başladı (29 Mayıs 2026).**
+[Charter](./docs/phase-6-charter.md) · [Roadmap](./docs/phase-6-roadmap.md) · [Kapsam envanteri](./docs/phase-6-scope-inventory.md)
+
 **Faz 5 — Real-time + Olgunlaştırma + KVKK tamamlandı (15 Mayıs 2026).**
 [Charter](./docs/phase-5-charter.md) · [Roadmap](./docs/phase-5-roadmap.md)
 
@@ -320,9 +323,18 @@ SQL Server LocalDB'ye geçişi.
 - **Spam koruması** (rate limiting middleware, 5 named policy)
 - **Test infrastructure:** SQL Server LocalDB (production-yakın IDENTITY/FK/transaction semantiği)
 
-### Sonraki: Faz 6
+### Sonraki: Faz 6 — başladı (29 Mayıs 2026)
 
-Charter ayrı bir adımda hazırlanacak. Aday konular `docs/phase-5-charter.md` §12'de.
+Faz 6 "Olgunlaştırma + UX + Performance": email notification kanalı, UX
+iyileştirmeleri (tag autocomplete, view dedupe, sayfalama, comment edit
+history), performance (n+1 refactor, reuse extract) ve güvenlik/uyarı
+temizliği. 3 dalga, 12 alt adım (6.2-6.13).
+
+- [Faz 6 Charter](./docs/phase-6-charter.md) — 6 mimari karar, dalga kırılımı
+- [Faz 6 Roadmap](./docs/phase-6-roadmap.md) — adım adım plan
+- [Kapsam envanteri](./docs/phase-6-scope-inventory.md) — Adım 6.0 denetimi
+
+Sıradaki: **Adım 6.2 — Email altyapısı**.
 
 ---
 
