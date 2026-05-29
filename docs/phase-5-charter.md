@@ -390,16 +390,23 @@ Faz 5 = Dalga A + B + C (9 alt adım) tamamlandı.
 ## §12 Faz 6 Önizleme (kapanış güncellemesi)
 
 §9'daki orijinal önizleme korunuyor; aşağıda Faz 5'in açığa çıkardığı ek
-tech-debt aday maddeleri:
+tech-debt aday maddeleri (tech-debt numaraları Adım 6.0 denetiminde
+düzeltildi — bkz. `docs/phase-6-scope-inventory.md` §3):
 
 - ChainedRateLimiter (saat+dakika çift limit, §3 Karar 7 spec gereği)
-- ConversationService N+1 (#29 `GetForUserAsync`, #30 `GetUnreadCountAsync`)
+- ConversationService N+1 (#31 `GetForUserAsync`, #32 `GetUnreadCountAsync`)
 - Polling sayfa görünürlüğüne duyarsız (#24)
-- SignalR multi-tab mark-as-read race (#26)
+- SignalR multi-tab mark-as-read race (#37 — Adım 6.0'da deftere alındı; eskiden
+  yanlışlıkla #26'ya atıf vardı, #26 aslında "avatar URL user-agnostic")
 - SignalR JS production self-host (#27 integrity hash)
-- IPartialRenderer reuse pattern (#28)
+- IPartialRenderer reuse pattern (#38 — Adım 6.0'da deftere alındı; eskiden
+  yanlışlıkla #28'e atıf vardı, #28 aslında "SignalR Redis backplane")
 - Admin mesaj "Tüm konuşmayı incele" (#33)
 - Test infrastructure hızlandırma (Respawn / snapshot — per-test migrate maliyeti)
+
+Adım 6.0 denetiminde eklenen ek aday maddeler: #35 (NU1901 NuGet güvenlik),
+#36 (CA2024 async uyarı), #39 (NotificationsEmailEnabled orphan field — #22
+email kanalı başlangıcı), #40 (polling fallback manuel test borcu).
 
 Faz 6 charter bu maddelerle birlikte §9'daki orijinal listeden öncelikleri seçecek.
 

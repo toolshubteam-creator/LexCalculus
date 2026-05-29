@@ -686,7 +686,7 @@ uygula.
 
 ---
 
-## 25. Mesajlar 'Daha fazla yükle' aktif değil
+## 25. Mesajlar 'Daha fazla yükle' aktif değil (≡ eski #30, tekleştirildi)
 
 **Bağlam:** Adım 5.5'te `/mesajlar/{id}` Detail sayfasında HasMore=true
 durumunda "Daha fazla yükle" butonu render ediliyor, ama tıklamada
@@ -705,7 +705,8 @@ yapısını render edebilecek bir JS template fonksiyonu yazılmadı).
   HTML üret (ama XSS riski + duplicate code).
 
 **Önerilen zaman:** Adım 5.6 (SignalR) ile birlikte tasarım yenilemesi
-sırasında veya Faz 6+ pagination iyileştirmesi.
+sırasında veya Faz 6+ pagination iyileştirmesi. Pratikte 50'den fazla
+mesajı olan konuşma az olduğu için düşük öncelik (eski #30 notu).
 
 ---
 
@@ -782,21 +783,14 @@ veya yeni "signalr-negotiate" policy (5/dakika).
 
 ---
 
-## 30. Mesaj 'Daha fazla yükle' sayfalama placeholder
+## 30. Mesaj 'Daha fazla yükle' sayfalama placeholder — DUPLICATE → #25
 
-**Bağlam:** Adım 5.5'te `/mesajlar/{id}` Detail sayfasında `HasMore=true`
-durumunda "Daha fazla yükle" butonu render ediliyor; tıklanınca alert
-gösteriyor (placeholder).
-
-**Mevcut durum:** REST endpoint `/api/messages/{id}?skip=N` mevcut,
-VM array dönüyor. Ancak client'ta partial HTML render JS template
-eksik. Pratikte 50'den fazla mesajı olan konuşma az.
-
-**İdeal çözüm:** Server-side render endpoint (`/api/messages/{id}/page?skip=N`
-→ `_Message` HTML array) + client `insertAdjacentHTML('afterbegin')`.
-
-**Önerilen zaman:** Konuşma uzunlukları arttığında veya kullanıcı
-şikayeti gelirse. Düşük öncelik.
+**Not (Adım 6.0 denetimi, 29 Mayıs 2026):** Bu madde #25 ("Mesajlar
+'Daha fazla yükle' aktif değil") ile aynı konuyu anlatıyordu — Adım 5.5
+raporlamasında yanlışlıkla iki kez kaydedildi. **Kanonik kayıt: #25**
+(daha ayrıntılı; iki çözüm seçeneği + XSS notu içeriyor). #30'un tek
+özgün notu ("50+ mesajlı konuşma az → düşük öncelik") #25'e taşındı.
+Numara dosya stabilitesi için silinmedi.
 
 ---
 
@@ -901,3 +895,144 @@ veya per-test DB).
 testin düzeltilmesi. 21 kırılma >20 eşiğini geçtiği için P2 stratejisi
 (toplu geçiş mi, kademeli mi; izolasyon modeli) başlamadan önce gözden
 geçirilmeli.
+
+---
+
+# Adım 6.0 Denetiminde Eklenen Belgelenmemiş Maddeler (29 Mayıs 2026)
+
+Faz 4-5 boyunca karar/uyarı olarak ortaya çıkmış ama tech-debt'e
+işlenmemiş 6 madde. Adım 6.0 (Faz 5 sonu denetim) sırasında tespit edilip
+deftere alındı. Detay: `docs/phase-6-scope-inventory.md` §3.
+
+---
+
+## 35. NU1901 — NuGet paket güvenlik açığı (transitive)
+
+**Bağlam:** Faz 4-5 boyunca her `dotnet build` çıktısında NU1901 uyarısı
+göründü; hiçbir adımda kapatılmadı veya deftere alınmadı.
+
+**Mevcut durum:** `LexCalculus.Web` build'inde `NuGet.Packaging` 6.12.1 ve
+`NuGet.Protocol` 6.12.1 paketlerinde düşük önem dereceli bilinen güvenlik
+açığı (GHSA-g4vj-cjjj-v7hg) uyarısı veriliyor. Transitive bağımlılık
+(codegenerator/scaffolding tooling zinciri), runtime path'e girmiyor →
+çalışan üründe istismar yüzeyi yok. Ama build gürültüsü + "açık var"
+sinyali.
+
+**İdeal çözüm:** Geçişli paketleri yamalı sürüme zorla — ya `dotnet list
+package --vulnerable --include-transitive` ile kaynağı bul + üst paketi
+güncelle, ya da `Directory.Packages.props` / `<PackageReference>` ile
+`NuGet.Packaging` ve `NuGet.Protocol` ≥ yamalı sürüme pin'le. Geçişli
+sahibi tooling ise tooling sürümünü yükselt.
+
+**Önerilen zaman:** Faz 6 (güvenlik önceliği). Düşük önem ama "açık var"
+durumu kapatılmalı. Tahmini iş: ~0.5 saat.
+
+---
+
+## 36. CA2024 — async metotta `reader.EndOfStream` kullanımı
+
+**Bağlam:** Build analyzer uyarısı (CA2024). Faz 1-2'de yazılan CSV parser
+kodunda, .NET 10 analyzer'ı tarafından işaretleniyor.
+
+**Mevcut durum:** `LexCalculus.Infrastructure/Services/Csv/LifeTableCsvParser.cs:43`
+async bir metotta senkron `StreamReader.EndOfStream` property'sini kullanıyor.
+CA2024: async akışta `EndOfStream` gizli senkron blocking yapabilir; doğrusu
+`ReadLineAsync` döngüsü + null kontrolü. Fonksiyonel hata değil (LifeTable CSV
+küçük), sadece kod kalitesi.
+
+**İdeal çözüm:** `while ((line = await reader.ReadLineAsync(ct)) != null)`
+döngüsüne çevir, `EndOfStream` kontrolünü kaldır.
+
+**Önerilen zaman:** Faz 6 (küçük temizlik). Tahmini iş: ~15 dk + test
+regresyon kontrolü.
+
+---
+
+## 37. SignalR multi-tab mark-as-read race condition
+
+**Bağlam:** Adım 5.6 (SignalR) sırasında konuşuldu ama tech-debt'e eklenmedi.
+Charter §12 Faz 6 önizlemesinde "#26" numarasıyla anılmıştı — ama #26 aslında
+"avatar URL user-agnostic" maddesi; bu race condition'ın kaydı hiç açılmamıştı.
+
+**Mevcut durum:** Aynı kullanıcı iki sekmede aynı konuşmayı açık tutarsa:
+Tab A mesajı görüntüleyip mark-as-read tetikler, Tab B'deki okunmamış sayacı
+(badge) ve "yeni" işaretleri eski kalır. SignalR mark-read event'i diğer
+sekmeye broadcast edilmediği için iki sekme arası senkron bozulur. Pratik
+etki düşük (kozmetik badge tutarsızlığı), veri kaybı yok.
+
+**İdeal çözüm:** Mark-read olayını kullanıcının `user-{id}` SignalR grubuna
+broadcast et (kendi diğer sekmeleri dahil) → tüm açık sekmeler badge'i
+günceller. `ConversationRead` event + client handler.
+
+**Önerilen zaman:** Faz 6 D kümesi (UX iyileştirme). Tahmini iş: ~0.5 gün.
+
+---
+
+## 38. IPartialRenderer reuse pattern refactor (mesaj VM + render duplikasyonu)
+
+**Bağlam:** Adım 5.7'de bahsedildi; charter §12'de "#28" numarasıyla anıldı —
+ama #28 aslında "SignalR Redis backplane"; bu refactor maddesinin kaydı
+açılmamıştı. (`IPartialRenderer` primitive'i zaten mevcut ve paylaşılıyor;
+borç, onun ÜZERİNDEKİ kompozisyonun tekrar etmesi.)
+
+**Mevcut durum:** "Bir `Message` entity'sinden, belirli bir viewer için
+`MessageViewModel` kur (avatar URL `IMediaStorage.GetPublicUrl`, displayName
+`GetDisplayNameOrAnonymized`, IsOwnMessage perspektifi) + `_Message` partial'ı
+render et" dizisi iki yerde neredeyse birebir tekrarlanıyor:
+- `MessagesController` (Send / GetNewSince polling endpoint'leri)
+- `SignalRMessagingNotifier.NotifyMessageReceivedAsync`
+
+DRY ihlali; mesaj VM şekli değişirse iki yer senkron güncellenmeli.
+
+**İdeal çözüm:** `IMessageHtmlRenderer.RenderForViewerAsync(Message msg,
+int viewerId, CancellationToken ct)` helper extract et — VM kurma +
+`_partial.RenderAsync("_Message", vm)` tek noktada. İki çağıran da bunu
+kullanır.
+
+**Önerilen zaman:** Faz 6 F kümesi (performance/cleanliness). Tahmini iş:
+~0.5 gün.
+
+---
+
+## 39. NotificationsEmailEnabled orphan field (kullanılmayan alan)
+
+**Bağlam:** `ApplicationUser.NotificationsEmailEnabled` alanı Faz 3'te eklendi
+(`AddNotificationsEmailEnabledToUser`, migration 20260428132236). Eklendiği
+andan beri hiçbir serviste OKUNMUYOR — dead field. (Not: bu alan ayrıca
+tech-debt #3'teki "EF migration default" tuzağının da kaynağıydı.)
+
+**Mevcut durum:** Kolon DB'de var, kullanıcı başına bir bool tutuyor ama hiçbir
+akış değerini sorgulamıyor. Email notification kanalı (madde #22) hiç
+uygulanmadığı için alan boşta duruyor.
+
+**İdeal çözüm:** Faz 6 B kümesi (email notification, #22) bu mevcut flag'i
+tüketsin — `NotificationService.CreateAsync` sonrası email tetiklemeden önce
+`user.NotificationsEmailEnabled` kontrol edilsin. Per-tür opt-in gerekirse
+`UserNotificationPreferences` entity'sine genişletilir; bu coarse flag "global
+email aç/kapa" olarak kalır veya migrate edilir. Yani silinmez — #22'nin
+başlangıç noktası.
+
+**Önerilen zaman:** Faz 6 B kümesi (email kanalı uygulanırken). İş #22 ile
+birlikte.
+
+---
+
+## 40. Polling fallback manuel test borcu (Adım 5.6 Senaryo 5)
+
+**Bağlam:** Adım 5.6 (SignalR) manuel doğrulama Senaryo 5 — "SignalR bağlantısı
+kopuk → 30 sn polling fallback devreye girer" — kullanıcı tarafından
+"deneyemedim" notuyla **doğrulanmadı**. Faz 5 kapanışında (`phase-5-complete`)
+açık kaldı.
+
+**Mevcut durum:** Polling fallback kod yolu mevcut ve integration test'lerle
+dolaylı kapsanıyor (MessagesApiControllerTests GetNewSince), ama "WebSocket
+kopunca tarayıcıda gerçekten polling'e düşüyor mu" uçtan uca tarayıcı
+doğrulaması yapılmadı. Adım 6.0 kararı: bloklayıcı değil — otomatik test'lerle
+dolaylı kapsanmış kabul edilir, manuel doğrulama Faz 6'ya taşınır.
+
+**İdeal çözüm:** Faz 6 B kümesi (email notification) akışı test edilirken
+bütünsel mesajlaşma smoke testi içinde: DevTools'tan WS bağlantısı bloklanır,
+30 sn polling akışı + yeni mesaj gelişi gözlemlenir.
+
+**Önerilen zaman:** Faz 6 B kümesi notification testleri sırasında. Tahmini
+iş: ~10 dk smoke.
