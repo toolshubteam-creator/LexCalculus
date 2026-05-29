@@ -1,0 +1,30 @@
+@model LexCalculus.Core.Email.Models.ContentReportEmailModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = "Lex Calculus — İçerik Bildirimi";
+}
+
+<h1 style="margin:0 0 20px 0;font-family:Georgia,serif;font-size:24px;color:#0a1428;font-weight:normal;">
+  İçerik Bildirimi
+</h1>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.RecipientDisplayName,
+</p>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  @Model.ContentType içeriğiniz @if (!string.IsNullOrEmpty(Model.ContentTitle)) {<text>(“@Model.ContentTitle”) </text>}yönetim tarafından
+  <strong style="color:#6b1f2e;">@Model.ActionType.ToLowerInvariant()</strong>.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.ReviewNote))
+{
+  <p style="margin:0 0 18px 0;font-size:14px;line-height:1.6;color:#0a1428;opacity:0.8;">
+    <strong>Not:</strong> @Model.ReviewNote
+  </p>
+}
+
+<p style="margin:24px 0 0 0;font-size:13px;color:#0a1428;opacity:0.7;font-style:italic;line-height:1.6;">
+  Bu işlem topluluk kurallarımız çerçevesinde gerçekleştirildi. Sorularınız için
+  yönetim ile iletişime geçebilirsiniz.
+</p>

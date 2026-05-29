@@ -1,0 +1,42 @@
+@model LexCalculus.Core.Email.Models.ConnectionEmailModel
+@{
+    Layout = "/Views/Emails/_EmailLayout.cshtml";
+    ViewBag.Title = Model.IsAccepted
+        ? "Lex Calculus — Bağlantı İsteğiniz Kabul Edildi"
+        : "Lex Calculus — Yeni Bağlantı İsteği";
+}
+
+<h1 style="margin:0 0 20px 0;font-family:Georgia,serif;font-size:24px;color:#0a1428;font-weight:normal;">
+  @(Model.IsAccepted ? "Bağlantı İsteğiniz Kabul Edildi" : "Yeni Bağlantı İsteği")
+</h1>
+
+<p style="margin:0 0 18px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+  Merhaba @Model.RecipientDisplayName,
+</p>
+
+@if (Model.IsAccepted)
+{
+  <p style="margin:0 0 24px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+    <strong style="color:#6b1f2e;">@Model.OtherDisplayName</strong> bağlantı isteğinizi
+    kabul etti. Artık birbirinizle mesajlaşabilirsiniz.
+  </p>
+}
+else
+{
+  <p style="margin:0 0 24px 0;font-size:16px;line-height:1.6;color:#0a1428;">
+    <strong style="color:#6b1f2e;">@Model.OtherDisplayName</strong> size bağlantı isteği
+    gönderdi.
+  </p>
+}
+
+<div style="text-align:center;margin:28px 0;">
+  <a href="@Model.ProfileUrl"
+     style="display:inline-block;padding:14px 28px;background-color:#0a1428;color:#f4ede0;font-family:'Courier New',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border:1px solid #b8924a;">
+    @(Model.IsAccepted ? "Profili Görüntüle" : "İsteği İncele")
+  </a>
+</div>
+
+<p style="margin:24px 0 0 0;font-size:13px;color:#0a1428;opacity:0.7;font-style:italic;line-height:1.6;">
+  Bu bildirimleri almak istemiyorsanız profil sayfanızdan e-posta tercihlerinizi
+  güncelleyebilirsiniz.
+</p>

@@ -41,6 +41,16 @@
                 <input class="admin-form__input" asp-for="Subject" />
             </div>
 
+            <div class="admin-form__field">
+                <label class="admin-form__label" asp-for="TemplateName">Şablon</label>
+                <select class="admin-form__input" asp-for="TemplateName">
+                    @foreach (var t in LexCalculus.Web.Areas.Admin.Models.TestEmailFormViewModel.AvailableTemplates)
+                    {
+                        <option value="@t.Value">@t.Label</option>
+                    }
+                </select>
+            </div>
+
             <div class="admin-form__actions">
                 <button type="submit" class="admin-btn admin-btn--primary">Test Gönder</button>
             </div>

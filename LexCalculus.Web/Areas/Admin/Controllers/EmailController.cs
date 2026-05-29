@@ -1,4 +1,5 @@
 using LexCalculus.Core.Email;
+using LexCalculus.Core.Email.Models;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Web.Areas.Admin.Models;
 using LexCalculus.Web.Infrastructure.Email;
@@ -63,15 +64,7 @@ public sealed class EmailController : Controller
 
         try
         {
-            var model = new TestEmailModel
-            {
-                RecipientName = vm.RecipientName ?? "Admin",
-                Provider = _options.Provider,
-                SentAt = DateTime.UtcNow,
-                MachineName = Environment.MachineName
-            };
-
-            var html = await _renderer.RenderAsync("TestEmail", model, ct);
+            var html = await RenderSampleAsync(vm.TemplateName, vm.RecipientName ?? "Admin", ct);
             var success = await _emailService.SendAsync(
                 new EmailMessage(vm.ToAddress, vm.RecipientName, vm.Subject, html), ct);
 
@@ -94,4 +87,54 @@ public sealed class EmailController : Controller
 
         return RedirectToAction(nameof(Test));
     }
+
+    /// <summary>
+    /// Seçilen şablon için örnek (hardcoded) model ile HTML render eder — admin
+    /// smoke amaçlı. Gerçek gönderimde model'ler ilgili servislerce doldurulur.
+    /// </summary>
+    private Task<string> RenderSampleAsync(string templateName, string recipientName, CancellationToken ct) =>
+        templateName switch
+        {
+            "Connection" => _renderer.RenderAsync("Connection", new ConnectionEmailModel
+            {
+                RecipientDisplayName = recipientName,
+                OtherDisplayName = "Av. Selin Demir",
+                IsAccepted = false,
+                ProfileUrl = "https://lexcalculus.local/uye/selin-demir"
+            }, ct),
+
+            "Comment" => _renderer.RenderAsync("Comment", new CommentEmailModel
+            {
+                RecipientDisplayName = recipientName,
+                CommenterDisplayName = "Av. Selin Demir",
+                PostTitle = "Kıdem Tazminatı Hesaplama Rehberi",
+                CommentBodyPreview = "Çok faydalı bir yazı olmuş, teşekkürler. Bir sorum olacaktı...",
+                PostUrl = "https://lexcalculus.local/uye/ahmet/makale/kidem-tazminati"
+            }, ct),
+
+            "ContentReport" => _renderer.RenderAsync("ContentReport", new ContentReportEmailModel
+            {
+                RecipientDisplayName = recipientName,
+                ActionType = "Gizlendi",
+                ContentType = "Yorum",
+                ContentTitle = null,
+                ReviewNote = "Topluluk kuralları gereği gizlendi."
+            }, ct),
+
+            "MessageDigest" => _renderer.RenderAsync("MessageDigest", new MessageDigestEmailModel
+            {
+                RecipientDisplayName = recipientName,
+                UnreadCount = 3,
+                SenderDisplayNames = new[] { "Av. Selin Demir", "Bilirkişi Mehmet Kaya" },
+                MessagesUrl = "https://lexcalculus.local/mesajlar"
+            }, ct),
+
+            _ => _renderer.RenderAsync("TestEmail", new TestEmailModel
+            {
+                RecipientName = recipientName,
+                Provider = _options.Provider,
+                SentAt = DateTime.UtcNow,
+                MachineName = Environment.MachineName
+            }, ct),
+        };
 }
