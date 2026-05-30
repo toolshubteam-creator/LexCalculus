@@ -906,7 +906,13 @@ deftere alındı. Detay: `docs/phase-6-scope-inventory.md` §3.
 
 ---
 
-## 35. NU1901 — NuGet paket güvenlik açığı (transitive)
+## ✅ 35. NU1901 — NuGet paket güvenlik açığı (transitive) — ÇÖZÜLDÜ (Adım 6.4, 30 Mayıs 2026)
+
+**Çözüm:** GHSA-g4vj-cjjj-v7hg → 6.12.x hattında ilk yamalı sürüm **6.12.5**
+(vulnerable 6.12.0-6.12.4). `LexCalculus.Web.csproj`'a transitive pinning
+(Strateji 1): `NuGet.Packaging` + `NuGet.Protocol` 6.12.5 explicit PackageReference.
+Sahip (`Microsoft.VisualStudio.Web.CodeGeneration.Design`) 6.12.1 çekiyordu;
+pinning override etti. Build 0 NU1901, version conflict yok, 798/798 yeşil.
 
 **Bağlam:** Faz 4-5 boyunca her `dotnet build` çıktısında NU1901 uyarısı
 göründü; hiçbir adımda kapatılmadı veya deftere alınmadı.
@@ -929,7 +935,13 @@ durumu kapatılmalı. Tahmini iş: ~0.5 saat.
 
 ---
 
-## 36. CA2024 — async metotta `reader.EndOfStream` kullanımı
+## ✅ 36. CA2024 — async metotta `reader.EndOfStream` kullanımı — ÇÖZÜLDÜ (Adım 6.4, 30 Mayıs 2026)
+
+**Çözüm:** `LifeTableCsvParser.ParseAsync` veri-satırı döngüsü
+`while (!reader.EndOfStream) { line = await ReadLineAsync() }` →
+`while ((rawLine = await reader.ReadLineAsync(ct)) != null)`. EOF'ta null,
+boş satırda "" döndüğü için `lineNumber`/blank-skip semantiği birebir korundu.
+CSV + LifeTable testleri (20) yeşil — fonksiyonel eşdeğer.
 
 **Bağlam:** Build analyzer uyarısı (CA2024). Faz 1-2'de yazılan CSV parser
 kodunda, .NET 10 analyzer'ı tarafından işaretleniyor.

@@ -39,11 +39,14 @@ public sealed class LifeTableCsvParser : ILifeTableCsvParser
         }
 
         // 2. Veri satırları
+        // CA2024: async akışta senkron EndOfStream yerine ReadLineAsync döngüsü.
+        // Davranış aynı — ReadLineAsync EOF'ta null, boş satırda "" döner.
         var lineNumber = 1;
-        while (!reader.EndOfStream)
+        string? rawLine;
+        while ((rawLine = await reader.ReadLineAsync(ct)) != null)
         {
             lineNumber++;
-            var line = (await reader.ReadLineAsync(ct))?.Trim();
+            var line = rawLine.Trim();
 
             if (string.IsNullOrWhiteSpace(line))
                 continue;
