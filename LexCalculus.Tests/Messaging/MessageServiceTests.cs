@@ -1,4 +1,5 @@
 using FluentAssertions;
+using LexCalculus.Core.Entities.Email;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Entities.Social;
@@ -196,6 +197,34 @@ public class MessageServiceTests : SqlServerTestBase
         page1.Should().HaveCount(2);
         page2.Should().HaveCount(2);
         page1.Select(m => m.Id).Should().NotIntersectWith(page2.Select(m => m.Id));
+    }
+
+    [Fact]
+    public async Task SendAsync_RecipientDigestPrefOn_CreatesDigestEntry()
+    {
+        var (msgSvc, _, ctx) = Setup();
+        // Alıcı (u2) için profil + dijest tercihi açık (master default true)
+        ctx.UserProfiles.Add(new UserProfile { UserId = _u2, DisplayName = "User b", EmailOnMessageDigest = true });
+        await ctx.SaveChangesAsync();
+
+        await msgSvc.SendAsync(_u1, _u2, "Selam");
+
+        var entries = await ctx.EmailDigestEntries.Where(e => e.UserId == _u2).ToListAsync();
+        entries.Should().HaveCount(1);
+        entries[0].Type.Should().Be(EmailDigestType.Message);
+        entries[0].IsSent.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SendAsync_RecipientDigestPrefOff_DoesNotCreateEntry()
+    {
+        var (msgSvc, _, ctx) = Setup();
+        ctx.UserProfiles.Add(new UserProfile { UserId = _u2, DisplayName = "User b", EmailOnMessageDigest = false });
+        await ctx.SaveChangesAsync();
+
+        await msgSvc.SendAsync(_u1, _u2, "Selam");
+
+        (await ctx.EmailDigestEntries.CountAsync()).Should().Be(0);
     }
 
     private sealed class FakeMediaStorage : IMediaStorage

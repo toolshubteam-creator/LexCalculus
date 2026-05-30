@@ -46,5 +46,18 @@
                 }
             });
         });
+
+        // Faz 6.2 P2 — granüler e-posta tercihleri: master ("E-posta bildirimleri al")
+        // kapalıyken grubu görsel olarak pasifleştir. Input'lar disabled DEĞİL —
+        // değerleri POST'ta korunur (disabled checkbox POST etmez).
+        var master = document.getElementById('Input_NotificationsEmailEnabled');
+        var granular = document.querySelector('[data-email-granular]');
+        if (master && granular) {
+            var syncGranular = function () {
+                granular.classList.toggle('is-dimmed', !master.checked);
+            };
+            master.addEventListener('change', syncGranular);
+            syncGranular();
+        }
     });
 })();

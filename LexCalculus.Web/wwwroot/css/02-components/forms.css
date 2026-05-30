@@ -320,6 +320,14 @@
   display: none !important;
 }
 
+/* Faz 6.2 P2 — granüler e-posta tercihleri. Master ("E-posta bildirimleri al")
+   kapalıyken görsel olarak pasifleşir. Input'lar disabled DEĞİL — değerleri
+   POST'ta korunur (disabled checkbox POST etmez), yalnızca etkileşim kapatılır. */
+.field--email-granular.is-dimmed {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* Identity flow mesaj blokları (ConfirmEmail, RegisterConfirmation, Lockout) */
 .form-section__message {
   padding: var(--sp-4) var(--sp-5);

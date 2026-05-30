@@ -1036,3 +1036,27 @@ bütünsel mesajlaşma smoke testi içinde: DevTools'tan WS bağlantısı blokla
 
 **Önerilen zaman:** Faz 6 B kümesi notification testleri sırasında. Tahmini
 iş: ~10 dk smoke.
+
+---
+
+## 41. Envanter denetimleri usage/grep taraması içermeli (süreç)
+
+**Bağlam:** Adım 6.0 envanteri `NotificationsEmailEnabled`'ı (#39) "Faz 3'ten
+beri unwired orphan" diye etiketledi. Adım 6.2 P1/P2'de bunun **yanlış** olduğu
+ortaya çıktı: alan hem `DataFreshnessCheckJob` (sistem/tazelik e-postaları opt-out)
+hem de `/profil` toggle'ı tarafından **aktif kullanılıyordu**. Bu yanlış etiket
+charter §3 Karar 3'e "deprecate + DropColumn" olarak sızdı; uygulanmadan önce
+yakalanıp master-switch-korunur tasarıma çevrildi (drop edilseydi tazelik
+e-postası opt-out'u ve profil toggle'ı kırılırdı).
+
+**Mevcut durum:** Envanter denetimi (Adım 6.0) bir alanın "kullanılıyor mu"
+sorusunu **dosya/property varlığına** göre yanıtladı; gerçek **referans taraması**
+(grep `NotificationsEmailEnabled`) yapmadı. "Orphan" iddiaları bu yüzden güvenilmez.
+
+**İdeal çözüm:** Envanter/denetim adımlarında bir alanı "kullanılmıyor" ilan
+etmeden önce zorunlu usage taraması: `grep -r <symbol>` (servis + job + view +
+test) + en az 1 referansın anlamı doğrulanır. "Dosya var ama çağıran yok"
+kanıtlanmadan orphan denmez.
+
+**Önerilen zaman:** Süreç kuralı — Faz 6 closeout (Adım 6.13) retrospektifinde
+CLAUDE.md veya denetim şablonuna eklenir. Kod borcu değil, denetim-kalitesi borcu.

@@ -214,6 +214,11 @@ try
 
     builder.Services.AddScoped<IEmailTemplateRenderer, EmailTemplateRenderer>();
 
+    // Faz 6.2 P2 — sosyal bildirim e-posta dispatcher + mesaj dijesti job
+    builder.Services.AddScoped<LexCalculus.Core.Email.INotificationEmailDispatcher,
+        LexCalculus.Infrastructure.Email.NotificationEmailDispatcher>();
+    builder.Services.AddScoped<LexCalculus.Jobs.Messaging.ProcessMessageDigestJob>();
+
     // Notifications
     builder.Services.AddScoped<INotificationService, NotificationService>();
 
@@ -682,6 +687,13 @@ try
             "expire-invitations",
             job => job.ExecuteAsync(CancellationToken.None),
             "0 3 * * *",
+            new Hangfire.RecurringJobOptions { TimeZone = istanbulTz });
+
+        // Faz 6.2 P2 — mesaj dijesti: her dakika tara, 5 dk eşiğini geçen kalemleri gönder
+        Hangfire.RecurringJob.AddOrUpdate<LexCalculus.Jobs.Messaging.ProcessMessageDigestJob>(
+            "process-message-digest",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "* * * * *",
             new Hangfire.RecurringJobOptions { TimeZone = istanbulTz });
     }
 

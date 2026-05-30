@@ -87,6 +87,23 @@ public class UserProfile : BaseEntity
     /// </summary>
     public bool ShowConnections { get; set; }
 
+    // ─── Faz 6.2 P2 — granüler e-posta bildirim tercihleri ───
+    // Üst seviye ana anahtar ApplicationUser.NotificationsEmailEnabled'dır (master).
+    // Aşağıdaki 4 alan kategori bazlı opt-in; master açıkken devreye girer.
+    // Default true (opt-out modeli). #22, charter §3 Karar 3.
+
+    /// <summary>Bağlantı isteği + kabul e-postaları (master açıkken).</summary>
+    public bool EmailOnConnection { get; set; } = true;
+
+    /// <summary>Kendi makaleye yorum e-postaları (master açıkken).</summary>
+    public bool EmailOnComment { get; set; } = true;
+
+    /// <summary>Kendi içeriğe moderasyon kararı e-postaları (master açıkken).</summary>
+    public bool EmailOnContentReport { get; set; } = true;
+
+    /// <summary>Okunmamış mesaj dijesti e-postaları (master açıkken).</summary>
+    public bool EmailOnMessageDigest { get; set; } = true;
+
     /// <summary>
     /// Navigation property — the ApplicationUser this profile belongs to.
     /// </summary>

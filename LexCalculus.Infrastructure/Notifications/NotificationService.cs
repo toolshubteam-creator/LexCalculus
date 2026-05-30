@@ -1,3 +1,4 @@
+using LexCalculus.Core.Email;
 using LexCalculus.Core.Entities.Notifications;
 using LexCalculus.Core.Notifications;
 using LexCalculus.Infrastructure.Data;
@@ -10,12 +11,35 @@ public sealed class NotificationService : INotificationService
 {
     private readonly ApplicationDbContext _ctx;
     private readonly ILogger<NotificationService> _logger;
+    private readonly INotificationEmailDispatcher? _emailDispatcher;
 
-    public NotificationService(ApplicationDbContext ctx, ILogger<NotificationService> logger)
+    public NotificationService(
+        ApplicationDbContext ctx,
+        ILogger<NotificationService> logger,
+        INotificationEmailDispatcher? emailDispatcher = null)
     {
         _ctx = ctx;
         _logger = logger;
+        _emailDispatcher = emailDispatcher;
     }
+
+    /// <summary>
+    /// Faz 6.2 P2 — yalnızca sosyal bildirim tipleri e-posta tetikler. Sistem
+    /// tipleri (DataFreshness, ParameterChange, SystemAlert) DataFreshnessCheckJob'un
+    /// kendi doğrudan-email akışını kullanır; burada tetiklenmez. NewMessage dijest
+    /// akışındadır (MessageService → EmailDigestEntry).
+    /// </summary>
+    private static bool IsSocialEmailType(NotificationType type) => type switch
+    {
+        NotificationType.ConnectionRequest => true,
+        NotificationType.ConnectionAccepted => true,
+        NotificationType.PostComment => true,
+        NotificationType.ContentHidden => true,
+        NotificationType.ContentRestored => true,
+        NotificationType.ContentRemoved => true,
+        NotificationType.ContentReportResolved => true,
+        _ => false
+    };
 
     public async Task<Notification?> CreateAsync(
         NotificationType type,
@@ -70,6 +94,21 @@ public sealed class NotificationService : INotificationService
 
         _ctx.Notifications.Add(notification);
         await _ctx.SaveChangesAsync(ct);
+
+        // Faz 6.2 P2 — sosyal tip ise e-posta tetikle (best-effort, akışı bozmaz).
+        if (_emailDispatcher is not null && IsSocialEmailType(type))
+        {
+            try
+            {
+                await _emailDispatcher.DispatchAsync(notification, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Bildirim e-postası dispatch hatası (notification kaydedildi): {Id}",
+                    notification.Id);
+            }
+        }
 
         return notification;
     }

@@ -103,6 +103,19 @@ public class ProfilModel : PageModel
         [Display(Name = "E-posta bildirimleri")]
         public bool NotificationsEmailEnabled { get; set; }
 
+        // Faz 6.2 P2 — granüler e-posta tercihleri (master açıkken geçerli)
+        [Display(Name = "Bağlantı istekleri")]
+        public bool EmailOnConnection { get; set; }
+
+        [Display(Name = "Makale yorumları")]
+        public bool EmailOnComment { get; set; }
+
+        [Display(Name = "İçerik moderasyon kararları")]
+        public bool EmailOnContentReport { get; set; }
+
+        [Display(Name = "Mesaj özetleri")]
+        public bool EmailOnMessageDigest { get; set; }
+
         // Faz 4.1 P1/3 — public profile alanları
         [Display(Name = "Profilim kamuya açık")]
         public bool IsPublicProfile { get; set; }
@@ -160,6 +173,10 @@ public class ProfilModel : PageModel
             BaroNo = profile.BaroNo,
             PhoneNumber = user.PhoneNumber,
             NotificationsEmailEnabled = user.NotificationsEmailEnabled,
+            EmailOnConnection = profile.EmailOnConnection,
+            EmailOnComment = profile.EmailOnComment,
+            EmailOnContentReport = profile.EmailOnContentReport,
+            EmailOnMessageDigest = profile.EmailOnMessageDigest,
             IsPublicProfile = profile.IsPublicProfile,
             ShowTenant = profile.ShowTenant && HasTenant,
             ShowConnections = profile.ShowConnections,
@@ -274,6 +291,12 @@ public class ProfilModel : PageModel
         // ShowTenant defansif: kullanıcı tenant üyesi değilse her zaman false
         profile.ShowTenant = HasTenant && Input.ShowTenant;
         profile.ShowConnections = Input.ShowConnections;
+
+        // Faz 6.2 P2 — granüler e-posta tercihleri (master = user.NotificationsEmailEnabled)
+        profile.EmailOnConnection = Input.EmailOnConnection;
+        profile.EmailOnComment = Input.EmailOnComment;
+        profile.EmailOnContentReport = Input.EmailOnContentReport;
+        profile.EmailOnMessageDigest = Input.EmailOnMessageDigest;
 
         // Slug yönetimi (Faz 4.1 P2-fix — Yaklaşım 4 görünmez kimlik):
         // Slug kayıt anında EnsureProfileExistsAsync ile üretilir, kullanıcı UI'da

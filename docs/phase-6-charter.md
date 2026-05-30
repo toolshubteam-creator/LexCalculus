@@ -29,7 +29,7 @@ Adım 6.0 envanteri temel: 39 benzersiz tech-debt madde, 21 Faz 6 aday.
 
 | Küme | Maddeler |
 |---|---|
-| **B — Email** | #22 (email kanalı), #39 (orphan field deprecate), #40 (polling fallback smoke) |
+| **B — Email** | #22 (email kanalı), #39 (master switch korunur + granüler), #40 (polling fallback smoke) |
 | **D — UX** | #15 (tag autocomplete), #16 (view dedupe), #18 (image srcset), #21 (comment edit history), #24 (polling görünürlük), #25 (sayfalama), #37 (multi-tab race) |
 | **F — Performance** | #17 (tag helper extract), #27 (SignalR self-host), #31 (GetForUserAsync n+1), #32 (GetUnreadCountAsync n+1), #35 (NU1901), #36 (CA2024), #38 (IPartialRenderer reuse) + ChainedRateLimiter (Faz 5 §3 Karar 7 tamamlama) |
 
@@ -78,16 +78,21 @@ genel render). Plaintext fallback başlangıçta YOK (HTML standart).
 Dijest Hangfire scheduled job (mevcut altyapı, Faz 1+). Per-mesaj email değil
 — gürültüsüzlük (vizyon §2).
 
-### Karar 3 — Email tercih granülaritesi + #39 deprecate
+### Karar 3 — Email tercih granülaritesi + #39 master switch (DÜZELTİLDİ, Adım 6.2 P2)
 
-Kategori başına opt-in (bool kolonlar, default **açık**):
-`EmailOnConnection`, `EmailOnComment`, `EmailOnContentReport`, `EmailOnMessage`.
-`/profil` sayfasında toggle.
+Kategori başına opt-in (`UserProfile` bool kolonları, default **açık**):
+`EmailOnConnection`, `EmailOnComment`, `EmailOnContentReport`, `EmailOnMessageDigest`.
+`/profil` sayfasında toggle (ana anahtarın altında, kapalıyken görsel pasif).
 
-**#39 kararı:** Mevcut `ApplicationUser.NotificationsEmailEnabled` (Faz 3'ten
-beri unwired orphan) **deprecate edilir** — granüler alanlar onun yerine geçer.
-Migration ile drop (EF migration default tuzağı için CLAUDE.md kuralı: üretilen
-migration `Up()` manuel kontrol). Coarse flag yerine 4 granüler alan.
+**#39 kararı (revize):** Adım 6.2 P1/P2 denetiminde `ApplicationUser.NotificationsEmailEnabled`'ın
+**orphan OLMADIĞI** tespit edildi — `DataFreshnessCheckJob` (sistem/tazelik e-postaları)
+hem de `/profil` toggle'ı tarafından zaten kullanılıyor. Bu yüzden **drop EDİLMEZ**;
+anlamı genişletilerek **"tüm e-postalar" ana anahtarı (master)** olarak korunur. 4 granüler
+alan bunun altına eklenir: dispatch sırası `IsActive → Email → Profile → master →
+granüler`. Master kapalıyken (DataFreshness dahil) hiçbir e-posta gitmez — eski davranış
+korunur. Migration: yalnız 4 `AddColumn` + `EmailDigestEntries` tablo, **DropColumn yok**
+(`Up()` defaultValue `true` manuel düzeltildi — CLAUDE.md / tech-debt #3 tuzağı).
+Adım 6.0 envanterinin "#39 orphan" etiketi yanlıştı (bkz. roadmap closeout notu).
 
 ### Karar 4 — View count dedupe (#16)
 
@@ -116,7 +121,7 @@ migration `Up()` manuel kontrol). Coarse flag yerine 4 granüler alan.
 | Adım | Konu | Karar | Tech-debt |
 |---|---|---|---|
 | 6.2 | Email altyapısı (Razor template + `_EmailLayout` + IEmailService entegrasyon) | 1, 2 | #22 |
-| 6.3 | Email tercih sayfası + opt-in (#39 deprecate + granüler alanlar migration + Hangfire dijest) | 2, 3 | #22, #39 |
+| ~~6.3~~ | **6.2 P2'ye birleştirildi** — email tercih + opt-in (#39 master korunur + 4 granüler + Hangfire dijest) | 2, 3 | #22, #39 |
 | 6.4 | NU1901 (#35) + CA2024 (#36) temizliği (mini) | — | #35, #36 |
 | 6.5 | Dalga A closeout (mini — roadmap güncelleme + polling smoke #40) | — | #40 |
 
@@ -158,7 +163,7 @@ Charter **4-5 hafta**. Faz 5 baseline ~2 hafta. Faz 6 çoğunlukla mevcut altyap
 | **IEmailService production gönderim hiç test edilmedi** | A | SMTP config + gerçek email smoke (6.2) — `LoggingEmailService` dev'de, gerçek adapter test edilmeli |
 | **SPF/DKIM/DMARC domain ayarı** | A | Deployment konusu, geliştirme dışı — deliverability charter dışı not |
 | **Hangfire dijest timing + reconciliation** | A | 5 dk pencere idempotent job; çift gönderim guard (son gönderim timestamp) |
-| **#39 deprecate migration default tuzağı** | A | CLAUDE.md kuralı: `Up()` manuel kontrol (geçmiş tuzak #3) |
+| **#39 migration default tuzağı (4 yeni bool)** | A | CLAUDE.md kuralı: `Up()` `defaultValue` manuel `true` yapıldı (geçmiş tuzak #3) |
 | **multi-tab mark-as-read race** | B | SignalR: alıcının TÜM tab'larına read-state broadcast (IMessagingNotifier reuse) |
 | **n+1 refactor performans regresyon riski** | C | EF query-count assertion testleri (mevcut testler n+1'i kanıtlamıyor) |
 | **ChainedRateLimiter false positive** | C | Test ortamında relaxed limit (Faz 5 pattern reuse) |

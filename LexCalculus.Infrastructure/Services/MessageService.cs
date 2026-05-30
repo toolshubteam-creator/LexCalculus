@@ -1,3 +1,4 @@
+using LexCalculus.Core.Entities.Email;
 using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Messaging;
 using LexCalculus.Core.Services;
@@ -83,6 +84,31 @@ public sealed class MessageService : IMessageService
             description: $"Mesaj gönderildi conv={trackedConv.Id} sender={senderId}",
             metadata: new { message.Id, ConversationId = trackedConv.Id, SenderId = senderId },
             ct: ct);
+
+        // Faz 6.2 P2 — mesaj dijesti kuyruğu. Alıcının master (NotificationsEmailEnabled)
+        // + granüler (EmailOnMessageDigest) tercihi açıksa kayıt eklenir; dolu olmayan
+        // entry yaratmamak için send anında kontrol edilir. Job 5 dk pencere dolunca toplar.
+        var pref = await _ctx.Users
+            .Where(u => u.Id == recipientId)
+            .Select(u => new
+            {
+                u.NotificationsEmailEnabled,
+                Digest = u.Profile != null && u.Profile.EmailOnMessageDigest
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (pref is { NotificationsEmailEnabled: true, Digest: true })
+        {
+            _ctx.EmailDigestEntries.Add(new EmailDigestEntry
+            {
+                UserId = recipientId,
+                Type = EmailDigestType.Message,
+                RelatedEntityId = message.Id,
+                CreatedAt = now,
+                IsSent = false
+            });
+            await _ctx.SaveChangesAsync(ct);
+        }
 
         // Real-time broadcast (sessiz fail — polling fallback devreye girer)
         try

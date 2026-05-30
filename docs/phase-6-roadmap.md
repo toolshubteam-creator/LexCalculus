@@ -22,8 +22,8 @@
 | Adım | Başlık | Charter Karar | Tech-debt | Durum |
 |---|---|---|---|---|
 | 6.1 | Faz 6 charter + roadmap | — | — | ✅ |
-| 6.2 | Email altyapısı | 1, 2 | #22 | ⏳ |
-| 6.3 | Email tercih + opt-in | 2, 3 | #22, #39 | ⏳ |
+| 6.2 | Email: sosyal template'ler (P1) + opt-in/dijest/wiring (P2) | 1, 2, 3 | #22, #39 | ✅ |
+| ~~6.3~~ | **6.2 P2'ye birleştirildi** (notification→email + tercih + dijest tek akış) | 2, 3 | #22, #39 | ➡️ 6.2 |
 | 6.4 | NU1901 + CA2024 temizliği | — | #35, #36 | ⏳ |
 | 6.5 | Dalga A closeout | — | #40 | ⏳ |
 | 6.6 | Tag autocomplete + view dedupe | 4, 5 | #15, #16 | ⏳ |
@@ -39,27 +39,28 @@
 
 ## Dalga A — Email + temizlik
 
-### Adım 6.2 — Email altyapısı ⏳
+### Adım 6.2 — Email kanalı (P1 + P2) ✅
 
-**Kapsam:**
-- `Pages/EmailTemplates/` Razor view'ları + `_EmailLayout.cshtml` (inline style
-  zorunlu — e-posta istisnası)
-- `IPartialRenderer` ile email HTML render (Faz 5 #38 pattern reuse)
-- `IEmailService` production gönderim smoke (SMTP config doğrulama)
-- En az 1 notification türü (ConnectionRequest) email gönderir
+> **Denetim bulgusu:** Email altyapısı (IEmailService, IEmailTemplateRenderer,
+> _EmailLayout, 3 provider, /admin/email/test) Faz 3'te zaten kuruluydu — P1
+> yalnızca eksik **sosyal bildirim template'lerini** ekledi. Charter'ın "altyapı
+> kur" varsayımı geçersizdi. 6.3 ayrı adım gereksizdi → P2'ye birleştirildi.
 
-**Charter Karar:** 1, 2 · **Tech-debt:** #22 · **Süre:** ~3-4 gün
+**P1/2 — Sosyal template'ler (commit `ba841de`):**
+- 4 template (`Connection`, `Comment`, `ContentReport`, `MessageDigest`) + 4 model,
+  mevcut `_EmailLayout` reuse. `/admin/email/test` dropdown. Test +4.
 
-### Adım 6.3 — Email tercih + opt-in ⏳
+**P2/2 — Opt-in + dijest + wiring (bu commit):**
+- 4 granüler bool kolon `UserProfile`'a (`EmailOnConnection/Comment/ContentReport/MessageDigest`,
+  default açık) + `EmailDigestEntries` tablo. Migration `AddSocialEmailPreferencesAndDigest`
+  (`Up()` `defaultValue` manuel `true`). **#39 drop YOK** — master switch korundu.
+- `INotificationEmailDispatcher`: master → granüler → anonimize gating, tip→template,
+  entity reload. `NotificationService` sosyal tiplerde best-effort tetikler.
+- `MessageService` → `EmailDigestEntry` (master+granüler send-anı kontrol).
+- `ProcessMessageDigestJob` (Hangfire, her dakika): 5 dk eşik + user-level all-pending grup.
+- `/profil` 4 granüler toggle (master altında, kapalıyken görsel pasif).
 
-**Kapsam:**
-- 4 granüler bool kolon (`EmailOnConnection/Comment/ContentReport/Message`,
-  default açık) + migration (`Up()` manuel kontrol)
-- `#39 NotificationsEmailEnabled` deprecate + drop migration
-- `/profil` email tercih toggle UI
-- Hangfire dijest job (mesaj: 5 dk gecikmeli; diğerleri anlık)
-
-**Charter Karar:** 2, 3 · **Tech-debt:** #22, #39 · **Süre:** ~3-4 gün
+**Charter Karar:** 1, 2, 3 · **Tech-debt:** #22, #39, #41 · **Test:** P2 +15 (783→798)
 
 ### Adım 6.4 — NU1901 + CA2024 temizliği ⏳
 

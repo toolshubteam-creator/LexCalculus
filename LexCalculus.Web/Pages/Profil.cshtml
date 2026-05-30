@@ -92,7 +92,32 @@
                 <span>E-posta bildirimleri al</span>
             </label>
             <span class="field-hint">
-                Veri güncellemeleri ve hesap bildirimlerini e-posta olarak almak istemiyorsanız bunu kapatabilirsiniz.
+                Tüm e-posta bildirimleri için ana anahtar. Kapatırsanız (veri güncellemeleri,
+                hesap bildirimleri dahil) hiçbir e-posta gönderilmez.
+            </span>
+        </div>
+
+        @* Faz 6.2 P2 — granüler e-posta tercihleri (master açıkken geçerli) *@
+        <div class="field field--email-granular" data-email-granular>
+            <span class="field__label">Hangi bildirimler e-posta olarak da gelsin?</span>
+            <label class="field__label field__label--inline">
+                <input type="checkbox" asp-for="Input.EmailOnConnection" />
+                <span>Bağlantı istekleri ve kabuller</span>
+            </label>
+            <label class="field__label field__label--inline">
+                <input type="checkbox" asp-for="Input.EmailOnComment" />
+                <span>Makalelerime yapılan yorumlar</span>
+            </label>
+            <label class="field__label field__label--inline">
+                <input type="checkbox" asp-for="Input.EmailOnContentReport" />
+                <span>İçeriklerim için moderasyon kararları</span>
+            </label>
+            <label class="field__label field__label--inline">
+                <input type="checkbox" asp-for="Input.EmailOnMessageDigest" />
+                <span>Mesaj özetleri (5 dakikada bir toplu)</span>
+            </label>
+            <span class="field-hint">
+                Ana anahtar kapalıyken bu seçenekler etkisizdir.
             </span>
         </div>
 

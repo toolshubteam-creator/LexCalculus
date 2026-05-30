@@ -1,6 +1,7 @@
 using LexCalculus.Core.Entities;
 using LexCalculus.Core.Entities.Calculators;
 using LexCalculus.Core.Entities.Content;
+using LexCalculus.Core.Entities.Email;
 using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Entities.Moderation;
@@ -53,6 +54,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<EmailDigestEntry> EmailDigestEntries => Set<EmailDigestEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -60,6 +62,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
         // Apply all IEntityTypeConfiguration<T> in this assembly
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Faz 6.2 P2 — EmailDigestEntry (dijest kuyruğu). FK cascade, job query index.
+        builder.Entity<EmailDigestEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.UserId, x.IsSent, x.CreatedAt });
+        });
 
         // Apply soft-delete global query filter to all ISoftDelete entities
         // Must run AFTER all configurations are applied
