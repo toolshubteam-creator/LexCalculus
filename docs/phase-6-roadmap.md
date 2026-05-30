@@ -5,7 +5,7 @@
 **Başlangıç:** 29 Mayıs 2026 · **Charter:** [phase-6-charter.md](./phase-6-charter.md)
 · **Envanter:** [phase-6-scope-inventory.md](./phase-6-scope-inventory.md)
 
-⏳ **Faz 6 başladı** — Adım 6.1 (charter + roadmap) tamamlandı; sıradaki Adım 6.2.
+🟢 **Dalga A tamamlandı (30 Mayıs 2026)** — Tag: `phase-6-wave-a-complete`. Sıradaki: Dalga B Adım 6.6.
 
 ---
 
@@ -13,7 +13,7 @@
 
 | Dalga | Konu | Adım Aralığı | Tahmin | Durum |
 |---|---|---|---|---|
-| A | Email + temizlik | 6.2-6.5 | 1.5-2 hafta | ⏳ |
+| A | Email + temizlik | 6.2-6.5 | 1.5-2 hafta | ✅ Tamamlandı (29-30 May) |
 | B | UX iyileştirmeler | 6.6-6.9 | 1-1.5 hafta | ⏳ |
 | C | Performance + closeout | 6.10-6.13 | 1 hafta | ⏳ |
 
@@ -24,8 +24,8 @@
 | 6.1 | Faz 6 charter + roadmap | — | — | ✅ |
 | 6.2 | Email: sosyal template'ler (P1) + opt-in/dijest/wiring (P2) | 1, 2, 3 | #22, #39 | ✅ |
 | ~~6.3~~ | **6.2 P2'ye birleştirildi** (notification→email + tercih + dijest tek akış) | 2, 3 | #22, #39 | ➡️ 6.2 |
-| 6.4 | NU1901 + CA2024 temizliği | — | #35, #36 | ⏳ |
-| 6.5 | Dalga A closeout | — | #40 | ⏳ |
+| 6.4 | NU1901 + CA2024 temizliği | — | #35, #36 | ✅ |
+| 6.5 | Dalga A closeout | — | #40 | ✅ |
 | 6.6 | Tag autocomplete + view dedupe | 4, 5 | #15, #16 | ⏳ |
 | 6.7 | Polling + multi-tab + sayfalama | — | #24, #25, #37 | ⏳ |
 | 6.8 | Comment edit + image variants | — | #18, #21 | ⏳ |
@@ -62,21 +62,26 @@
 
 **Charter Karar:** 1, 2, 3 · **Tech-debt:** #22, #39, #41 · **Test:** P2 +15 (783→798)
 
-### Adım 6.4 — NU1901 + CA2024 temizliği ⏳
+### Adım 6.4 — NU1901 + CA2024 temizliği ✅ (commit `9a49d88`)
 
-**Kapsam:**
-- NU1901: `NuGet.Packaging`/`NuGet.Protocol` 6.12.1 transitive açık → yamalı
-  sürüme pin/upgrade, build temiz
-- CA2024: `LifeTableCsvParser.cs` `EndOfStream` → `ReadLineAsync` döngüsü
+**Yapılanlar:**
+- NU1901 (GHSA-g4vj-cjjj-v7hg): `NuGet.Packaging`/`NuGet.Protocol` 6.12.1 → **6.12.5**
+  transitive pinning (Web csproj). Sahip CodeGeneration.Design (design-time).
+- CA2024: `LifeTableCsvParser` `!EndOfStream` → `(rawLine = await ReadLineAsync()) != null`.
+- Build: 0 hata + **0 uyarı**. Test 798 (regresyon 0). #35, #36 ÇÖZÜLDÜ.
 
-**Tech-debt:** #35, #36 · **Süre:** ~0.5 gün
+**Tech-debt:** #35, #36
 
-### Adım 6.5 — Dalga A closeout ⏳
+### Adım 6.5 — Dalga A closeout ✅ (bu commit)
 
-**Kapsam:** roadmap güncelleme + #40 polling fallback manuel smoke (DevTools WS
-blok + 30 sn polling gözlemi) + mini tag opsiyonel.
+**Yapılanlar:** roadmap + README Dalga A özeti + tech-debt #40 Dalga B'ye taşıma
+notu + `phase-6-wave-a-complete` annotated tag.
 
-**Tech-debt:** #40 · **Süre:** ~0.5 gün
+> **#40 polling fallback manuel smoke YAPILMADI** — Adım 6.7'de (polling
+> görünürlük + multi-tab race + sayfalama refactor'u) yeni davranışla birlikte
+> bütünsel doğrulanacak. Otomatik test kapsamı (GetNewSince) mevcut.
+
+**Tech-debt:** #40 (→ 6.7)
 
 ---
 

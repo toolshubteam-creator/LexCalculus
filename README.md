@@ -323,18 +323,41 @@ SQL Server LocalDB'ye geçişi.
 - **Spam koruması** (rate limiting middleware, 5 named policy)
 - **Test infrastructure:** SQL Server LocalDB (production-yakın IDENTITY/FK/transaction semantiği)
 
-### Sonraki: Faz 6 — başladı (29 Mayıs 2026)
+### Faz 6 — Olgunlaştırma + UX + Performance (başladı 29 Mayıs 2026)
 
-Faz 6 "Olgunlaştırma + UX + Performance": email notification kanalı, UX
-iyileştirmeleri (tag autocomplete, view dedupe, sayfalama, comment edit
-history), performance (n+1 refactor, reuse extract) ve güvenlik/uyarı
-temizliği. 3 dalga, 12 alt adım (6.2-6.13).
+3 dalga, 12 alt adım (6.2-6.13). Email notification kanalı, UX iyileştirmeleri,
+performance + cleanliness.
 
-- [Faz 6 Charter](./docs/phase-6-charter.md) — 6 mimari karar, dalga kırılımı
-- [Faz 6 Roadmap](./docs/phase-6-roadmap.md) — adım adım plan
-- [Kapsam envanteri](./docs/phase-6-scope-inventory.md) — Adım 6.0 denetimi
+- [Faz 6 Charter](./docs/phase-6-charter.md) · [Roadmap](./docs/phase-6-roadmap.md) · [Kapsam envanteri](./docs/phase-6-scope-inventory.md)
 
-Sıradaki: **Adım 6.2 — Email altyapısı**.
+#### Faz 6 Dalga A — Tamamlandı (30 Mayıs 2026)
+
+**Tag:** `phase-6-wave-a-complete` · **Süre:** 29-30 Mayıs 2026 (charter 1.5-2 hafta tahmini)
+
+Email + temizlik:
+- Sosyal bildirim email template'leri (Connection, Comment, ContentReport, MessageDigest)
+  — Faz 3 email altyapısı (IEmailService, EmailTemplateRenderer, 3 provider) reuse
+- `INotificationEmailDispatcher` — master switch + 4 granüler tercih + anonimize gating
+- `ProcessMessageDigestJob` (Hangfire, 5 dk eşik + user-level all-pending grup)
+- `/profil` email tercih UI (master + 4 granüler toggle, master kapalıyken pasif)
+- NU1901 NuGet açığı (transitive pinning, NuGet.Packaging/Protocol 6.12.5)
+- CA2024 async EndOfStream temizliği (LifeTableCsvParser)
+
+**Süreç notu (şeffaflık):** Adım 6.2 P2'de `NotificationsEmailEnabled` (#39)
+"orphan" sanılırken `DataFreshnessCheckJob` + `/profil` tarafından aktif
+kullanıldığı tespit edildi. Planlanan drop iptal edildi; alan "tüm e-postalar"
+ana anahtarı (master) olarak korundu, 4 granüler tercih altına eklendi. Envanter
+denetim süreç borcu tech-debt #41 olarak kaydedildi.
+
+| Metrik | Değer |
+|---|---|
+| Test | 779 → 798 (+19, regresyon 0) |
+| Migration | +1 (AddSocialEmailPreferencesAndDigest) |
+| Yeni entity / servis / job | EmailDigestEntry / INotificationEmailDispatcher / ProcessMessageDigestJob |
+| Build uyarı | NU1901 + CA2024 → 0 |
+| Kapatılan tech-debt | #22 (email kanalı), #35 (NU1901), #36 (CA2024) |
+
+Sıradaki: **Dalga B — UX iyileştirmeler (6.6-6.9)**.
 
 ---
 

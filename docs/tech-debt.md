@@ -1042,12 +1042,14 @@ kopunca tarayıcıda gerçekten polling'e düşüyor mu" uçtan uca tarayıcı
 doğrulaması yapılmadı. Adım 6.0 kararı: bloklayıcı değil — otomatik test'lerle
 dolaylı kapsanmış kabul edilir, manuel doğrulama Faz 6'ya taşınır.
 
-**İdeal çözüm:** Faz 6 B kümesi (email notification) akışı test edilirken
-bütünsel mesajlaşma smoke testi içinde: DevTools'tan WS bağlantısı bloklanır,
-30 sn polling akışı + yeni mesaj gelişi gözlemlenir.
+**İdeal çözüm:** Bütünsel mesajlaşma smoke testi içinde: DevTools'tan WS
+bağlantısı bloklanır, 30 sn polling akışı + yeni mesaj gelişi gözlemlenir.
 
-**Önerilen zaman:** Faz 6 B kümesi notification testleri sırasında. Tahmini
-iş: ~10 dk smoke.
+**Önerilen zaman (revize, Adım 6.5):** Dalga A'da (email) yapılmadı —
+mesajlaşma çekirdeğine dokunulmadığı için ertelendi. **Adım 6.7** (polling
+görünürlük #24 + multi-tab race #37 + sayfalama #25 refactor'u) polling kod
+yolunu zaten elden geçirecek; smoke o adımda yeni davranışla birlikte yapılır.
+Tahmini iş: ~10 dk smoke.
 
 ---
 
