@@ -427,7 +427,14 @@ nesting (Reddit-style sınırsız değil; LinkedIn pattern):
 
 ---
 
-## 15. Tag autocomplete (kullanıcı yazımı esnasında)
+## ✅ 15. Tag autocomplete (kullanıcı yazımı esnasında) — ÇÖZÜLDÜ (Adım 6.6, 30 Mayıs 2026)
+
+**Çözüm:** `IPostTagService.SearchByPrefixAsync` (StartsWith + UsageCount DESC +
+Name ASC, min 2 karakter, take 1-20 clamp). `GET /api/post-tags/search` public
+endpoint (AllowAnonymous + ajax-general rate limit). `wwwroot/js/tag-autocomplete.js`:
+200 ms debounce, klavye erişilebilir (Arrow/Enter/Escape), mousedown seçim, dış-tık
+kapatma; XSS güvenli (textContent). Mevcut chip mantığı `window.lexAddTag` ile reuse
+(MAX_TAGS/duplicate/uzunluk korundu). Charter Karar 5. 5 test (search) + 1 (API).
 
 **Bağlam:** Adım 4.6 P3'te tag chip vanilla JS, kullanıcı serbest yazıyor.
 Mevcut popüler tag'ler önerilmiyor.
@@ -447,7 +454,15 @@ ama önerme yok.
 
 ---
 
-## 16. View count dedupe (bot/refresh shielding)
+## ✅ 16. View count dedupe (bot/refresh shielding) — ÇÖZÜLDÜ (Adım 6.6, 30 Mayıs 2026)
+
+**Çözüm:** `Makale.cshtml.cs` `RegisterUniqueView` (charter Karar 4). Anonim:
+HttpOnly + IsEssential cookie `vc_{postId}` (30 dk, SameSite=Lax, HTTPS-aware Secure).
+Login: `IMemoryCache` `vc_{userId}_{postId}` (30 dk SlidingExpiration). DB'ye ek tablo
+YOK. Mevcut yayın/gizli/sahip gate korundu (dedupe ek katman). Increment servise
+taşınmadı — Web-katmanı concern (cookie/HttpContext) sayfada kaldı, Infrastructure
+sızıntısı önlendi. `AddMemoryCache()` eklendi. MakalePageTests: dedupe (aynı client +1),
+iki client +2, login non-owner dedupe.
 
 **Bağlam:** Adım 4.7'de her GET +1 ViewCount. Bot trafiği veya
 kullanıcının F5 ile refresh etmesi sayacı şişirir.

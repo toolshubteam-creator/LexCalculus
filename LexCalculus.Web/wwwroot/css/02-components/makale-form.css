@@ -104,6 +104,7 @@
   background: #fff;
   align-items: center;
   min-height: 44px;
+  position: relative; /* Faz 6.6 — autocomplete dropdown anchor */
 }
 
 .tag-chip-container:focus-within {
@@ -146,6 +147,50 @@
   font-size: var(--fs-base);
   background: transparent;
   font-family: inherit;
+}
+
+/* Faz 6.6 — Tag autocomplete dropdown */
+.tag-autocomplete {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+}
+
+.tag-autocomplete__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tag-autocomplete__item:last-child {
+  border-bottom: none;
+}
+
+.tag-autocomplete__item:hover,
+.tag-autocomplete__item.is-selected {
+  background: var(--parchment);
+}
+
+.tag-autocomplete__name {
+  color: var(--ink);
+}
+
+.tag-autocomplete__count {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 @media (max-width: 700px) {

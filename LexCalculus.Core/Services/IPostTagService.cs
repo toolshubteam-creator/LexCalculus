@@ -21,6 +21,13 @@ public interface IPostTagService
     /// <summary>UsageCount DESC + Name ASC, ilk N tag (popüler tag widget).</summary>
     Task<IReadOnlyList<PostTag>> GetPopularAsync(int limit = 20, CancellationToken ct = default);
 
+    /// <summary>
+    /// Tag autocomplete (Faz 6.6, charter Karar 5). Prefix ile başlayan tag'ler,
+    /// UsageCount DESC + Name ASC. Min 2 karakter (kısa/boş → boş liste);
+    /// take 1-20 clamp (DoS önleme).
+    /// </summary>
+    Task<IReadOnlyList<PostTag>> SearchByPrefixAsync(string prefix, int take, CancellationToken ct = default);
+
     Task IncrementUsageAsync(int tagId, CancellationToken ct = default);
 
     /// <summary>Decrement; UsageCount 0'ın altına düşmez (defansif).</summary>

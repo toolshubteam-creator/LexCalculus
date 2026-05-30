@@ -201,8 +201,9 @@ public class MakalePageTests : IClassFixture<SqlServerTestAuthWebApplicationFact
     }
 
     [Fact]
-    public async Task OnGet_PublishedPost_AnonymousViewer_RendersAndIncrementsViewCount()
+    public async Task OnGet_PublishedPost_AnonymousSameClient_DedupedToOne()
     {
+        // Faz 6.6 — aynı ziyaretçi (cookie) 30 dk içinde tekrar saymaz.
         var (u, _) = await SeedAuthorAsync("mak-pub@example.com", "Pub Author", "mak-pub-1");
         var catId = await EnsureCategoryAsync();
         try
@@ -213,17 +214,93 @@ public class MakalePageTests : IClassFixture<SqlServerTestAuthWebApplicationFact
             var first = await client.GetAsync("/uye/mak-pub-1/makale/y-1");
             first.StatusCode.Should().Be(HttpStatusCode.OK);
 
-            await client.GetAsync("/uye/mak-pub-1/makale/y-1");
+            await client.GetAsync("/uye/mak-pub-1/makale/y-1");   // aynı client → cookie dedupe
 
             using var scope = _factory.Services.CreateScope();
             var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var refreshed = await ctx.UserPosts.AsNoTracking().FirstAsync(p => p.Id == postId);
-            refreshed.ViewCount.Should().Be(2L, "her anonim GET +1");
+            refreshed.ViewCount.Should().Be(1L, "aynı ziyaretçi cookie ile tekrar saymaz");
         }
         finally
         {
             await CleanupAsync(u.Email!, "mak-pub-1");
         }
+    }
+
+    [Fact]
+    public async Task OnGet_PublishedPost_TwoDistinctAnonymousClients_EachCounts()
+    {
+        // Faz 6.6 — farklı ziyaretçiler (ayrı cookie container) ayrı sayılır.
+        var (u, _) = await SeedAuthorAsync("mak-pub2@example.com", "Pub2 Author", "mak-pub-2");
+        var catId = await EnsureCategoryAsync();
+        try
+        {
+            var postId = await SeedPostAsync(u.Id, catId, "Yayinda2", "y-2", isPublished: true);
+
+            using (var c1 = CreateAnonClient())
+                (await c1.GetAsync("/uye/mak-pub-2/makale/y-2")).StatusCode.Should().Be(HttpStatusCode.OK);
+            using (var c2 = CreateAnonClient())
+                (await c2.GetAsync("/uye/mak-pub-2/makale/y-2")).StatusCode.Should().Be(HttpStatusCode.OK);
+
+            using var scope = _factory.Services.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var refreshed = await ctx.UserPosts.AsNoTracking().FirstAsync(p => p.Id == postId);
+            refreshed.ViewCount.Should().Be(2L, "iki farklı ziyaretçi iki ayrı sayım");
+        }
+        finally
+        {
+            await CleanupAsync(u.Email!, "mak-pub-2");
+        }
+    }
+
+    [Fact]
+    public async Task OnGet_PublishedPost_LoggedInNonOwner_DedupedAcrossRequests()
+    {
+        // Faz 6.6 — login kullanıcı için IMemoryCache dedupe (cookie değil).
+        var (author, _) = await SeedAuthorAsync("mak-auth@example.com", "Auth Author", "mak-auth-1");
+        var (viewer, _) = await SeedAuthorAsync("mak-viewer@example.com", "Viewer", "mak-viewer-1");
+        var catId = await EnsureCategoryAsync();
+        try
+        {
+            var postId = await SeedPostAsync(author.Id, catId, "AuthYazi", "auth-y", isPublished: true);
+
+            using var client = CreateAuthClient(viewer.Id, viewer.Email!);
+            await client.GetAsync("/uye/mak-auth-1/makale/auth-y");
+            await client.GetAsync("/uye/mak-auth-1/makale/auth-y");   // cache dedupe
+
+            using var scope = _factory.Services.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var refreshed = await ctx.UserPosts.AsNoTracking().FirstAsync(p => p.Id == postId);
+            refreshed.ViewCount.Should().Be(1L, "login non-owner tekrar saymaz");
+        }
+        finally
+        {
+            await CleanupAsync(author.Email!, "auth-y");
+            await CleanupAsync(viewer.Email!, "mak-viewer-1");
+        }
+    }
+
+    [Fact]
+    public async Task PostTagsApi_Search_AnonymousReturnsMatches()
+    {
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            if (!await ctx.PostTags.AnyAsync(t => t.Slug == "is-hukuku-tag"))
+            {
+                ctx.PostTags.Add(new PostTag
+                {
+                    Name = "is hukuku", Slug = "is-hukuku-tag", UsageCount = 7, CreatedAt = DateTime.UtcNow
+                });
+                await ctx.SaveChangesAsync();
+            }
+        }
+
+        using var client = CreateAnonClient();
+        var res = await client.GetAsync("/api/post-tags/search?q=is&take=10");
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await res.Content.ReadAsStringAsync();
+        body.Should().Contain("is hukuku");
     }
 
     [Fact]

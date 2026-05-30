@@ -183,6 +183,10 @@
         renderTags();
     }
 
+    // Faz 6.6 — tag-autocomplete.js bu fonksiyonla mevcut chip mantığını kullanır
+    // (kendi MAX_TAGS / duplicate / uzunluk kuralları korunur).
+    window.lexAddTag = addTag;
+
     if (tagsCsv && tagsCsv.value) {
         tags = tagsCsv.value.split(',')
             .map(function (t) { return t.trim(); })

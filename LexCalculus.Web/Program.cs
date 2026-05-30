@@ -219,6 +219,9 @@ try
         LexCalculus.Infrastructure.Email.NotificationEmailDispatcher>();
     builder.Services.AddScoped<LexCalculus.Jobs.Messaging.ProcessMessageDigestJob>();
 
+    // Faz 6.6 — view count dedupe (login kullanıcı için in-memory cache)
+    builder.Services.AddMemoryCache();
+
     // Notifications
     builder.Services.AddScoped<INotificationService, NotificationService>();
 

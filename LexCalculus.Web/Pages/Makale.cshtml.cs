@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
 namespace LexCalculus.Web.Pages;
@@ -35,6 +36,7 @@ public sealed class MakaleModel : PageModel
     private readonly IPostCommentService _comments;
     private readonly IPostLikeService _likes;
     private readonly SeoSettings _seo;
+    private readonly IMemoryCache _cache;
 
     public MakaleModel(
         ApplicationDbContext ctx,
@@ -42,7 +44,8 @@ public sealed class MakaleModel : PageModel
         UserManager<ApplicationUser> userManager,
         IPostCommentService comments,
         IPostLikeService likes,
-        IOptions<SeoSettings> seoOptions)
+        IOptions<SeoSettings> seoOptions,
+        IMemoryCache cache)
     {
         _ctx = ctx;
         _storage = storage;
@@ -50,7 +53,10 @@ public sealed class MakaleModel : PageModel
         _comments = comments;
         _likes = likes;
         _seo = seoOptions.Value ?? new SeoSettings();
+        _cache = cache;
     }
+
+    private const int ViewDedupeMinutes = 30;
 
     public UserPost Post { get; private set; } = null!;
     public string AuthorDisplayName { get; private set; } = "";
@@ -115,8 +121,10 @@ public sealed class MakaleModel : PageModel
             return NotFound();
         IsHiddenPreview = post.IsModeratorHidden && (isOwner || isAdmin);
 
-        // ViewCount: sadece yayında, gizlenmemiş, sahip dışı görüntüleyiciler için
-        if (post.IsPublished && !post.IsModeratorHidden && viewerId != post.UserId)
+        // ViewCount: sadece yayında, gizlenmemiş, sahip dışı görüntüleyiciler için.
+        // Faz 6.6 (charter Karar 4) — dedupe: anonim HttpOnly cookie, login IMemoryCache (30 dk).
+        if (post.IsPublished && !post.IsModeratorHidden && viewerId != post.UserId
+            && RegisterUniqueView(post.Id, viewerId))
         {
             post.ViewCount += 1;
             await _ctx.SaveChangesAsync(ct);
@@ -271,5 +279,36 @@ public sealed class MakaleModel : PageModel
         if (string.IsNullOrEmpty(siteUrl)) return relativeOrAbsolute;
         var path = relativeOrAbsolute.StartsWith('/') ? relativeOrAbsolute : "/" + relativeOrAbsolute;
         return siteUrl + path;
+    }
+
+    /// <summary>
+    /// Tekil görüntüleme kaydı (Faz 6.6, charter Karar 4). İlk görüntülemede true
+    /// döner ve dedupe işaretini bırakır; 30 dk içinde tekrar görüntülemede false.
+    /// Anonim: HttpOnly cookie (vc_{postId}); login: IMemoryCache (vc_{userId}_{postId}).
+    /// DB'ye ek tablo yok. F5/bot şişirmesini sınırlar.
+    /// </summary>
+    private bool RegisterUniqueView(int postId, int? viewerUserId)
+    {
+        var ttl = TimeSpan.FromMinutes(ViewDedupeMinutes);
+
+        if (viewerUserId.HasValue)
+        {
+            var cacheKey = $"vc_{viewerUserId.Value}_{postId}";
+            if (_cache.TryGetValue(cacheKey, out _)) return false;
+            _cache.Set(cacheKey, true, new MemoryCacheEntryOptions { SlidingExpiration = ttl });
+            return true;
+        }
+
+        var cookieKey = $"vc_{postId}";
+        if (Request.Cookies.ContainsKey(cookieKey)) return false;
+        Response.Cookies.Append(cookieKey, "1", new CookieOptions
+        {
+            MaxAge = ttl,
+            HttpOnly = true,
+            IsEssential = true,                 // KVKK: içerik gösterimi, analitik değil
+            SameSite = SameSiteMode.Lax,
+            Secure = Request.IsHttps
+        });
+        return true;
     }
 }

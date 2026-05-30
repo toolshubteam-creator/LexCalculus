@@ -64,6 +64,21 @@ public sealed class PostTagService : IPostTagService
             .Take(limit)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<PostTag>> SearchByPrefixAsync(
+        string prefix, int take, CancellationToken ct = default)
+    {
+        var normalized = (prefix ?? "").Trim().ToLowerInvariant();
+        if (normalized.Length < 2) return Array.Empty<PostTag>();
+
+        var clamped = Math.Clamp(take, 1, 20);
+        return await _ctx.PostTags
+            .Where(t => t.Name.ToLower().StartsWith(normalized))
+            .OrderByDescending(t => t.UsageCount)
+            .ThenBy(t => t.Name)
+            .Take(clamped)
+            .ToListAsync(ct);
+    }
+
     public async Task IncrementUsageAsync(int tagId, CancellationToken ct = default)
     {
         var tag = await _ctx.PostTags.FirstOrDefaultAsync(t => t.Id == tagId, ct);
