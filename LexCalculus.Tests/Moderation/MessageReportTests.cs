@@ -260,5 +260,8 @@ public class MessageReportTests : SqlServerTestBase
             HiddenCalls.Add((senderId, recipientId, conversationId, messageId));
             return Task.CompletedTask;
         }
+
+        public Task NotifyConversationReadAsync(int userId, int conversationId, CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 }

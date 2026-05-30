@@ -202,10 +202,41 @@
         });
     }
 
-    // Load more — placeholder (Faz 6+ veya 5.6'da iyileştirilecek)
+    // Load more — eski mesajları server-rendered HTML olarak yükle (#25, Faz 6.7).
     if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', () => {
-            alert('Daha fazla yükle henüz aktif değil. Adım 5.6 ile gelecek.');
+        loadMoreBtn.addEventListener('click', async () => {
+            loadMoreBtn.disabled = true;
+            try {
+                const loadedCount = messagesContainer.querySelectorAll('[data-message-id]').length;
+                const url = `/api/messages/${conversationId}/older?skip=${loadedCount}&take=50`;
+                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!response.ok) { alert('Eski mesajlar yüklenemedi.'); return; }
+
+                const data = await response.json();
+                const olderHtml = data.messages || [];
+                if (olderHtml.length === 0) { loadMoreBtn.hidden = true; return; }
+
+                // Scroll pozisyonu koru: prepend öncesi yükseklik/konum.
+                const prevScrollHeight = messagesContainer.scrollHeight;
+                const prevScrollTop = messagesContainer.scrollTop;
+
+                // Server DESC döner (yeni→eski). afterbegin ile sırayla eklenince
+                // en eski en üstte kalır → kronolojik akış korunur.
+                olderHtml.forEach((html) => {
+                    messagesContainer.insertAdjacentHTML('afterbegin', html);
+                });
+
+                // Görünen mesaj yerinde kalsın (yukarı zıplama yok).
+                messagesContainer.scrollTop =
+                    messagesContainer.scrollHeight - prevScrollHeight + prevScrollTop;
+
+                if (!data.hasMore) loadMoreBtn.hidden = true;
+            } catch (err) {
+                console.error('Daha fazla yükle hatası:', err);
+                alert('Eski mesajlar yüklenemedi.');
+            } finally {
+                loadMoreBtn.disabled = false;
+            }
         });
     }
 
@@ -238,6 +269,11 @@
                 if (!data || data.conversationId !== conversationId) return;
                 applyHiddenPlaceholder(data.messageId);
             });
+
+            // Faz 6.7 (#37) — multi-tab read-state. Kullanıcının başka oturumu bir
+            // conversation'ı okudu. Detail sayfasında ek DOM güncellemesi gerekmez
+            // (zaten okundu state'i). Liste sayfası real-time unread badge: Faz 7+.
+            connection.on('ConversationRead', (_data) => { /* no-op (foundation) */ });
 
             connection.onreconnecting(() => { signalRActive = false; });
             connection.onreconnected(() => { signalRActive = true; });
@@ -277,12 +313,31 @@
         }
     }
 
-    pollingTimer = setInterval(poll, POLLING_INTERVAL_MS);
+    // #24 (Faz 6.7) — Page Visibility: sekme arka plandayken polling durur
+    // (pil + bandwidth), öne gelince hemen bir poll + interval yeniden başlar.
+    function startPolling() {
+        if (pollingTimer !== null) return;   // zaten çalışıyor
+        pollingTimer = setInterval(poll, POLLING_INTERVAL_MS);
+    }
+    function stopPolling() {
+        if (pollingTimer === null) return;
+        clearInterval(pollingTimer);
+        pollingTimer = null;
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopPolling();
+        } else {
+            poll();          // tab'a dönüşte kaçırılan mesajları anında çek
+            startPolling();
+        }
+    });
+
+    if (!document.hidden) startPolling();
 
     // Sayfa kapatılırken polling temizliği (defansif)
-    window.addEventListener('beforeunload', () => {
-        if (pollingTimer) clearInterval(pollingTimer);
-    });
+    window.addEventListener('beforeunload', stopPolling);
 
     // Sayfa açılışında okundu işaretle (server zaten OnGet'te yapıyor; defansif)
     postJson(`/api/messages/${conversationId}/mark-read`, null).catch(() => { /* sessiz */ });

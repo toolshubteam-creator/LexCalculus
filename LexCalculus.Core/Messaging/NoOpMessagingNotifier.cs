@@ -17,4 +17,7 @@ public sealed class NoOpMessagingNotifier : IMessagingNotifier
     public Task NotifyMessageHiddenAsync(
         int senderId, int recipientId, int conversationId, int messageId, CancellationToken ct = default)
         => Task.CompletedTask;
+
+    public Task NotifyConversationReadAsync(int userId, int conversationId, CancellationToken ct = default)
+        => Task.CompletedTask;
 }

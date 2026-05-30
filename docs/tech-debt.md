@@ -679,7 +679,14 @@ sayfalar otomatik `X-Robots-Tag: noindex` header.
 
 ---
 
-## 24. Mesajlar polling — sayfa görünürlüğü/sekme aktivasyonu duyarsız
+## ✅ 24. Mesajlar polling — sayfa görünürlüğü/sekme aktivasyonu duyarsız — ÇÖZÜLDÜ (Adım 6.7, 30 Mayıs 2026)
+
+**Çözüm:** `mesajlar.js` `visibilitychange` listener — `document.hidden` ise
+`stopPolling()` (clearInterval), öne gelince `poll()` (kaçırılanı anında çek) +
+`startPolling()`. `startPolling`/`stopPolling` idempotent guard'lı. SignalR-aktif
+skip mantığı korundu. İlk yükleme `!document.hidden` ise başlar.
+
+
 
 **Bağlam:** Adım 5.5'te `/mesajlar/{id}` Detail sayfası 30 sn'de bir
 `/api/messages/{id}/new` polling yapıyor. Sayfa arka planda (sekme
@@ -701,7 +708,15 @@ uygula.
 
 ---
 
-## 25. Mesajlar 'Daha fazla yükle' aktif değil (≡ eski #30, tekleştirildi)
+## ✅ 25. Mesajlar 'Daha fazla yükle' aktif değil (≡ eski #30) — ÇÖZÜLDÜ (Adım 6.7, 30 Mayıs 2026)
+
+**Çözüm:** Yeni `GET /api/messages/{convId}/older?skip=&take=` endpoint —
+server-rendered `_Message` HTML array + `hasMore` (GetNewSince HTML pattern reuse;
+GetByConversation VM sözleşmesi bozulmadı). `mesajlar.js` load-more: `afterbegin`
+prepend (DESC → kronolojik) + scroll pozisyon koruması; hasMore=false'ta buton gizlenir.
+MessagesApiControllerTests `GetOlder_...HasMore` ile doğrulandı.
+
+
 
 **Bağlam:** Adım 5.5'te `/mesajlar/{id}` Detail sayfasında HasMore=true
 durumunda "Daha fazla yükle" butonu render ediliyor, ama tıklamada
@@ -975,7 +990,17 @@ regresyon kontrolü.
 
 ---
 
-## 37. SignalR multi-tab mark-as-read race condition
+## 🟡 37. SignalR multi-tab mark-as-read race condition — KISMEN ÇÖZÜLDÜ (Adım 6.7, 30 Mayıs 2026)
+
+**Kısmi çözüm:** Backend foundation hazır. `IMessagingNotifier.NotifyConversationReadAsync`
+(4. method) eklendi; `ConversationService.MarkAsReadAsync` sonunda kullanıcının
+`user-{id}` grubuna `ConversationRead` broadcast (best-effort, sessiz fail).
+`mesajlar.js` Detail handler şu an **no-op** (Detail zaten okundu state'inde).
+**KALAN (Faz 7+):** Liste sayfası (`/mesajlar`) SignalR'a bağlanmıyor; bir tab
+okuyunca diğer tab'ın liste unread badge'i real-time güncellenmiyor (sayfa
+yenilemede güncel). Tam çözüm liste sayfasına SignalR + badge update gerektirir.
+
+
 
 **Bağlam:** Adım 5.6 (SignalR) sırasında konuşuldu ama tech-debt'e eklenmedi.
 Charter §12 Faz 6 önizlemesinde "#26" numarasıyla anılmıştı — ama #26 aslında
@@ -1044,7 +1069,16 @@ birlikte.
 
 ---
 
-## 40. Polling fallback manuel test borcu (Adım 5.6 Senaryo 5)
+## 🟡 40. Polling fallback manuel test borcu (Adım 5.6 Senaryo 5) — TARAYICI SMOKE BEKLİYOR
+
+**Durum (Adım 6.7, 30 Mayıs 2026):** Polling kod yolu Adım 6.7'de elden geçirildi
+(#24 görünürlük) ve `GetNewSince` integration testi ile otomatik kapsanıyor. ANCAK
+"SignalR kopuk → tarayıcıda gerçekten polling'e düşüyor mu" uçtan uca smoke'u
+(DevTools Network offline/WS block) **otomatik ajan tarafından yapılamadı** —
+gerçek tarayıcı + network throttling gerektiren bir insan adımı. Kod hazır;
+**tarayıcı smoke'u kullanıcıya kaldı** (~2 dk: DevTools → WS bağlantısını blokla →
+karşı taraf mesaj at → 30 sn içinde polling request + mesaj gelişini gözle).
+Faz 6.13 closeout öncesi yapılması önerilir.
 
 **Bağlam:** Adım 5.6 (SignalR) manuel doğrulama Senaryo 5 — "SignalR bağlantısı
 kopuk → 30 sn polling fallback devreye girer" — kullanıcı tarafından

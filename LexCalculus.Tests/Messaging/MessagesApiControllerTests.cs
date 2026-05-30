@@ -415,11 +415,60 @@ public class MessagesApiControllerTests : IClassFixture<SqlServerTestAuthWebAppl
         }
     }
 
+    [Fact]
+    public async Task GetOlder_ReturnsServerRenderedHtmlBatch_WithHasMore()
+    {
+        // #25 (Faz 6.7) — "Daha fazla yükle" server-rendered HTML + hasMore.
+        var a = await SeedUserAsync("msg-older-a@example.com");
+        var b = await SeedUserAsync("msg-older-b@example.com");
+        try
+        {
+            await SeedConnectionAsync(a.Id, b.Id);
+            using var client = CreateAuthClient(a.Id, a.Email!);
+            var token = await GetCsrfAsync(client);
+            client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", token);
+
+            int convId = 0;
+            for (int i = 1; i <= 3; i++)
+            {
+                var sr = await client.PostAsJsonAsync("/api/messages/send",
+                    new { recipientId = b.Id, body = $"mesaj {i}" });
+                sr.StatusCode.Should().Be(HttpStatusCode.OK);
+                convId = (await sr.Content.ReadFromJsonAsync<SendResp>())!.conversationId;
+            }
+
+            // İlk batch (2 mesaj) — toplam 3 > 2 → hasMore true
+            var r1 = await client.GetAsync($"/api/messages/{convId}/older?skip=0&take=2");
+            r1.StatusCode.Should().Be(HttpStatusCode.OK);
+            var d1 = await r1.Content.ReadFromJsonAsync<OlderResp>();
+            d1!.messages.Should().HaveCount(2);
+            d1.messages[0].Should().Contain("mesaj");   // server-rendered _Message HTML
+            d1.hasMore.Should().BeTrue();
+
+            // Tümü — hasMore false
+            var r2 = await client.GetAsync($"/api/messages/{convId}/older?skip=0&take=50");
+            var d2 = await r2.Content.ReadFromJsonAsync<OlderResp>();
+            d2!.messages.Should().HaveCount(3);
+            d2.hasMore.Should().BeFalse();
+        }
+        finally
+        {
+            await CleanupUserAsync(a.Email!);
+            await CleanupUserAsync(b.Email!);
+        }
+    }
+
     private sealed class SendResp
     {
         public bool success { get; set; }
         public int messageId { get; set; }
         public int conversationId { get; set; }
         public string html { get; set; } = "";
+    }
+
+    private sealed class OlderResp
+    {
+        public string[] messages { get; set; } = System.Array.Empty<string>();
+        public bool hasMore { get; set; }
     }
 }

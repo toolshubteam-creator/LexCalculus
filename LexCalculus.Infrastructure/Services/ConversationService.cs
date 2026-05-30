@@ -1,6 +1,7 @@
 using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Entities.Social;
 using LexCalculus.Core.Extensions;
+using LexCalculus.Core.Messaging;
 using LexCalculus.Core.Services;
 using LexCalculus.Core.Storage;
 using LexCalculus.Infrastructure.Data;
@@ -22,19 +23,22 @@ public sealed class ConversationService : IConversationService
     private readonly IMediaStorage _storage;
     private readonly IActivityLogService _activityLog;
     private readonly ILogger<ConversationService>? _logger;
+    private readonly IMessagingNotifier? _notifier;
 
     public ConversationService(
         ApplicationDbContext ctx,
         IUserBlockService blockService,
         IMediaStorage storage,
         IActivityLogService activityLog,
-        ILogger<ConversationService>? logger = null)
+        ILogger<ConversationService>? logger = null,
+        IMessagingNotifier? notifier = null)
     {
         _ctx = ctx;
         _blockService = blockService;
         _storage = storage;
         _activityLog = activityLog;
         _logger = logger;
+        _notifier = notifier;
     }
 
     public async Task<ConversationResult> GetOrCreateAsync(
@@ -209,6 +213,23 @@ public sealed class ConversationService : IConversationService
         else conv.User2LastReadAt = now;
 
         await _ctx.SaveChangesAsync(ct);
+
+        // Faz 6.7 (#37) — multi-tab read-state: kullanıcının diğer oturumlarına bildir.
+        // Sessiz fail: mark-read kaydı zaten yapıldı, broadcast best-effort.
+        if (_notifier is not null)
+        {
+            try
+            {
+                await _notifier.NotifyConversationReadAsync(userId, conversationId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex,
+                    "ConversationRead notify başarısız: user={UserId} conv={ConvId}",
+                    userId, conversationId);
+            }
+        }
+
         return new ConversationResult(true, null, conv);
     }
 

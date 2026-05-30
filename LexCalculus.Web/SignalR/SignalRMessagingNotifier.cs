@@ -112,4 +112,23 @@ public sealed class SignalRMessagingNotifier : IMessagingNotifier
                 messageId
             }, ct);
     }
+
+    public async Task NotifyConversationReadAsync(
+        int userId, int conversationId, CancellationToken ct = default)
+    {
+        // Kullanıcının kendi tüm oturumlarına (user-{id} grubu) okundu sinyali (#37).
+        // Sessiz fail: Hub down / bağlantı yok → mark-read kaydı zaten yapıldı.
+        try
+        {
+            await _hubContext.Clients
+                .Group(MessagesHub.GroupName(userId))
+                .SendAsync("ConversationRead", new { conversationId }, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex,
+                "SignalR ConversationRead broadcast başarısız: user={UserId} conv={ConvId}",
+                userId, conversationId);
+        }
+    }
 }

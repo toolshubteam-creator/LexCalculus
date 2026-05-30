@@ -109,6 +109,38 @@ public sealed class MessagesController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// "Daha fazla yükle" (#25) — eski mesajları server-rendered _Message HTML
+    /// olarak döner. GetNewSince HTML pattern reuse; GetByConversation (VM)
+    /// sözleşmesi bozulmadan korunur. Client afterbegin ile prepend eder.
+    /// </summary>
+    [HttpGet("{conversationId:int}/older")]
+    public async Task<IActionResult> GetOlder(
+        int conversationId, [FromQuery] int skip = 0, [FromQuery] int take = 50,
+        CancellationToken ct = default)
+    {
+        if (!TryGetUserId(out var viewerId)) return Unauthorized();
+
+        var conv = await _conversations.GetByIdAsync(conversationId, viewerId, ct);
+        if (conv is null) return NotFound();
+
+        if (skip < 0) skip = 0;
+        if (take <= 0 || take > 200) take = 50;
+
+        var messages = await _messages.GetByConversationAsync(conversationId, viewerId, skip, take, ct);
+        var total = await _messages.GetCountForConversationAsync(conversationId, ct);
+
+        var htmlList = new List<string>(messages.Count);
+        foreach (var m in messages)
+            htmlList.Add(await _partial.RenderAsync("_Message", BuildVm(m, viewerId), ct));
+
+        return Ok(new
+        {
+            messages = htmlList,
+            hasMore = skip + take < total
+        });
+    }
+
     [HttpGet("{conversationId:int}/new")]
     public async Task<IActionResult> GetNewSince(
         int conversationId, [FromQuery] string? since,

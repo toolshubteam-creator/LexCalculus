@@ -156,11 +156,20 @@ public class MessageServiceNotifierTests : SqlServerTestBase
             return Task.CompletedTask;
         }
 
+        public List<(int UserId, int ConversationId)> ReadCalls { get; } = new();
+
+        public Task NotifyConversationReadAsync(int userId, int conversationId, CancellationToken ct = default)
+        {
+            ReadCalls.Add((userId, conversationId));
+            return Task.CompletedTask;
+        }
+
         public void Reset()
         {
             ReceivedCalls.Clear();
             DeletedCalls.Clear();
             HiddenCalls.Clear();
+            ReadCalls.Clear();
         }
     }
 
@@ -173,6 +182,9 @@ public class MessageServiceNotifierTests : SqlServerTestBase
             => throw new InvalidOperationException("Hub down");
 
         public Task NotifyMessageHiddenAsync(int senderId, int recipientId, int conversationId, int messageId, CancellationToken ct = default)
+            => throw new InvalidOperationException("Hub down");
+
+        public Task NotifyConversationReadAsync(int userId, int conversationId, CancellationToken ct = default)
             => throw new InvalidOperationException("Hub down");
     }
 

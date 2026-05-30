@@ -31,4 +31,12 @@ public interface IMessagingNotifier
     Task NotifyMessageHiddenAsync(
         int senderId, int recipientId, int conversationId, int messageId,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Bir kullanıcının bir conversation'ı okuduğunu O KULLANICININ tüm
+    /// oturumlarına (user-{userId} grubu) bildirir. Multi-tab read-state
+    /// senkronizasyonu için (#37). Faz 6.7. Detail handler şimdilik no-op;
+    /// liste sayfası real-time unread badge tam çözümü Faz 7+.
+    /// </summary>
+    Task NotifyConversationReadAsync(int userId, int conversationId, CancellationToken ct = default);
 }
