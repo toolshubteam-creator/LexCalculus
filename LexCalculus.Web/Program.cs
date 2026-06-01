@@ -422,6 +422,10 @@ try
     builder.Services.AddScoped<LexCalculus.Web.Infrastructure.Rendering.IPartialRenderer,
         LexCalculus.Web.Infrastructure.Rendering.PartialRenderer>();
 
+    // Faz 6.8 #18 — inline görsel srcset enricher (stateless, render-time)
+    builder.Services.AddSingleton<LexCalculus.Web.Infrastructure.Rendering.IImageVariantEnricher,
+        LexCalculus.Web.Infrastructure.Rendering.ImageVariantEnricher>();
+
     // Session — admin KVKK banner gibi geçici, kullanıcı özel state için
     builder.Services.AddSession(options =>
     {

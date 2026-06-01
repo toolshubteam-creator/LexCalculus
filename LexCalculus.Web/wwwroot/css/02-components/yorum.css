@@ -169,6 +169,53 @@
   margin-left: var(--sp-1);
 }
 
+/* Faz 6.8 #21 — düzenleme geçmişi: orijinal göster/gizle */
+.yorum__original-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: var(--sp-2);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.yorum__original-toggle:hover {
+  color: var(--gold);
+}
+
+.yorum__original {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--parchment);
+  border-left: 3px solid var(--rule);
+  border-radius: 4px;
+}
+
+.yorum__original-meta {
+  margin: 0 0 var(--sp-2);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.yorum__original-body {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.yorum__original-body a {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
 .yorum__body {
   color: var(--ink);
   line-height: 1.6;

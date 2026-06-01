@@ -29,6 +29,14 @@
                 @if (Model.IsEdited)
                 {
                     <span class="yorum__edited">· düzenlendi</span>
+                    @if (Model.HasRevision)
+                    {
+                        <button type="button" class="yorum__original-toggle"
+                                data-yorum-original="@Model.Id"
+                                aria-expanded="false">
+                            (orijinali göster)
+                        </button>
+                    }
                 }
             </span>
         </div>
@@ -37,6 +45,14 @@
     <div class="yorum__body" data-yorum-body>
         @Html.Raw(Model.Body)
     </div>
+
+    @if (Model.IsEdited && Model.HasRevision)
+    {
+        <div class="yorum__original" id="yorum-original-@Model.Id" hidden>
+            <p class="yorum__original-meta" data-yorum-original-meta>Orijinal yorum:</p>
+            <blockquote class="yorum__original-body" data-yorum-original-body></blockquote>
+        </div>
+    }
 
     @if (Model.CanEdit || Model.CanDelete || Model.CanReport)
     {

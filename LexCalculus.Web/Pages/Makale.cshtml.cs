@@ -37,6 +37,7 @@ public sealed class MakaleModel : PageModel
     private readonly IPostLikeService _likes;
     private readonly SeoSettings _seo;
     private readonly IMemoryCache _cache;
+    private readonly Infrastructure.Rendering.IImageVariantEnricher _imageEnricher;
 
     public MakaleModel(
         ApplicationDbContext ctx,
@@ -45,7 +46,8 @@ public sealed class MakaleModel : PageModel
         IPostCommentService comments,
         IPostLikeService likes,
         IOptions<SeoSettings> seoOptions,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        Infrastructure.Rendering.IImageVariantEnricher imageEnricher)
     {
         _ctx = ctx;
         _storage = storage;
@@ -54,11 +56,18 @@ public sealed class MakaleModel : PageModel
         _likes = likes;
         _seo = seoOptions.Value ?? new SeoSettings();
         _cache = cache;
+        _imageEnricher = imageEnricher;
     }
 
     private const int ViewDedupeMinutes = 30;
 
     public UserPost Post { get; private set; } = null!;
+
+    /// <summary>
+    /// Render'a hazır gövde: Post.Body + inline görsel srcset enrichment
+    /// (Faz 6.8 #18). Tracked entity'ye yazılmaz → kalıcılaşma riski yok.
+    /// </summary>
+    public string BodyHtml { get; private set; } = "";
     public string AuthorDisplayName { get; private set; } = "";
     public string? AuthorSlug { get; private set; }
     public string? AuthorAvatarUrl { get; private set; }
@@ -131,6 +140,7 @@ public sealed class MakaleModel : PageModel
         }
 
         Post = post;
+        BodyHtml = _imageEnricher.Enrich(post.Body);
         AuthorDisplayName = string.IsNullOrWhiteSpace(author.DisplayName)
             ? (author.User.UserName ?? "Kullanıcı")
             : author.DisplayName;
@@ -166,6 +176,16 @@ public sealed class MakaleModel : PageModel
 
             var commentEntities = await _comments.GetByPostIdAsync(post.Id, includeHidden: isAdmin, ct);
             var postOwnerId = post.UserId;
+
+            // Faz 6.8 #21 — düzenleme geçmişi olan yorum id'leri (tek sorgu).
+            var editedIds = commentEntities.Where(c => c.IsEdited).Select(c => c.Id).ToList();
+            var revisionIds = editedIds.Count == 0
+                ? new HashSet<int>()
+                : (await _ctx.PostCommentRevisions
+                    .Where(r => editedIds.Contains(r.CommentId))
+                    .Select(r => r.CommentId)
+                    .ToListAsync(ct)).ToHashSet();
+
             Comments = commentEntities.Select(c => new PostCommentViewModel
             {
                 Id = c.Id,
@@ -173,6 +193,7 @@ public sealed class MakaleModel : PageModel
                 Body = c.Body,
                 CreatedAt = c.CreatedAt,
                 IsEdited = c.IsEdited,
+                HasRevision = revisionIds.Contains(c.Id),
                 AuthorDisplayName = c.User.GetDisplayNameOrAnonymized(),
                 AuthorSlug = c.User.GetPublicSlugOrNull(),
                 AuthorAvatarUrl = c.User.IsAnonymizedOrInactive() || string.IsNullOrEmpty(c.User?.Profile?.AvatarUrl)

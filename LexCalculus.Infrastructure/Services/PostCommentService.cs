@@ -116,6 +116,26 @@ public sealed class PostCommentService : IPostCommentService
         if (processedBody.Length > 2000)
             processedBody = processedBody.Substring(0, 2000);
 
+        // İçerik gerçekten değişmediyse no-op: IsEdited rozeti ve revision
+        // oluşturma tetiklenmez (Faz 6.8 #21).
+        if (string.Equals(comment.Body, processedBody, StringComparison.Ordinal))
+            return new PostCommentResult(true, null, comment);
+
+        // İlk düzenleme ise orijinali sakla. Sonraki düzenlemeler revision'a
+        // DOKUNMAZ → her zaman ilk gönderilen hâli yansıtır.
+        var hasRevision = await _ctx.PostCommentRevisions
+            .AnyAsync(r => r.CommentId == comment.Id, ct);
+        if (!hasRevision)
+        {
+            _ctx.PostCommentRevisions.Add(new PostCommentRevision
+            {
+                CommentId = comment.Id,
+                OriginalBody = comment.Body,
+                OriginalCreatedAt = comment.CreatedAt,
+                FirstEditedAt = DateTime.UtcNow
+            });
+        }
+
         comment.Body = processedBody;
         comment.UpdatedAt = DateTime.UtcNow;
         comment.IsEdited = true;
@@ -180,6 +200,10 @@ public sealed class PostCommentService : IPostCommentService
 
     public Task<PostComment?> GetByIdAsync(int commentId, CancellationToken ct = default)
         => _ctx.PostComments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
+
+    public Task<PostCommentRevision?> GetRevisionAsync(int commentId, CancellationToken ct = default)
+        => _ctx.PostCommentRevisions.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.CommentId == commentId, ct);
 
     // ─── helpers ──────────────────────────────────────────────────────────
 

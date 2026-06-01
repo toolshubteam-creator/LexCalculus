@@ -20,6 +20,13 @@ public sealed class MediaUploadService : IMediaUploadService
     private const int InlineMaxDimension = 1200;             // max 1200x1200, aspect korunur
     private const int WebpQuality = 85;
 
+    // Faz 6.8 #18 — inline görsel responsive variant genişlikleri (480=mobil,
+    // 800=okuma kolonu 1x). Ana görsel (≤1200) src fallback olarak kalır; daha
+    // büyük variant üretilmez çünkü Max mode ana görseli zaten ~1200'e getirir.
+    // Orijinal kaynaktan büyük genişlikler atlanır (upscale yok). srcset enricher
+    // dosya varlığına bakar.
+    private static readonly int[] InlineVariantWidths = { 480, 800 };
+
     private readonly ApplicationDbContext _ctx;
     private readonly IMediaStorage _storage;
     private readonly IActivityLogService _activityLog;
@@ -328,9 +335,16 @@ public sealed class MediaUploadService : IMediaUploadService
 
         ms.Position = 0;
         byte[] webpBytes;
+        // Faz 6.8 #18 — responsive variant byte'ları (genişlik → webp). Ana
+        // görselle aynı encode geçişinde üretilir; orijinalden büyük genişlikler
+        // atlanır (upscale yok).
+        var variantBytes = new List<(int Width, byte[] Bytes)>();
         try
         {
             using var image = await Image.LoadAsync(ms, ct);
+            // Orijinal kaynak genişliği — variant üretiminde gerçek çözünürlük
+            // ötesinde upscale yapmamak için (Max mode küçük görseli 1200'e büyütür).
+            var sourceWidth = image.Width;
             // Max mode: aspect ratio korunur, en büyük boyut 1200'e indirilir
             // (zaten 1200'den küçükse dokunulmaz).
             image.Mutate(x => x.Resize(new ResizeOptions
@@ -347,6 +361,22 @@ public sealed class MediaUploadService : IMediaUploadService
             using var outMs = new MemoryStream();
             await image.SaveAsync(outMs, encoder, ct);
             webpBytes = outMs.ToArray();
+
+            foreach (var width in InlineVariantWidths)
+            {
+                // Ana görselden küçük VE orijinal kaynak çözünürlüğünü aşmayan
+                // genişlikler üretilir (ana görselin kopyasını/upscale'i yok).
+                if (width >= image.Width || width > sourceWidth) continue;
+                using var variant = image.Clone(c => c.Resize(new ResizeOptions
+                {
+                    Size = new Size(width, 0),          // yükseklik aspect'e göre
+                    Mode = ResizeMode.Max,
+                    Sampler = KnownResamplers.Lanczos3
+                }));
+                using var variantMs = new MemoryStream();
+                await variant.SaveAsync(variantMs, encoder, ct);
+                variantBytes.Add((width, variantMs.ToArray()));
+            }
         }
         catch (Exception ex)
         {
@@ -371,6 +401,25 @@ public sealed class MediaUploadService : IMediaUploadService
         {
             _logger.LogWarning(ex, "Inline image storage hatası: user={UserId}", userId);
             return new MediaUploadResult(false, null, "Yükleme depolama hatası.");
+        }
+
+        // Variant'lar best-effort: yazılamasa bile ana görsel + src fallback
+        // çalışmaya devam eder (graceful degradation). MediaFile audit'i ana
+        // görsele bağlı; variant'lar türev artefakt → ayrı satır tutulmaz.
+        var baseName = Path.GetFileNameWithoutExtension(newFileName);
+        foreach (var (width, bytes) in variantBytes)
+        {
+            try
+            {
+                using var vMs = new MemoryStream(bytes);
+                await _storage.StoreAsync(vMs, subdir, $"{baseName}_{width}.webp", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Inline image variant yazma hatası (atlandı): user={UserId} width={Width}",
+                    userId, width);
+            }
         }
 
         // MediaFile audit kaydı (eski silme YOK — orphan GC Faz 5+)

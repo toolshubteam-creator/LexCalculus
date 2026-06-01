@@ -101,6 +101,50 @@ public sealed class PostCommentsController : ControllerBase
         return Ok(new { success = true });
     }
 
+    /// <summary>
+    /// Düzenlenmiş bir yorumun saklı orijinal hâlini döndürür (Faz 6.8 #21).
+    /// AllowAnonymous: yorum public makalede görünüyorsa orijinali de görünür.
+    /// Gizli/yayında-olmayan içerik yalnızca sahibe/admine sızdırılır.
+    /// </summary>
+    [HttpGet("{id:int}/original")]
+    [AllowAnonymous]
+    [EnableRateLimiting("ajax-general")]
+    public async Task<IActionResult> Original(int id, CancellationToken ct = default)
+    {
+        var revision = await _comments.GetRevisionAsync(id, ct);
+        if (revision is null) return NotFound();
+
+        var info = await _ctx.PostComments
+            .Where(c => c.Id == id)
+            .Select(c => new
+            {
+                c.IsModeratorHidden,
+                PostPublished = c.Post != null && c.Post.IsPublished,
+                PostHidden = c.Post != null && c.Post.IsModeratorHidden,
+                PostOwnerId = c.Post != null ? c.Post.UserId : 0
+            })
+            .FirstOrDefaultAsync(ct);
+        if (info is null) return NotFound();
+
+        var isAdmin = User.IsInRole("Admin");
+        int? viewerId = TryGetUserId(out var uid) ? uid : null;
+        var isPostOwner = viewerId.HasValue && viewerId.Value == info.PostOwnerId;
+
+        // Post yayında ve gizlenmemiş olmalı; aksi halde yalnızca sahip/admin görür.
+        if ((!info.PostPublished || info.PostHidden) && !isPostOwner && !isAdmin)
+            return NotFound();
+        // Moderasyonla gizlenmiş yorumun orijinali yalnızca admine.
+        if (info.IsModeratorHidden && !isAdmin)
+            return NotFound();
+
+        return Ok(new
+        {
+            originalBody = revision.OriginalBody,
+            originalCreatedAt = revision.OriginalCreatedAt,
+            firstEditedAt = revision.FirstEditedAt
+        });
+    }
+
     private bool TryGetUserId(out int userId)
     {
         var raw = _userManager.GetUserId(User);
@@ -116,6 +160,7 @@ public sealed class PostCommentsController : ControllerBase
             {
                 c.Id, c.PostId, c.Body, c.CreatedAt, c.IsEdited,
                 c.UserId,
+                HasRevision = _ctx.PostCommentRevisions.Any(r => r.CommentId == c.Id),
                 PostOwnerId = c.Post != null ? c.Post.UserId : 0,
                 AuthorDisplayName = c.User!.Profile != null
                     ? c.User.Profile.DisplayName
@@ -133,6 +178,7 @@ public sealed class PostCommentsController : ControllerBase
             Body = data.Body,
             CreatedAt = data.CreatedAt,
             IsEdited = data.IsEdited,
+            HasRevision = data.HasRevision,
             AuthorDisplayName = string.IsNullOrWhiteSpace(data.AuthorDisplayName)
                 ? "Kullanıcı" : data.AuthorDisplayName,
             AuthorSlug = data.AuthorSlug,

@@ -50,6 +50,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<UserPost> UserPosts => Set<UserPost>();
     public DbSet<PostTagLink> PostTagLinks => Set<PostTagLink>();
     public DbSet<PostComment> PostComments => Set<PostComment>();
+    public DbSet<PostCommentRevision> PostCommentRevisions => Set<PostCommentRevision>();
     public DbSet<PostLike> PostLikes => Set<PostLike>();
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -302,6 +303,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             // Faz 5.3 — Hide moderation
             e.HasIndex(c => c.IsModeratorHidden);
+        });
+
+        // Faz 6.8 (tech-debt #21) — yorum düzenleme geçmişi. Yorum başına tek
+        // revision (unique index), yorum silinince cascade.
+        builder.Entity<PostCommentRevision>(e =>
+        {
+            e.HasKey(r => r.Id);
+
+            e.Property(r => r.OriginalBody).HasMaxLength(2000).IsRequired();
+
+            e.HasOne(r => r.Comment)
+             .WithOne()
+             .HasForeignKey<PostCommentRevision>(r => r.CommentId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasIndex(r => r.CommentId).IsUnique();
         });
 
         builder.Entity<PostLike>(e =>

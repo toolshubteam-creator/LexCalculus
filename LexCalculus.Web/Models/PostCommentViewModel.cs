@@ -16,6 +16,12 @@ public sealed class PostCommentViewModel
     public DateTime CreatedAt { get; set; }
     public bool IsEdited { get; set; }
 
+    /// <summary>
+    /// Düzenlenmiş yorumun saklı orijinali var mı (Faz 6.8 #21). True ise
+    /// '(orijinal)' toggle gösterilir; içerik lazy olarak fetch edilir.
+    /// </summary>
+    public bool HasRevision { get; set; }
+
     public string AuthorDisplayName { get; set; } = "";
     public string? AuthorSlug { get; set; }
     public string? AuthorAvatarUrl { get; set; }

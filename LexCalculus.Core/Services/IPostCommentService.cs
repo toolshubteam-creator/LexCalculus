@@ -31,6 +31,12 @@ public interface IPostCommentService
         int postId, bool includeHidden = false, CancellationToken ct = default);
     Task<int> GetCountForPostAsync(int postId, CancellationToken ct = default);
     Task<PostComment?> GetByIdAsync(int commentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Yorumun ilk düzenleme öncesi orijinal hâli (Faz 6.8, #21). Hiç
+    /// düzenlenmemişse null. Yorum başına en fazla bir revision tutulur.
+    /// </summary>
+    Task<PostCommentRevision?> GetRevisionAsync(int commentId, CancellationToken ct = default);
 }
 
 public sealed record PostCommentResult(bool Success, string? ErrorMessage, PostComment? Comment);

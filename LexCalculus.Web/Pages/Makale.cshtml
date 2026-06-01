@@ -4,6 +4,7 @@
 @section Scripts {
     <script src="~/js/makale-page.js" asp-append-version="true"></script>
     <script src="~/js/report-modal.js" asp-append-version="true"></script>
+    <script src="~/js/comment-original.js" asp-append-version="true"></script>
 }
 
 <article class="makale">
@@ -106,8 +107,9 @@
     </header>
 
     <div class="makale__body">
-        @* Body, UserPostService.Sanitize ile temizlenmiş — Html.Raw güvenli *@
-        @Html.Raw(Model.Post.Body)
+        @* Body, UserPostService.Sanitize ile temizlenmiş — Html.Raw güvenli.
+           BodyHtml = sanitize + inline görsel srcset enrichment (Faz 6.8 #18). *@
+        @Html.Raw(Model.BodyHtml)
     </div>
 
     @if (Model.Post.TagLinks is { Count: > 0 })

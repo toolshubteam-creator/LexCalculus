@@ -504,7 +504,22 @@ iş: ~30 dk.
 
 ---
 
-## 18. Image responsive variants (srcset)
+## ✅ 18. Image responsive variants (srcset) — ÇÖZÜLDÜ (Adım 6.8, 1 Haziran 2026)
+
+**Çözüm:** `MediaUploadService.UploadInlineImageAsync` inline görsel
+yüklerken ana WebP (≤1200, q85) yanında 480w ve 800w responsive variant
+üretir (Lanczos3, upscale yok — orijinalden büyük genişlik atlanır).
+Render anında `ImageVariantEnricher` (regex tabanlı, `Makale.cshtml.cs`
+→ `BodyHtml`) yalnız `uploads/posts/{id}/inline/{guid}.webp` img'lerine
+disk'te variant'ı VAR olanlar için `srcset` + `sizes` + `loading="lazy"`
+ekler. Eski resimler / harici / featured görseller dokunulmaz (graceful
+fallback: browser `src` kullanır). İdeal plandan sapma: `<picture>` yerine
+sade `srcset` (yeterli), genişlikler 480/800 (600/1200 değil — okuma kolonu
+~760px, 1200 zaten `src` fallback). Test: `ImageVariantTests` (4).
+
+---
+
+## 18. (Orijinal kayıt — referans için)
 
 **Bağlam:** Adım 4.8'de görsel yükleme tek 1200x1200 sürüm üretiyor
 (featured: 1200x630 OG, inline: 1200 max). Mobile cihazlarda gereksiz
@@ -597,7 +612,24 @@ Tahmini iş: ~1 gün.
 
 ---
 
-## 21. Comment edit history
+## ✅ 21. Comment edit history — ÇÖZÜLDÜ (Adım 6.8, 1 Haziran 2026)
+
+**Çözüm:** `PostCommentRevision` entity (`Id, CommentId, OriginalBody,
+OriginalCreatedAt, FirstEditedAt`) + `AddPostCommentRevisions` migration.
+`HasOne...WithOne` + unique index → yorum başına en fazla 1 revision.
+`PostCommentService.UpdateAsync` İLK düzenlemede orijinali saklar; sonraki
+düzenlemeler revision'a DOKUNMAZ (no-op/aynı body edit revision yaratmaz).
+`GET /api/post-comments/{id}/original` (anon, gizli/yayında-olmayan yorum
+filtreli) + `_PostComment.cshtml` "düzenlendi · (orijinali göster)" toggle
++ `comment-original.js` lazy fetch. Yorum silinince cascade ile silinir
+(KVKK). İdeal plandan sapma: tam revision geçmişi (son 5) yerine yalnız
+İLK orijinal saklanır (moderasyon "spam→benign düzenleme" senaryosu için
+yeterli; charter kararı). `EditedByUserId` yok — düzenleme yalnız sahip
+tarafından yapılabildiğinden gereksiz. Test: `CommentEditHistoryTests` (5).
+
+---
+
+## 21. (Orijinal kayıt — referans için)
 
 **Bağlam:** Adım 4.9'da `PostComment.IsEdited` flag eklendi
 (UI "düzenlendi" rozet) ama eski içerik kaybediliyor.
