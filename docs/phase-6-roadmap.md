@@ -5,7 +5,7 @@
 **Başlangıç:** 29 Mayıs 2026 · **Charter:** [phase-6-charter.md](./phase-6-charter.md)
 · **Envanter:** [phase-6-scope-inventory.md](./phase-6-scope-inventory.md)
 
-🟢 **Dalga A tamamlandı (30 Mayıs 2026)** — Tag: `phase-6-wave-a-complete`. Sıradaki: Dalga B Adım 6.6.
+🟢 **Dalga B tamamlandı (1 Haziran 2026)** — Tag: `phase-6-wave-b-complete`. Sıradaki: Dalga C Adım 6.10.
 
 ---
 
@@ -14,7 +14,7 @@
 | Dalga | Konu | Adım Aralığı | Tahmin | Durum |
 |---|---|---|---|---|
 | A | Email + temizlik | 6.2-6.5 | 1.5-2 hafta | ✅ Tamamlandı (29-30 May) |
-| B | UX iyileştirmeler | 6.6-6.9 | 1-1.5 hafta | ⏳ |
+| B | UX iyileştirmeler | 6.6-6.9 | 1-1.5 hafta | ✅ Tamamlandı (30 May-1 Haz) |
 | C | Performance + closeout | 6.10-6.13 | 1 hafta | ⏳ |
 
 ## Adım tablosu
@@ -26,10 +26,10 @@
 | ~~6.3~~ | **6.2 P2'ye birleştirildi** (notification→email + tercih + dijest tek akış) | 2, 3 | #22, #39 | ➡️ 6.2 |
 | 6.4 | NU1901 + CA2024 temizliği | — | #35, #36 | ✅ |
 | 6.5 | Dalga A closeout | — | #40 | ✅ |
-| 6.6 | Tag autocomplete + view dedupe | 4, 5 | #15, #16 | ⏳ |
-| 6.7 | Polling + multi-tab + sayfalama | — | #24, #25, #37 | ⏳ |
-| 6.8 | Comment edit + image variants | — | #18, #21 | ⏳ |
-| 6.9 | Dalga B closeout | — | — | ⏳ |
+| 6.6 | Tag autocomplete + view dedupe | 4, 5 | #15, #16 | ✅ |
+| 6.7 | Polling + multi-tab + sayfalama | — | #24, #25, #37, #40 | ✅ |
+| 6.8 | Comment edit + image variants | — | #18, #21 | ✅ |
+| 6.9 | Dalga B closeout | — | #40 | ✅ |
 | 6.10 | n+1 sorgu refactor | — | #31, #32 | ⏳ |
 | 6.11 | IPartialRenderer + Tag helper extract | — | #17, #38 | ⏳ |
 | 6.12 | ChainedRateLimiter + SignalR self-host | Faz 5 §3 K7 | #27 | ⏳ |
@@ -87,37 +87,51 @@ notu + `phase-6-wave-a-complete` annotated tag.
 
 ## Dalga B — UX iyileştirmeler
 
-### Adım 6.6 — Tag autocomplete + view count dedupe ⏳
+### Adım 6.6 — Tag autocomplete + view count dedupe ✅ (commit `03f3c6c`)
 
-**Kapsam:**
+**Yapılanlar:**
 - `GET /api/post-tags/search?q={prefix}&take=10` + `GetPopularAsync` prefix filter
-- Quill editor vanilla JS dropdown (tag chip pattern reuse)
+- Quill editor vanilla JS dropdown (tag chip pattern reuse, XSS-safe `textContent`)
 - View dedupe: anonim cookie 30 dk TTL + login `IMemoryCache` 30 dk sliding
 
-**Charter Karar:** 4, 5 · **Tech-debt:** #15, #16 · **Süre:** ~1 gün
+**Charter Karar:** 4, 5 · **Tech-debt:** #15, #16 ÇÖZÜLDÜ
 
-### Adım 6.7 — Polling + multi-tab + sayfalama ⏳
+### Adım 6.7 — Polling + multi-tab + sayfalama ✅ (commit `738fa66`)
 
-**Kapsam:**
-- Polling `visibilityState` duyarlı (sekme gizliyse pause)
-- multi-tab mark-as-read race: alıcının tüm tab'larına SignalR read-state broadcast
-- "Daha fazla yükle" sunucu-render endpoint (`_Message` HTML array) + prepend
+**Yapılanlar:**
+- Polling Page Visibility API duyarlı (sekme gizliyse pause, visible → hemen poll + interval)
+- multi-tab read-state foundation: `IMessagingNotifier` 4. method + `ConversationRead`
+  SignalR broadcast (alıcının tüm tab'larına)
+- "Daha fazla yükle" sunucu-render `/older` endpoint + prepend + scroll pozisyon koruması
 
-**Tech-debt:** #24, #25, #37 · **Süre:** ~1-1.5 gün
+**Tech-debt:** #24, #25 ÇÖZÜLDÜ · #37 KISMEN (backend hazır, liste real-time badge Faz 7+) ·
+#40 smoke denendi (yanlış senaryo → 6.13'e taşındı)
 
-### Adım 6.8 — Comment edit history + image variants ⏳
+### Adım 6.8 — Comment edit history + image variants ✅ (commit `32d2d5a`)
 
-**Kapsam:**
-- `PostCommentRevision` tablosu (eski body, EditedAt) + admin "geçmiş" linki
-- Image responsive: ImageSharp 600/1200px varyant + `<picture>`/`srcset`
+**Yapılanlar:**
+- `PostCommentRevision` entity (ilk orijinal saklama, yorum başına max 1 revision,
+  cascade delete) + `AddPostCommentRevisions` migration; `(orijinali göster)` toggle +
+  lazy fetch + `GET /api/post-comments/{id}/original`
+- Image responsive: SixLabors.ImageSharp 480w + 800w WebP variant (upscale yok) +
+  render-time `ImageVariantEnricher` srcset/sizes/lazy enrichment
 
-**Tech-debt:** #18, #21 · **Süre:** ~2 gün
+> **Sapma:** charter dışı detaylar codebase gerçeğine uyarlandı — WebP 480/800
+> (JPG 600/1200 değil), sade `srcset` (`<picture>` değil), #21'de yalnız İLK orijinal
+> (tam geçmiş değil, charter kararı). Detay tech-debt #18 + #21 ÇÖZÜLDÜ kayıtlarında.
 
-### Adım 6.9 — Dalga B closeout ⏳
+**Tech-debt:** #18, #21 ÇÖZÜLDÜ · **Test:** +9 (810→819)
 
-**Kapsam:** roadmap güncelleme + UX manuel doğrulama.
+### Adım 6.9 — Dalga B closeout ✅ (bu commit)
 
-**Süre:** ~0.5 gün
+**Yapılanlar:** roadmap + README Dalga B özeti + tech-debt #40 Adım 6.13'e taşıma notu +
+`phase-6-wave-b-complete` annotated tag. Yeni kod yok.
+
+> **#40 polling fallback manuel smoke YİNE YAPILMADI** — Adım 6.7'de denendi ancak
+> DevTools "Network Offline" yanlış senaryoydu (tüm HTTP kesilir → polling de test
+> edilemez). Doğru senaryo: WS bloke + HTTP açık. Adım 6.13 bütünsel smoke'a taşındı.
+
+**Tech-debt:** #40 (→ 6.13)
 
 ---
 

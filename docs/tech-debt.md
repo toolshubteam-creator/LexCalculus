@@ -1101,7 +1101,16 @@ birlikte.
 
 ---
 
-## 🟡 40. Polling fallback manuel test borcu (Adım 5.6 Senaryo 5) — TARAYICI SMOKE BEKLİYOR
+## 🟡 40. Polling fallback manuel test borcu (Adım 5.6 Senaryo 5) — ADIM 6.13'E TAŞINDI
+
+**Durum (Adım 6.9, 1 Haziran 2026):** Adım 6.7'de tarayıcı smoke'u DENENDİ ancak
+**yanlış senaryo** seçildi: DevTools "Network Offline" tüm HTTP trafiğini keser →
+SignalR hem de polling fallback aynı anda ölür, dolayısıyla "WS kopunca polling'e
+düşüyor mu" sorusu test EDİLEMEZ. Doğru senaryo: **WebSocket bloke + HTTP açık**
+(ör. DevTools'tan yalnız WS handshake'i blokla, veya SignalR transport'u zorla
+long-polling dışına it). Bu nedenle borç kapatılmadı; **Adım 6.13 Faz 6 closeout**
+bütünsel manuel smoke'una taşındı (doğru senaryo orada uygulanacak). Kod yolu hazır,
+`GetNewSince` integration testi ile otomatik kapsanıyor — bloklayıcı değil.
 
 **Durum (Adım 6.7, 30 Mayıs 2026):** Polling kod yolu Adım 6.7'de elden geçirildi
 (#24 görünürlük) ve `GetNewSince` integration testi ile otomatik kapsanıyor. ANCAK

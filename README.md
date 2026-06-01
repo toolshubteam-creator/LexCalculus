@@ -330,6 +330,38 @@ performance + cleanliness.
 
 - [Faz 6 Charter](./docs/phase-6-charter.md) · [Roadmap](./docs/phase-6-roadmap.md) · [Kapsam envanteri](./docs/phase-6-scope-inventory.md)
 
+#### Faz 6 Dalga B — Tamamlandı (1 Haziran 2026)
+
+**Tag:** `phase-6-wave-b-complete` · **Süre:** 30 Mayıs-1 Haziran 2026 (charter 1-1.5 hafta tahmini)
+
+UX iyileştirmeleri (Dalga A pattern reuse — server-side endpoint + vanilla JS + XSS-safe):
+- Tag autocomplete (`/api/post-tags/search` prefix endpoint + Quill vanilla JS dropdown)
+- View count dedupe (anonim cookie 30 dk TTL + login `IMemoryCache` 30 dk sliding)
+- Polling Page Visibility API (sekme gizliyse pause, visible → hemen poll + interval)
+- Mesaj sayfalama (`/older` endpoint + "Daha fazla yükle" + scroll pozisyon koruması)
+- Multi-tab read-state foundation (`IMessagingNotifier` 4. method + `ConversationRead`
+  SignalR broadcast — alıcının tüm tab'larına)
+- Comment edit history (`PostCommentRevision` ilk-orijinal saklama + `(orijinali göster)`
+  toggle + lazy fetch + anon `/original` endpoint)
+- Image responsive variants (SixLabors.ImageSharp 480w + 800w WebP + render-time
+  `ImageVariantEnricher` srcset/sizes/lazy)
+
+**Süreç notu (şeffaflık):** Adım 6.7'de #40 polling fallback tarayıcı smoke'u denendi
+ancak "Network Offline" yanlış senaryoydu — tüm HTTP kesilir, polling de ölür, dolayısıyla
+"WS kopunca polling'e düşüyor mu" test edilemez. Doğru senaryo WS bloke + HTTP açık olmalı;
+bütünsel manuel smoke Adım 6.13 Faz 6 closeout'a taşındı (tech-debt #40).
+
+| Metrik | Değer |
+|---|---|
+| Test | 798 → 819 (+21, regresyon 0) |
+| Migration | +1 (AddPostCommentRevisions) |
+| Yeni entity | PostCommentRevision |
+| Build uyarı | 0 hata + 0 uyarı (Dalga A'dan korundu, yeni NU1901 yok) |
+| Kapatılan tech-debt | #15, #16, #18, #21, #24, #25 (6 madde) |
+| Kısmen / bekleyen | 🟡 #37 (backend hazır, liste real-time Faz 7+) · 🟡 #40 (→ 6.13) |
+
+Sıradaki: **Dalga C — Performance + closeout (6.10-6.13)**.
+
 #### Faz 6 Dalga A — Tamamlandı (30 Mayıs 2026)
 
 **Tag:** `phase-6-wave-a-complete` · **Süre:** 29-30 Mayıs 2026 (charter 1.5-2 hafta tahmini)
