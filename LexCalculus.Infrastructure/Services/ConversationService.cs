@@ -1,3 +1,4 @@
+using LexCalculus.Core.Entities.Identity;
 using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Entities.Social;
 using LexCalculus.Core.Extensions;
@@ -116,83 +117,107 @@ public sealed class ConversationService : IConversationService
     public async Task<IReadOnlyList<ConversationListItem>> GetForUserAsync(
         int userId, CancellationToken ct = default)
     {
-        var convs = await _ctx.Conversations
-            .Include(c => c.User1).ThenInclude(u => u!.Profile)
-            .Include(c => c.User2).ThenInclude(u => u!.Profile)
-            .Where(c => c.User1Id == userId || c.User2Id == userId)
-            .OrderByDescending(c => c.LastMessageAt)
+        // Faz 6.10 (#31) — tek query. Önceden: 1 conv + 1 block + N son-mesaj +
+        // N unread = (2N+2) round-trip. Şimdi: tek SELECT; engelleme filtresi
+        // korelasyonlu EXISTS, son mesaj + unread korelasyonlu alt sorgu (APPLY).
+        // Görüntüleme alanları (isim/slug/avatar) skalar projekte edilip in-memory
+        // extension method'larla map'lenir — anonimize/inactive davranışı korunur.
+        var rows = await (
+            from c in _ctx.Conversations
+            where (c.User1Id == userId || c.User2Id == userId)
+                  // Engelleyen filter: viewer karşı tarafı engellemiş ise gizli.
+                  && !_ctx.UserBlocks.Any(b => b.BlockerId == userId
+                        && b.BlockedId == (c.User1Id == userId ? c.User2Id : c.User1Id))
+            let other = c.User1Id == userId ? c.User2 : c.User1
+            let otherId = c.User1Id == userId ? c.User2Id : c.User1Id
+            let myReadAt = c.User1Id == userId ? c.User1LastReadAt : c.User2LastReadAt
+            orderby c.LastMessageAt descending
+            select new ListRow
+            {
+                ConvId = c.Id,
+                LastMessageAt = c.LastMessageAt,
+                OtherUserId = otherId,
+                OtherIsActive = other.IsActive,
+                OtherUserName = other.UserName,
+                OtherDisplayName = other.Profile != null ? other.Profile.DisplayName : null,
+                OtherSlug = other.Profile != null ? other.Profile.PublicSlug : null,
+                OtherAvatarUrl = other.Profile != null ? other.Profile.AvatarUrl : null,
+                // Son mesaj preview kaynağı — IsModeratorHidden mesajlar filter dışı
+                // (alıcı görmez; sahip kendi gizli mesajını placeholder ile görür).
+                // IsDeleted mesaj son mesaj olabilir → '(silindi)' gösterilir.
+                Last = c.Messages
+                    .Where(m => !m.IsModeratorHidden || m.SenderId == userId)
+                    .OrderByDescending(m => m.CreatedAt)
+                    .Select(m => new LastMsgRow
+                    {
+                        Body = m.Body,
+                        IsDeleted = m.IsDeleted,
+                        IsModeratorHidden = m.IsModeratorHidden,
+                        SenderId = m.SenderId
+                    })
+                    .FirstOrDefault(),
+                // Okunmamış sayım — hidden/deleted mesajlar hariç (alıcı zaten görmez).
+                UnreadCount = c.Messages.Count(m =>
+                    m.SenderId == otherId
+                    && (myReadAt == null || m.CreatedAt > myReadAt)
+                    && !m.IsDeleted
+                    && !m.IsModeratorHidden)
+            })
             .ToListAsync(ct);
 
-        if (convs.Count == 0)
+        if (rows.Count == 0)
             return Array.Empty<ConversationListItem>();
 
-        // Engelleyen filter: viewer karşı tarafı engellemiş ise listede gizli
-        var blockedIds = await _ctx.UserBlocks
-            .Where(b => b.BlockerId == userId)
-            .Select(b => b.BlockedId)
-            .ToListAsync(ct);
-
-        var visible = convs
-            .Where(c => !blockedIds.Contains(c.User1Id == userId ? c.User2Id : c.User1Id))
-            .ToList();
-
-        var result = new List<ConversationListItem>(visible.Count);
-        foreach (var c in visible)
+        var result = new List<ConversationListItem>(rows.Count);
+        foreach (var r in rows)
         {
-            var other = c.User1Id == userId ? c.User2 : c.User1;
-            var lastReadAt = c.User1Id == userId ? c.User1LastReadAt : c.User2LastReadAt;
-            var otherUserId = c.User1Id == userId ? c.User2Id : c.User1Id;
-
-            // Son mesaj preview — IsModeratorHidden mesajlar filter dışı
-            // (alıcı için: hidden mesajı görmesin; sahip için kendi gizli
-            // mesajı liste'de placeholder ile görünür). n+1 — Faz 6+ tech-debt.
-            var lastMsg = await _ctx.Messages
-                .Where(m => m.ConversationId == c.Id
-                         && (!m.IsModeratorHidden || m.SenderId == userId))
-                .OrderByDescending(m => m.CreatedAt)
-                .Select(m => new { m.Body, m.IsDeleted, m.IsModeratorHidden, m.SenderId })
-                .FirstOrDefaultAsync(ct);
+            // Skalar alanlardan hafif ApplicationUser yeniden kur — görüntüleme
+            // extension'larını (anonimize/inactive fallback) tek-kaynak reuse et.
+            var other = new ApplicationUser
+            {
+                IsActive = r.OtherIsActive,
+                UserName = r.OtherUserName,
+                Profile = (r.OtherDisplayName ?? r.OtherSlug ?? r.OtherAvatarUrl) != null
+                    ? new UserProfile
+                    {
+                        DisplayName = r.OtherDisplayName ?? "",
+                        PublicSlug = r.OtherSlug,
+                        AvatarUrl = r.OtherAvatarUrl
+                    }
+                    : null
+            };
 
             string? preview = null;
-            if (lastMsg is not null)
+            if (r.Last is not null)
             {
-                if (lastMsg.IsDeleted)
+                if (r.Last.IsDeleted)
                 {
                     preview = "(silindi)";
                 }
-                else if (lastMsg.IsModeratorHidden && lastMsg.SenderId == userId)
+                else if (r.Last.IsModeratorHidden && r.Last.SenderId == userId)
                 {
                     preview = "(yönetim tarafından gizlendi)";
                 }
                 else
                 {
-                    var plain = StripHtmlForPreview(lastMsg.Body);
+                    var plain = StripHtmlForPreview(r.Last.Body);
                     preview = plain.Length > LastMessagePreviewLength
                         ? plain.Substring(0, LastMessagePreviewLength) + "…"
                         : plain;
                 }
             }
 
-            // Okunmamış sayım — hidden mesajlar dahil edilmez (alıcı zaten görmez)
-            var threshold = lastReadAt ?? DateTime.MinValue;
-            var unread = await _ctx.Messages
-                .CountAsync(m => m.ConversationId == c.Id
-                              && m.SenderId == otherUserId
-                              && m.CreatedAt > threshold
-                              && !m.IsDeleted
-                              && !m.IsModeratorHidden, ct);
-
             result.Add(new ConversationListItem(
-                ConversationId: c.Id,
-                OtherUserId: otherUserId,
+                ConversationId: r.ConvId,
+                OtherUserId: r.OtherUserId,
                 OtherDisplayName: other.GetDisplayNameOrAnonymized(),
                 OtherSlug: other.GetPublicSlugOrNull(),
                 OtherAvatarUrl: other.IsAnonymizedOrInactive() || string.IsNullOrEmpty(other.Profile?.AvatarUrl)
                     ? null
                     : _storage.GetPublicUrl(other.Profile.AvatarUrl),
-                LastMessageAt: c.LastMessageAt,
+                LastMessageAt: r.LastMessageAt,
                 LastMessagePreview: preview,
-                UnreadCount: unread));
+                UnreadCount: r.UnreadCount));
         }
 
         return result;
@@ -235,29 +260,23 @@ public sealed class ConversationService : IConversationService
 
     public async Task<int> GetUnreadCountAsync(int userId, CancellationToken ct = default)
     {
-        // n+1 var (Faz 6+ optimize: tek query ile toplama)
-        var convs = await _ctx.Conversations
-            .Where(c => c.User1Id == userId || c.User2Id == userId)
-            .Select(c => new
-            {
-                ConvId = c.Id,
-                LastReadAt = c.User1Id == userId ? c.User1LastReadAt : c.User2LastReadAt,
-                OtherUserId = c.User1Id == userId ? c.User2Id : c.User1Id
-            })
-            .ToListAsync(ct);
-
-        var total = 0;
-        foreach (var c in convs)
-        {
-            var threshold = c.LastReadAt ?? DateTime.MinValue;
-            total += await _ctx.Messages.CountAsync(m =>
-                m.ConversationId == c.ConvId
-                && m.SenderId == c.OtherUserId
-                && m.CreatedAt > threshold
-                && !m.IsDeleted
-                && !m.IsModeratorHidden, ct);
-        }
-        return total;
+        // Faz 6.10 (#32) — tek SELECT COUNT. Önceden: 1 conv + N count = (N+1).
+        // Message.Conversation navigation üzerinden filtre; karşı taraftan gelen,
+        // okuma anından sonraki, silinmemiş/gizlenmemiş mesajlar sayılır. Viewer
+        // conversation'ın User1 veya User2'si olduğundan ilgili LastReadAt seçilir.
+        return await _ctx.Messages
+            .Where(m => !m.IsDeleted
+                     && !m.IsModeratorHidden
+                     && m.SenderId != userId
+                     && (m.Conversation.User1Id == userId || m.Conversation.User2Id == userId))
+            .CountAsync(m =>
+                (m.Conversation.User1Id == userId
+                    && (m.Conversation.User1LastReadAt == null
+                        || m.CreatedAt > m.Conversation.User1LastReadAt))
+                || (m.Conversation.User2Id == userId
+                    && (m.Conversation.User2LastReadAt == null
+                        || m.CreatedAt > m.Conversation.User2LastReadAt)),
+                ct);
     }
 
     // ─── helpers ──────────────────────────────────────────────────────────
@@ -297,5 +316,31 @@ public sealed class ConversationService : IConversationService
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
         var noTags = System.Text.RegularExpressions.Regex.Replace(noBr, @"<[^>]+>", "");
         return System.Net.WebUtility.HtmlDecode(noTags).Trim();
+    }
+
+    // ─── projection DTO'ları (Faz 6.10 #31 tek-query) ─────────────────────
+
+    /// <summary>GetForUserAsync tek-query projeksiyon satırı (SQL → in-memory map).</summary>
+    private sealed class ListRow
+    {
+        public int ConvId { get; init; }
+        public DateTime LastMessageAt { get; init; }
+        public int OtherUserId { get; init; }
+        public bool OtherIsActive { get; init; }
+        public string? OtherUserName { get; init; }
+        public string? OtherDisplayName { get; init; }
+        public string? OtherSlug { get; init; }
+        public string? OtherAvatarUrl { get; init; }
+        public LastMsgRow? Last { get; init; }
+        public int UnreadCount { get; init; }
+    }
+
+    /// <summary>Son mesaj preview için gereken minimal alanlar (korelasyonlu alt sorgu).</summary>
+    private sealed class LastMsgRow
+    {
+        public string Body { get; init; } = "";
+        public bool IsDeleted { get; init; }
+        public bool IsModeratorHidden { get; init; }
+        public int SenderId { get; init; }
     }
 }

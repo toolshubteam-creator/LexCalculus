@@ -856,7 +856,21 @@ Numara dosya stabilitesi için silinmedi.
 
 ---
 
-## 31. ConversationService GetForUserAsync n+1 query
+## ✅ 31. ConversationService GetForUserAsync n+1 query — ÇÖZÜLDÜ (Adım 6.10, 1 Haziran 2026)
+
+**Çözüm:** `GetForUserAsync` tek SELECT'e indirildi. Önceden N conv için
+**(2N+2)** round-trip (1 conv listesi + 1 engelleme listesi + N son-mesaj + N
+unread); şimdi **1 query**. Engelleme filtresi korelasyonlu `EXISTS`, son mesaj
+preview + unread korelasyonlu alt sorgu (SQL Server `APPLY`), görüntüleme alanları
+(isim/slug/avatar) skalar projekte edilip in-memory `ApplicationUserDisplayExtensions`
+ile map'lenir (anonimize/inactive fallback tek-kaynak korunur). Kanıt:
+`ConversationServicePerformanceTests` (`QueryCounterInterceptor` ile gerçek
+LocalDB'de `Count==1`). Davranış regresyonu 0 (12 mevcut ConversationServiceTests
+yeşil). Yeni reuse edilebilir test pattern: `TestHelpers/QueryCounterInterceptor`.
+
+---
+
+## 31. (Orijinal kayıt — referans için)
 
 **Bağlam:** Adım 5.4'te `ConversationService.GetForUserAsync` her
 conversation için ayrı `LastMessage` ve `UnreadCount` query'si yapıyor.
@@ -872,7 +886,19 @@ arttığında profile et + optimize.
 
 ---
 
-## 32. GetUnreadCountAsync n+1 query
+## ✅ 32. GetUnreadCountAsync n+1 query — ÇÖZÜLDÜ (Adım 6.10, 1 Haziran 2026)
+
+**Çözüm:** Tek `SELECT COUNT`'a indirildi. Önceden **(N+1)** round-trip (1 conv
+listesi + N `Messages.CountAsync`); şimdi **1 query** — `Message.Conversation`
+navigation üzerinden filtre, viewer'ın User1/User2 olmasına göre ilgili
+`LastReadAt` eşiği. Üst menü `UnreadMessagesBadge` ViewComponent her authenticated
+request'te bu metodu çağırdığından kazanç layout render'a doğrudan yansır. Kanıt:
+`GetUnreadCountAsync_SumsAcrossAllConversations_SingleQuery` (`Count==1`). Davranış
+korundu (`GetUnreadCountAsync_CountsOnlyOtherSenderAfterLastRead` yeşil).
+
+---
+
+## 32. (Orijinal kayıt — referans için)
 
 **Bağlam:** Adım 5.4 + 5.7'de `GetUnreadCountAsync` her conversation
 için ayrı `Messages.CountAsync` çağrısı yapıyor (badge için).
