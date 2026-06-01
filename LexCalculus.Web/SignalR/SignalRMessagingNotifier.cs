@@ -1,9 +1,6 @@
-using LexCalculus.Core.Extensions;
 using LexCalculus.Core.Messaging;
-using LexCalculus.Core.Storage;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Web.Infrastructure.Rendering;
-using LexCalculus.Web.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,21 +21,18 @@ public sealed class SignalRMessagingNotifier : IMessagingNotifier
 {
     private readonly IHubContext<MessagesHub> _hubContext;
     private readonly ApplicationDbContext _ctx;
-    private readonly IMediaStorage _storage;
-    private readonly IPartialRenderer _partial;
+    private readonly IMessageHtmlRenderer _messageRenderer;
     private readonly ILogger<SignalRMessagingNotifier>? _logger;
 
     public SignalRMessagingNotifier(
         IHubContext<MessagesHub> hubContext,
         ApplicationDbContext ctx,
-        IMediaStorage storage,
-        IPartialRenderer partial,
+        IMessageHtmlRenderer messageRenderer,
         ILogger<SignalRMessagingNotifier>? logger = null)
     {
         _hubContext = hubContext;
         _ctx = ctx;
-        _storage = storage;
-        _partial = partial;
+        _messageRenderer = messageRenderer;
         _logger = logger;
     }
 
@@ -54,26 +48,9 @@ public sealed class SignalRMessagingNotifier : IMessagingNotifier
             return;
         }
 
-        var senderActive = message.Sender is { IsActive: true };
-        var avatarPath = senderActive ? message.Sender.Profile?.AvatarUrl : null;
-
-        var vm = new MessageViewModel
-        {
-            Id = message.Id,
-            ConversationId = message.ConversationId,
-            SenderId = message.SenderId,
-            SenderDisplayName = message.Sender.GetDisplayNameOrAnonymized(),
-            SenderAvatarUrl = string.IsNullOrEmpty(avatarPath)
-                ? null
-                : _storage.GetPublicUrl(avatarPath),
-            Body = message.Body,
-            CreatedAt = message.CreatedAt,
-            IsDeleted = message.IsDeleted,
-            IsModeratorHidden = message.IsModeratorHidden,
-            IsOwnMessage = false   // recipient için karşı tarafın mesajı
-        };
-
-        var html = await _partial.RenderAsync("_Message", vm, ct);
+        // Recipient perspektifi: gönderen karşı taraf olduğundan
+        // IsOwnMessage = (SenderId == recipientId) → false. Faz 6.11 (#38).
+        var html = await _messageRenderer.RenderForViewerAsync(message, recipientId, ct);
 
         await _hubContext.Clients
             .Group(MessagesHub.GroupName(recipientId))

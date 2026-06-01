@@ -23,7 +23,7 @@ public class ContentReportServiceTests : SqlServerTestBase
         var ctx = _db.Create();
         var notif = new RecordingNotificationService();
         var svc = new ContentReportService(ctx, notif, new NullActivityLogService(),
-            new NoOpMessagingNotifier());
+            new NoOpMessagingNotifier(), new PostTagService(ctx));
 
         var owner = MakeUser("owner@x.com");
         var reporter = MakeUser("reporter@x.com");

@@ -32,4 +32,14 @@ public interface IPostTagService
 
     /// <summary>Decrement; UsageCount 0'ın altına düşmez (defansif).</summary>
     Task DecrementUsageAsync(int tagId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bir veya birden çok post kaldırılırken/yayından çıkarılırken tag
+    /// kullanımlarını toplu azaltır (Faz 6.11 #17). Her tag-id KULLANIMI için
+    /// bir azaltma (aynı tag N post'ta ise N kez); UsageCount 0 altına düşmez.
+    /// <b>SaveChanges ÇAĞIRMAZ</b> — çağıran kendi unit-of-work'ünde atomik
+    /// kaydeder (admin silme / KVKK anonimize tek transaction). Önceden
+    /// ContentReportService + UserAnonymizationService'te birebir inline'dı.
+    /// </summary>
+    Task DecrementUsageForTagIdsAsync(IEnumerable<int> tagIds, CancellationToken ct = default);
 }

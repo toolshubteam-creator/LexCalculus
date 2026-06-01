@@ -29,7 +29,8 @@ public class MessageReportTests : SqlServerTestBase
         var ctx = _db.Create();
         var notif = new RecordingNotificationService();
         var msgNotif = new RecordingMessagingNotifier();
-        var svc = new ContentReportService(ctx, notif, new NullActivityLogService(), msgNotif);
+        var svc = new ContentReportService(ctx, notif, new NullActivityLogService(), msgNotif,
+            new PostTagService(ctx));
 
         var sender = MakeUser("sender@x.com");
         var recipient = MakeUser("recipient@x.com");

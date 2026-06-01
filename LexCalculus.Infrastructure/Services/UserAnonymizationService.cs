@@ -18,17 +18,20 @@ public sealed class UserAnonymizationService : IUserAnonymizationService
     private readonly ApplicationDbContext _ctx;
     private readonly IMediaStorage _storage;
     private readonly IActivityLogService _activityLog;
+    private readonly IPostTagService _tags;
     private readonly ILogger<UserAnonymizationService>? _logger;
 
     public UserAnonymizationService(
         ApplicationDbContext ctx,
         IMediaStorage storage,
         IActivityLogService activityLog,
+        IPostTagService tags,
         ILogger<UserAnonymizationService>? logger = null)
     {
         _ctx = ctx;
         _storage = storage;
         _activityLog = activityLog;
+        _tags = tags;
         _logger = logger;
     }
 
@@ -167,21 +170,12 @@ public sealed class UserAnonymizationService : IUserAnonymizationService
             post.UpdatedAt = DateTime.UtcNow;
             tagDecrementIds.AddRange(post.TagLinks.Select(l => l.TagId));
         }
+        // Faz 6.11 #17 — ortak helper (ContentReportService ile paylaşılan floor-0
+        // batch decrement). Aynı tag birden çok post'ta ise her kullanım için ayrı
+        // azaltma (duplikalar korunur). SaveChanges helper'da değil → aşağıdaki tek
+        // SaveChanges ile anonimize + decrement atomik kalır.
         if (tagDecrementIds.Count > 0)
-        {
-            var distinctTagIds = tagDecrementIds.Distinct().ToList();
-            var tags = await _ctx.PostTags
-                .Where(t => distinctTagIds.Contains(t.Id))
-                .ToListAsync(ct);
-
-            // Aynı tag birden fazla post'ta varsa decrement her kullanım için ayrı.
-            var tagDict = tags.ToDictionary(t => t.Id);
-            foreach (var tagId in tagDecrementIds)
-            {
-                if (tagDict.TryGetValue(tagId, out var tag) && tag.UsageCount > 0)
-                    tag.UsageCount--;
-            }
-        }
+            await _tags.DecrementUsageForTagIdsAsync(tagDecrementIds, ct);
 
         // 6) Atomik kaydet
         await _ctx.SaveChangesAsync(ct);

@@ -422,6 +422,11 @@ try
     builder.Services.AddScoped<LexCalculus.Web.Infrastructure.Rendering.IPartialRenderer,
         LexCalculus.Web.Infrastructure.Rendering.PartialRenderer>();
 
+    // Faz 6.11 #38 — Message → VM → _Message render kompozisyonu tek noktada
+    // (MessagesController + SignalRMessagingNotifier reuse, IPartialRenderer üstü)
+    builder.Services.AddScoped<LexCalculus.Web.Infrastructure.Rendering.IMessageHtmlRenderer,
+        LexCalculus.Web.Infrastructure.Rendering.MessageHtmlRenderer>();
+
     // Faz 6.8 #18 — inline görsel srcset enricher (stateless, render-time)
     builder.Services.AddSingleton<LexCalculus.Web.Infrastructure.Rendering.IImageVariantEnricher,
         LexCalculus.Web.Infrastructure.Rendering.ImageVariantEnricher>();

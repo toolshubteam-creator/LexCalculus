@@ -484,7 +484,29 @@ Seçenek 1 + 3 kombinasyonu yeterli olur.
 
 ---
 
-## 17. Tag UsageCount decrement helper extract (refactor)
+## ✅ 17. Tag UsageCount decrement helper extract (refactor) — ÇÖZÜLDÜ (Adım 6.11, 1 Haziran 2026)
+
+**Çözüm:** `IPostTagService.DecrementUsageForTagIdsAsync(IEnumerable<int> tagIds)`
+batch helper eklendi — kullanım-başına azaltma (aynı tag N post'ta ise N kez),
+0 floor, **SaveChanges çağırmaz** (çağıran kendi UoW'unda atomik kaydeder).
+İki inline floor-0 loop tek-kaynağa indirildi: `ContentReportService.ActionAsync`
+(post kaldırma) + `UserAnonymizationService` (KVKK — kullanıcının tüm published
+post'larını yayından çıkarma). #17'in öngördüğü "üçüncü çağıran" (KVKK
+hesap-anonimize, tüm post'lar) somut olarak gerçekleşti → extract tetiklendi.
+`UserPostService` DOKUNULMADI: zaten temiz per-tag `DecrementUsageAsync`
+metodunu kullanıyor (farklı save semantiği; birleştirmek atomikliği değiştirir,
+gereksiz risk). Test: `TagUsageDecrementTests` (4 — per-occurrence, floor-0,
+no-op, no-self-save). Davranış regresyonu 0 (Moderation + UserAnonymization
+testleri yeşil).
+
+> **Sapma notu:** 6.11 planının "1-2 yerde YAGNI atla" eşiği inline-loop sayısına
+> göre 2'ydi; ancak #17'in kendi dokümante trigger'ı (3. fonksiyonel çağıran =
+> KVKK delete-all-posts) gerçekleştiği için extract yapıldı. floor-0 invariant'i
+> tek noktada toplandı.
+
+---
+
+## 17. (Orijinal kayıt — referans için)
 
 **Bağlam:** Adım 4.10 P2'de `ContentReportService.ActionAsync`
 `UserPostService.DeleteAsync` ile aynı tag UsageCount decrement mantığını
@@ -1078,7 +1100,26 @@ günceller. `ConversationRead` event + client handler.
 
 ---
 
-## 38. IPartialRenderer reuse pattern refactor (mesaj VM + render duplikasyonu)
+## ✅ 38. IPartialRenderer reuse pattern refactor (mesaj VM + render duplikasyonu) — ÇÖZÜLDÜ (Adım 6.11, 1 Haziran 2026)
+
+**Çözüm:** `IMessageHtmlRenderer.RenderForViewerAsync(Message, int viewerId)` +
+`BuildViewModel(Message, int viewerId)` extract edildi (`IPartialRenderer`
+primitive'i üstüne kompozisyon — o zaten paylaşılıyordu). `MessagesController`
+(`BuildVm`/`BuildVmAsync` silindi, `_partial`+`_storage` bağımlılıkları kalktı)
+ve `SignalRMessagingNotifier` (inline VM build silindi) artık tek noktayı
+kullanıyor. `IsOwnMessage` birleşik formül: `SenderId == viewerId` (SignalR'da
+viewer=recipient → false, eski hardcode davranışla birebir). Mesaj VM şekli
+değişirse tek yer güncellenir. Test: `MessageHtmlRendererTests` (5 — own/other
+perspektif, anonimize fallback, avatar URL, render delegation). Mevcut
+MessagesController/SignalR integration testleri yeşil (DI ile otomatik wiring,
+direkt construction churn'ü yok).
+
+**Not:** `IPartialRenderer` (Faz 4.9 P2) ve `IEmailTemplateRenderer` (Faz 3)
+ayrı kaldı — email-specific domain (inline-CSS `_EmailLayout`) dokunulmadı.
+
+---
+
+## 38. (Orijinal kayıt — referans için)
 
 **Bağlam:** Adım 5.7'de bahsedildi; charter §12'de "#28" numarasıyla anıldı —
 ama #28 aslında "SignalR Redis backplane"; bu refactor maddesinin kaydı

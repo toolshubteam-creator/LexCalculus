@@ -18,7 +18,8 @@ public class UserAnonymizationServiceTests : SqlServerTestBase
     {
         var ctx = _db.Create();
         var storage = new FakeMediaStorage();
-        var svc = new UserAnonymizationService(ctx, storage, new NullActivityLogService());
+        var svc = new UserAnonymizationService(ctx, storage, new NullActivityLogService(),
+            new PostTagService(ctx));
         return (svc, ctx, storage);
     }
 

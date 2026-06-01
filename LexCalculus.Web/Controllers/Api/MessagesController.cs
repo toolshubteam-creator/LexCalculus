@@ -1,8 +1,6 @@
 using LexCalculus.Core.Entities.Messaging;
 using LexCalculus.Core.Entities.Identity;
-using LexCalculus.Core.Extensions;
 using LexCalculus.Core.Services;
-using LexCalculus.Core.Storage;
 using LexCalculus.Web.Infrastructure.Rendering;
 using LexCalculus.Web.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -26,21 +24,18 @@ public sealed class MessagesController : ControllerBase
     private readonly IMessageService _messages;
     private readonly IConversationService _conversations;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IPartialRenderer _partial;
-    private readonly IMediaStorage _storage;
+    private readonly IMessageHtmlRenderer _messageRenderer;
 
     public MessagesController(
         IMessageService messages,
         IConversationService conversations,
         UserManager<ApplicationUser> userManager,
-        IPartialRenderer partial,
-        IMediaStorage storage)
+        IMessageHtmlRenderer messageRenderer)
     {
         _messages = messages;
         _conversations = conversations;
         _userManager = userManager;
-        _partial = partial;
-        _storage = storage;
+        _messageRenderer = messageRenderer;
     }
 
     [HttpPost("send")]
@@ -58,8 +53,10 @@ public sealed class MessagesController : ControllerBase
         if (!result.Success || result.Message is null)
             return BadRequest(new { error = result.ErrorMessage ?? "Mesaj gönderilemedi." });
 
-        var vm = await BuildVmAsync(result.Message.Id, senderId, ct);
-        var html = await _partial.RenderAsync("_Message", vm, ct);
+        var msg = await _messages.GetByIdAsync(result.Message.Id, senderId, ct)
+                  ?? throw new InvalidOperationException(
+                      $"Yeni eklenen mesaj fetch edilemedi (id={result.Message.Id}).");
+        var html = await _messageRenderer.RenderForViewerAsync(msg, senderId, ct);
 
         return Ok(new
         {
@@ -99,7 +96,7 @@ public sealed class MessagesController : ControllerBase
         var messages = await _messages.GetByConversationAsync(conversationId, viewerId, skip, take, ct);
         var total = await _messages.GetCountForConversationAsync(conversationId, ct);
 
-        var vms = messages.Select(m => BuildVm(m, viewerId)).ToList();
+        var vms = messages.Select(m => _messageRenderer.BuildViewModel(m, viewerId)).ToList();
 
         return Ok(new
         {
@@ -132,7 +129,7 @@ public sealed class MessagesController : ControllerBase
 
         var htmlList = new List<string>(messages.Count);
         foreach (var m in messages)
-            htmlList.Add(await _partial.RenderAsync("_Message", BuildVm(m, viewerId), ct));
+            htmlList.Add(await _messageRenderer.RenderForViewerAsync(m, viewerId, ct));
 
         return Ok(new
         {
@@ -169,10 +166,7 @@ public sealed class MessagesController : ControllerBase
 
         var htmlList = new List<string>(newMessages.Count);
         foreach (var m in newMessages)
-        {
-            var vm = BuildVm(m, viewerId);
-            htmlList.Add(await _partial.RenderAsync("_Message", vm, ct));
-        }
+            htmlList.Add(await _messageRenderer.RenderForViewerAsync(m, viewerId, ct));
 
         return Ok(new
         {
@@ -200,36 +194,6 @@ public sealed class MessagesController : ControllerBase
     {
         var raw = _userManager.GetUserId(User);
         return int.TryParse(raw, out userId);
-    }
-
-    private async Task<MessageViewModel> BuildVmAsync(int messageId, int viewerId, CancellationToken ct)
-    {
-        var msg = await _messages.GetByIdAsync(messageId, viewerId, ct)
-                  ?? throw new InvalidOperationException(
-                      $"Yeni eklenen mesaj fetch edilemedi (id={messageId}).");
-        return BuildVm(msg, viewerId);
-    }
-
-    private MessageViewModel BuildVm(Message m, int viewerId)
-    {
-        var senderActive = m.Sender is { IsActive: true };
-        var avatarPath = senderActive ? m.Sender.Profile?.AvatarUrl : null;
-
-        return new MessageViewModel
-        {
-            Id = m.Id,
-            ConversationId = m.ConversationId,
-            SenderId = m.SenderId,
-            SenderDisplayName = m.Sender.GetDisplayNameOrAnonymized(),
-            SenderAvatarUrl = string.IsNullOrEmpty(avatarPath)
-                ? null
-                : _storage.GetPublicUrl(avatarPath),
-            Body = m.Body,
-            CreatedAt = m.CreatedAt,
-            IsDeleted = m.IsDeleted,
-            IsModeratorHidden = m.IsModeratorHidden,
-            IsOwnMessage = m.SenderId == viewerId
-        };
     }
 }
 

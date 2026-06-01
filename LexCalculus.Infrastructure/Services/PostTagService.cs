@@ -94,4 +94,26 @@ public sealed class PostTagService : IPostTagService
         tag.UsageCount -= 1;
         await _ctx.SaveChangesAsync(ct);
     }
+
+    public async Task DecrementUsageForTagIdsAsync(
+        IEnumerable<int> tagIds, CancellationToken ct = default)
+    {
+        // Kullanım listesini materialize et (duplikalar korunur — her kullanım
+        // ayrı azaltma). Tag entity'lerini tek sorguda yükle (distinct id'ler).
+        var ids = tagIds as IReadOnlyList<int> ?? tagIds.ToList();
+        if (ids.Count == 0) return;
+
+        var distinctIds = ids.Distinct().ToList();
+        var tags = await _ctx.PostTags
+            .Where(t => distinctIds.Contains(t.Id))
+            .ToListAsync(ct);
+        var byId = tags.ToDictionary(t => t.Id);
+
+        foreach (var id in ids)
+        {
+            if (byId.TryGetValue(id, out var tag) && tag.UsageCount > 0)
+                tag.UsageCount--;
+        }
+        // SaveChanges YOK — çağıran kendi UoW'unda kaydeder (atomiklik korunur).
+    }
 }

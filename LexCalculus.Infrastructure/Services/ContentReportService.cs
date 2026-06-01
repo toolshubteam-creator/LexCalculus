@@ -23,6 +23,7 @@ public sealed class ContentReportService : IContentReportService
     private readonly INotificationService _notifications;
     private readonly IActivityLogService _activityLog;
     private readonly IMessagingNotifier _messagingNotifier;
+    private readonly IPostTagService _tags;
     private readonly ILogger<ContentReportService>? _logger;
 
     public ContentReportService(
@@ -30,12 +31,14 @@ public sealed class ContentReportService : IContentReportService
         INotificationService notifications,
         IActivityLogService activityLog,
         IMessagingNotifier messagingNotifier,
+        IPostTagService tags,
         ILogger<ContentReportService>? logger = null)
     {
         _ctx = ctx;
         _notifications = notifications;
         _activityLog = activityLog;
         _messagingNotifier = messagingNotifier;
+        _tags = tags;
         _logger = logger;
     }
 
@@ -748,17 +751,13 @@ public sealed class ContentReportService : IContentReportService
                 contentOwnerId = post.UserId;
 
                 // Yayındaysa tag UsageCount'ları azalt (cascade UsageCount güncellemez).
-                // UserPostService.DeleteAsync ile aynı pattern; admin context'te servis-arası
-                // bağımlılık eklemekten kaçınmak için inline.
+                // Faz 6.11 #17 — ortak helper (UserAnonymizationService ile paylaşılan
+                // floor-0 batch decrement). SaveChanges helper'da değil; aşağıdaki
+                // tek SaveChanges ile post silme + decrement atomik kalır.
                 if (post.IsPublished && post.TagLinks.Count > 0)
                 {
-                    var tagIds = post.TagLinks.Select(l => l.TagId).ToList();
-                    var tags = await _ctx.PostTags
-                        .Where(t => tagIds.Contains(t.Id)).ToListAsync(ct);
-                    foreach (var tag in tags)
-                    {
-                        if (tag.UsageCount > 0) tag.UsageCount--;
-                    }
+                    await _tags.DecrementUsageForTagIdsAsync(
+                        post.TagLinks.Select(l => l.TagId), ct);
                 }
 
                 _ctx.UserPosts.Remove(post);
