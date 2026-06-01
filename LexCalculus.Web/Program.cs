@@ -15,6 +15,7 @@ using LexCalculus.Infrastructure.Calculators;
 using LexCalculus.Infrastructure.Email;
 using LexCalculus.Infrastructure.Notifications;
 using LexCalculus.Web.Infrastructure.Email;
+using LexCalculus.Web.Infrastructure.RateLimiting;
 using LexCalculus.Infrastructure.Data;
 using LexCalculus.Infrastructure.Data.Interceptors;
 using LexCalculus.Infrastructure.Data.SeedData;
@@ -276,70 +277,38 @@ try
             return $"ip:{ip ?? "unknown"}";
         }
 
-        // Yorum: 10/dk
-        options.AddPolicy("comment", httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: GetPartitionKey(httpContext),
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                }));
+        // Faz 6.12 (charter §3 Karar 7) — her policy çift pencere (dakika + saat),
+        // ChainedRateLimiter AND semantiği. Mevcut tek-pencere değerleri korundu;
+        // dakika-temelli policy'lere gevşek saat tavanı (uzun-vade abuse koruması),
+        // saat-temelli policy'lere (report/connection) dakika = saat limiti eklendi
+        // (yapısal simetri; saat zaten bağlayıcı, davranış birebir aynı).
+        static FixedWindowRateLimiter FixedWindow(int permitLimit, TimeSpan window) =>
+            new(new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permitLimit,
+                Window = window,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
 
-        // Şikayet: 5/saat
-        options.AddPolicy("report", httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: GetPartitionKey(httpContext),
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 5,
-                    Window = TimeSpan.FromHours(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                }));
+        static RateLimitPartition<string> DualWindow(HttpContext ctx, int perMinute, int perHour) =>
+            RateLimitPartition.Get(
+                GetPartitionKey(ctx),
+                _ => new ChainedRateLimiter(
+                    FixedWindow(perMinute, TimeSpan.FromMinutes(1)),
+                    FixedWindow(perHour, TimeSpan.FromHours(1))));
 
-        // Mesaj: 30/dk (Faz 5 Dalga B mesajlaşma için hazır)
-        options.AddPolicy("message", httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: GetPartitionKey(httpContext),
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 30,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                }));
-
-        // Bağlantı isteği: 20/saat
-        options.AddPolicy("connection", httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: GetPartitionKey(httpContext),
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 20,
-                    Window = TimeSpan.FromHours(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                }));
-
-        // Genel AJAX: 100/dk (catch-all — beğeni, görsel upload, vs.)
-        options.AddPolicy("ajax-general", httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: GetPartitionKey(httpContext),
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 100,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                }));
+        // Yorum: 10/dk + 100/saat
+        options.AddPolicy("comment", ctx => DualWindow(ctx, perMinute: 10, perHour: 100));
+        // Şikayet: 5/dk + 5/saat (saat bağlayıcı; mevcut 5/saat davranışı korunur)
+        options.AddPolicy("report", ctx => DualWindow(ctx, perMinute: 5, perHour: 5));
+        // Mesaj: 30/dk + 300/saat
+        options.AddPolicy("message", ctx => DualWindow(ctx, perMinute: 30, perHour: 300));
+        // Bağlantı isteği: 20/dk + 20/saat (saat bağlayıcı; mevcut 20/saat korunur)
+        options.AddPolicy("connection", ctx => DualWindow(ctx, perMinute: 20, perHour: 20));
+        // Genel AJAX: 100/dk + 1000/saat (catch-all — beğeni, görsel upload, vs.)
+        options.AddPolicy("ajax-general", ctx => DualWindow(ctx, perMinute: 100, perHour: 1000));
     });
 
     // Admin: tenant yönetimi (Faz 3.7 P2a/5)

@@ -604,8 +604,12 @@ onay flow).
 **Çözüm:** ASP.NET Core `RateLimiter` middleware Adım 5.2'de eklendi; 5 named
 policy: `comment` (dakikada 5), `report` (saatte 10), `message` (dakikada 30),
 `connection` (saatte 20), `ajax-general` (dakikada 60). Per-user partition.
-`ChainedRateLimiter` (saat+dakika çift limit) Faz 6+'a bırakıldı (kısmen — charter
-Karar 7 spec gereği).
+`ChainedRateLimiter` (saat+dakika çift limit) Faz 6+'a bırakılmıştı — **Adım 6.12'de
+tamamlandı** (charter Karar 7): her 5 policy artık `ChainedRateLimiter` AND
+semantiğiyle çift pencere. Mevcut tek-pencere limitleri korundu (dakika-bazlılara
+gevşek saat tavanı: comment +100/saat, message +300/saat, ajax-general +1000/saat;
+saat-bazlılara dakika=saat: report 5/dk, connection 20/dk → davranış birebir).
+Birim test: `ChainedRateLimiterTests` (5).
 
 ---
 
@@ -813,7 +817,21 @@ user avatar gizleme) gündeme alınır. Şimdilik MEYP.
 
 ---
 
-## 27. SignalR @microsoft/signalr CDN — self-host önerilir
+## ✅ 27. SignalR @microsoft/signalr CDN — self-host önerilir — ÇÖZÜLDÜ (Adım 6.12, 1 Haziran 2026)
+
+**Çözüm:** `signalr.min.js` 8.0.7 (cdnjs'ten indirilen aynı sürüm, .NET 10 server
+ile protokol-uyumlu) `wwwroot/lib/signalr/` altına yerel kopya. `Detail.cshtml`
+script referansı CDN → `~/lib/signalr/signalr.min.js` (asp-append-version
+cache-busting). integrity/crossorigin kaldırıldı (kendi origin'imizden). CDN
+downtime / üçüncü-parti erişim bağımlılığı ve gizlilik sızıntısı ortadan kalktı;
+offline dev çalışır. `.gitignore` Quill konvansiyonuyla negation eklendi
+(`**/wwwroot/lib/` ignore + `!signalr/` istisna). LibMan eklenmedi (NPM toolchain
+projeye sokulmadı — manuel indirme, Quill pattern reuse). asp-fallback-src
+gerekmedi (tek yerel kaynak; CDN fallback'i CDN bağımlılığını geri getirirdi).
+
+---
+
+## 27. (Orijinal kayıt — referans için)
 
 **Bağlam:** Adım 5.6'da `/mesajlar/{id}` Detail sayfası SignalR client
 kütüphanesini cdnjs.cloudflare.com'dan yüklüyor (8.0.7).

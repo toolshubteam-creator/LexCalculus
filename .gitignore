@@ -484,9 +484,12 @@ $RECYCLE.BIN/
 # LexCalculus custom
 # wwwroot/lib NuGet libman ile gelen jquery vs için ignore;
 # Quill 2.x manuel indirildi (Adım 4.6 P3) — istisna olarak commit edilir.
+# SignalR JS manuel indirildi (Adım 6.12 #27, self-host) — istisna.
 **/wwwroot/lib/
 !**/wwwroot/lib/quill/
 !**/wwwroot/lib/quill/**
+!**/wwwroot/lib/signalr/
+!**/wwwroot/lib/signalr/**
 **/Logs/
 
 # User-generated content (avatars, post images, etc.) — Faz 4 ve sonrası
