@@ -5,7 +5,9 @@
 **Başlangıç:** 29 Mayıs 2026 · **Charter:** [phase-6-charter.md](./phase-6-charter.md)
 · **Envanter:** [phase-6-scope-inventory.md](./phase-6-scope-inventory.md)
 
-🟢 **Dalga B tamamlandı (1 Haziran 2026)** — Tag: `phase-6-wave-b-complete`. Sıradaki: Dalga C Adım 6.10.
+🏁 **Faz 6 tamamlandı (2 Haziran 2026)** — 12 alt adım (Dalga A+B+C). Tag: `phase-6-complete`
+(kullanıcının #40 manuel smoke onayından sonra atılacak). Fiili süre: 29 Mayıs → 2 Haziran 2026
+(charter 4-5 hafta tahmini). Sıradaki: Faz 7 (charter ayrı adımda).
 
 ---
 
@@ -15,7 +17,7 @@
 |---|---|---|---|---|
 | A | Email + temizlik | 6.2-6.5 | 1.5-2 hafta | ✅ Tamamlandı (29-30 May) |
 | B | UX iyileştirmeler | 6.6-6.9 | 1-1.5 hafta | ✅ Tamamlandı (30 May-1 Haz) |
-| C | Performance + closeout | 6.10-6.13 | 1 hafta | ⏳ |
+| C | Performance + closeout | 6.10-6.13 | 1 hafta | ✅ Tamamlandı (1-2 Haz) |
 
 ## Adım tablosu
 
@@ -30,10 +32,10 @@
 | 6.7 | Polling + multi-tab + sayfalama | — | #24, #25, #37, #40 | ✅ |
 | 6.8 | Comment edit + image variants | — | #18, #21 | ✅ |
 | 6.9 | Dalga B closeout | — | #40 | ✅ |
-| 6.10 | n+1 sorgu refactor | — | #31, #32 | ⏳ |
-| 6.11 | IPartialRenderer + Tag helper extract | — | #17, #38 | ⏳ |
-| 6.12 | ChainedRateLimiter + SignalR self-host | Faz 5 §3 K7 | #27 | ⏳ |
-| 6.13 | Faz 6 closeout | — | — | ⏳ |
+| 6.10 | n+1 sorgu refactor | — | #31, #32 | ✅ |
+| 6.11 | IPartialRenderer + Tag helper extract | — | #17, #38 | ✅ |
+| 6.12 | ChainedRateLimiter + SignalR self-host | Faz 5 §3 K7 | #27 | ✅ |
+| 6.13 | Faz 6 closeout | — | #40 | ✅ |
 
 ---
 
@@ -137,42 +139,52 @@ notu + `phase-6-wave-a-complete` annotated tag.
 
 ## Dalga C — Performance + closeout
 
-### Adım 6.10 — n+1 sorgu refactor ⏳
+### Adım 6.10 — n+1 sorgu refactor ✅ (commit `ac5f9ea`)
 
-**Kapsam:**
-- `ConversationService.GetForUserAsync`: LastMessage + UnreadCount tek aggregate
-  query (GroupJoin / window)
-- `GetUnreadCountAsync`: tek aggregate (her authenticated request'te çağrılıyor)
-- EF query-count assertion testleri
+**Yapılanlar:**
+- `ConversationService.GetForUserAsync`: (2N+2) → **tek query** (engelleme EXISTS,
+  son mesaj + unread korelasyonlu APPLY, görüntüleme skalar projeksiyon)
+- `GetUnreadCountAsync`: (N+1) → **tek SELECT COUNT** (Message.Conversation nav)
+- `QueryCounterInterceptor` test helper (gerçek LocalDB'de Count==1 kanıtı)
+- Denetim: `Conversation` iki ayrı read alanı (User1/User2LastReadAt) — bug yok
 
-**Tech-debt:** #31, #32 · **Süre:** ~1 gün
+**Tech-debt:** #31, #32 ÇÖZÜLDÜ · **Test:** +5 (819→824)
 
-### Adım 6.11 — IPartialRenderer reuse + Tag helper extract ⏳
+### Adım 6.11 — IMessageHtmlRenderer + Tag helper extract ✅ (commit `579b943`)
 
-**Kapsam:**
-- `IMessageHtmlRenderer.RenderForViewerAsync` extract (MessagesController +
-  SignalRMessagingNotifier duplikasyonu tek noktaya)
-- `IPostTagService.DecrementForPostAsync` helper (UserPostService +
-  ContentReportService duplikasyonu)
+**Yapılanlar:**
+- Denetim: `IPartialRenderer` zaten ortak (Faz 4.9 P2); #38'in gerçek borcu
+  Message→VM→render kompozisyonu → `IMessageHtmlRenderer` extract (MessagesController +
+  SignalRMessagingNotifier tek noktaya)
+- `IPostTagService.DecrementUsageForTagIdsAsync` batch helper (floor-0, no-save);
+  ContentReportService + UserAnonymizationService inline loop birleşti (#17 trigger
+  = KVKK 3. çağıran gerçekleşti). UserPostService dokunulmadı.
 
-**Tech-debt:** #17, #38 · **Süre:** ~0.5-1 gün
+**Tech-debt:** #17, #38 ÇÖZÜLDÜ · **Test:** +9 (824→833)
 
-### Adım 6.12 — ChainedRateLimiter + SignalR self-host ⏳
+### Adım 6.12 — ChainedRateLimiter + SignalR self-host ✅ (commit `f249cdb`)
 
-**Kapsam:**
-- `ChainedRateLimiter`: her policy saat+dakika çift pencere (Faz 5 §3 Karar 7
-  tamamlama)
-- SignalR JS `wwwroot/lib/signalr/` self-host + integrity hash + asp-fallback-src
+**Yapılanlar:**
+- `ChainedRateLimiter` (AND semantiği) — 5 policy çift pencere (dakika + saat).
+  Mevcut limitler korundu; dakika-bazlılara gevşek saat tavanı, saat-bazlılara
+  (report/connection) dakika=saat (davranış birebir)
+- SignalR JS `wwwroot/lib/signalr/` self-host (8.0.7, CDN bağımlılığı kalktı).
+  integrity/asp-fallback-src eklenmedi (self-host amacına aykırı, gerekçe commit'te)
 
-**Charter Karar:** Faz 5 §3 Karar 7 (çift pencere tamamlama) · **Tech-debt:** #27 · **Süre:** ~1 gün
+> **Sapma:** plan "5 policy hepsi dakika" varsayıyordu; gerçekte karışıktı
+> (report/connection saat-bazlı). Plan örnek değerleri mevcudu gevşetecekti → mevcut
+> korunup tamamlayıcı pencere eklendi.
 
-### Adım 6.13 — Faz 6 closeout ⏳
+**Charter Karar:** Faz 5 §3 Karar 7 ✅ TAMAMLANDI · **Tech-debt:** #27 ÇÖZÜLDÜ · **Test:** +5 (833→838)
 
-**Kapsam:**
-- Tüm Faz 6 senaryoları manuel doğrulama
-- README Faz 6 final özeti + metrikler
-- bu dosya (6.2-6.13 ✅) + tech-debt kapatılan maddeler "ÇÖZÜLDÜ"
-- Faz 7 önizleme notu
-- `phase-6-complete` annotated tag
+### Adım 6.13 — Faz 6 closeout ✅ (bu commit)
 
-**Süre:** ~1 gün
+**Yapılanlar:** roadmap + README Faz 6 final özeti + charter §10 Implementation Status +
+§6 risk düzeltme notu + §9 Faz 7 önizleme güncelleme + tech-debt kapanan 14 madde +
+`phase-6-complete` tag METNİ (push kullanıcının #40 manuel smoke onayına bırakıldı).
+Yeni kod yok.
+
+> **#40 polling fallback manuel smoke:** doğru senaryo (WS bloke + HTTP açık) hâlâ
+> kullanıcı tarafından yapılacak; `phase-6-complete` tag bu onaydan sonra atılır.
+
+**Tech-debt:** #40 (manuel smoke beklemede)

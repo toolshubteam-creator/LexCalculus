@@ -674,7 +674,18 @@ veya tartışma için "yorum eskiden ne diyordu?" cevabı verilemez
 
 ---
 
-## 22. Notification email kanalı
+## ✅ 22. Notification email kanalı — ÇÖZÜLDÜ (Adım 6.2 P1+P2, 29-30 Mayıs 2026)
+
+**Çözüm:** Faz 3 email altyapısı (IEmailService, EmailTemplateRenderer, 3 provider,
+`_EmailLayout`) reuse — sıfırdan kurulmadı (Adım 6.0 envanter eksiği, bkz. #41).
+P1: 4 sosyal template (Connection, Comment, ContentReport, MessageDigest). P2:
+`INotificationEmailDispatcher` (master switch + 4 granüler tercih + anonimize gating),
+`/profil` opt-in UI, Hangfire `ProcessMessageDigestJob` (mesaj 5 dk dijest). #39
+`NotificationsEmailEnabled` master switch korundu (drop iptal). Charter §3 Karar 1-3.
+
+---
+
+## 22. (Orijinal kayıt — referans için)
 
 **Bağlam:** Faz 3.3'te bell icon notification var, Faz 4'te yeni
 tipler eklendi (Connection, Comment, Like, ContentRemoved, ...).
@@ -1186,7 +1197,14 @@ birlikte.
 
 ---
 
-## 🟡 40. Polling fallback manuel test borcu (Adım 5.6 Senaryo 5) — ADIM 6.13'E TAŞINDI
+## 🟡 40. Polling fallback manuel test borcu (Adım 5.6 Senaryo 5) — MANUEL SMOKE BEKLİYOR (Faz 6 kapanışı)
+
+**Durum (Adım 6.13, 2 Haziran 2026):** Faz 6 closeout'a gelindi; bu, kodla kapatılamayan
+**tek açık kalemdir**. Doğru senaryo (WS bloke + HTTP açık) gerçek tarayıcı + network
+kontrolü gerektiren bir insan adımı olduğundan otomatik ajan tarafından yapılamaz.
+`phase-6-complete` annotated tag, kullanıcının bu manuel smoke onayından SONRA atılacak
+(tag metni hazır). Kod yolu hazır, `GetNewSince` integration testi ile otomatik kapsanıyor —
+Faz 6 kapanışı için bloklayıcı değil; yalnızca tag bu onaya bağlı.
 
 **Durum (Adım 6.9, 1 Haziran 2026):** Adım 6.7'de tarayıcı smoke'u DENENDİ ancak
 **yanlış senaryo** seçildi: DevTools "Network Offline" tüm HTTP trafiğini keser →

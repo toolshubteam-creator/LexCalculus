@@ -168,6 +168,13 @@ Charter **4-5 hafta**. Faz 5 baseline ~2 hafta. Faz 6 çoğunlukla mevcut altyap
 | **n+1 refactor performans regresyon riski** | C | EF query-count assertion testleri (mevcut testler n+1'i kanıtlamıyor) |
 | **ChainedRateLimiter false positive** | C | Test ortamında relaxed limit (Faz 5 pattern reuse) |
 
+> **Düzeltme notu (Adım 6.13, tarihsel — silinmez):** Charter yazıldığında
+> `IEmailService` altyapısının Faz 3'te tam kurulduğu fark edilmemişti. Adım 6.2 P1
+> denetiminde 9 mevcut template + 3 provider + admin test endpoint tespit edildi;
+> "sıfırdan kur" planı iptal, mevcut altyapı tamamen reuse edildi. Kök sebep: Adım 6.0
+> envanteri dosya/property varlığına bakıp **kullanım taraması** yapmamıştı
+> (tech-debt #41). Aynı kör nokta Faz 6 boyunca 6 kez yakalandı (bkz. §10).
+
 ---
 
 ## §7 Test Stratejisi
@@ -200,20 +207,64 @@ Charter **4-5 hafta**. Faz 5 baseline ~2 hafta. Faz 6 çoğunlukla mevcut altyap
 
 ## §9 Faz 7 Önizleme (Bilgi Amaçlı)
 
-Faz 6 sonunda taşınması beklenen başlıklar:
+**Faz 6'da KAPANAN tech-debt (14):** #15, #16, #17, #18, #21, #22, #24, #25, #27,
+#31, #32, #35, #36, #38 (+ #39 master switch korundu).
+**Kısmen/bekleyen:** 🟡 #37 (multi-tab backend hazır, liste real-time badge Faz 7+),
+🟡 #40 (polling fallback manuel smoke — doğru senaryo kullanıcıda).
+**Süreç borcu:** #41 (envanter kullanım-taraması) — Faz 7 başlangıcında uygulanmalı.
+
+Faz 7'ye taşınan başlıklar:
 
 - **A** — Mobile/PWA (tek tema, ayrı charter)
 - **C** — Multi-instance scaling (#28 SignalR Redis backplane, gerçek trafik)
 - **E** — Admin analytics dashboard / #9 ActivityLog retention (hukuki görüş)
+- **#37** — multi-tab tam çözüm (liste sayfası real-time unread badge)
 - **D/F düşük öncelik kalanları** — #12 (media GC), #14 (hierarchical reply),
   #29 (negotiate rate limit), #33 (admin "tüm konuşmayı incele")
 - **Mesajlaşma zenginleştirme** — read receipts, typing, search, görsel/dosya
 - **İzleme tech-debt** — #1, #3, #4, #10, #26 (Adım 6.0 envanter §5)
 - **Calculator kategorileri D-I** — kalan 6 hukuk kategorisi (15+ hesaplayıcı)
+- **#41** — envanter denetim süreç borcu (Faz 7 başlangıcında)
 
-Bunların hiçbiri Faz 6 kapsamında değildir.
+Bunların hiçbiri Faz 6 kapsamında değildir. Faz 7 charter ayrı adımda hazırlanacak.
+
+---
+
+## §10 Implementation Status (kapanış notu — Adım 6.13)
+
+Faz 6 = Dalga A + B + C (12 alt adım) **tamamlandı** (29 Mayıs → 2 Haziran 2026).
+
+**Yeni Mimari Karar (§3) implementasyonu:**
+
+| Karar | Konu | Durum |
+|---|---|---|
+| 1 | Email template: Razor view + `_EmailLayout`, inline CSS | ✅ Adım 6.2 P1 — Faz 3 altyapısı reuse (yeniden inşa DEĞİL) |
+| 2 | Email dijest: mesaj 5 dk gecikmeli, diğerleri anlık | ✅ Adım 6.2 P2 — Hangfire `ProcessMessageDigestJob` |
+| 3 | Tercih granülaritesi: master + 4 kategori bool | ✅ Adım 6.2 P2 — #39 `NotificationsEmailEnabled` master switch korundu (drop iptal, yanlış envanter varsayımı) |
+| 4 | View count dedupe: anonim cookie + login IMemoryCache | ✅ Adım 6.6 |
+| 5 | Tag autocomplete: server-side + vanilla JS | ✅ Adım 6.6 |
+
+**Faz 5 §3 Karar 7** (`ChainedRateLimiter` saat+dakika çift pencere) — ✅ TAMAMLANDI
+Adım 6.12 (Faz 5'te kısmi/tek pencere, Faz 6'da çift pencere AND semantiği).
+
+**§8 Tamamlanma kriterleri:** 10/10 karşılandı (kriter 10 `phase-6-complete` tag,
+kullanıcı #40 manuel smoke onayından sonra atılacak).
+
+**Süre:** charter tahmini 4-5 hafta; gerçek 29 Mayıs → 2 Haziran (~5 gün). Baseline
+yanıltıcı (yoğun ardışık oturumlar) — Faz 5 ile tutarlı hızlanma.
+
+**Süreç sapmaları (6 envanter eksiği, kök sebep tech-debt #41):**
+1. Adım 6.0 → Email altyapısı Faz 3'te kuruluydu (yeniden inşa iptal)
+2. Adım 6.2 P2 → #39 "orphan" yanlış etiketleme, `DataFreshnessCheckJob` aktif kullanıyordu
+3. Adım 6.6 → view increment inline'dı (servis metodu yoktu)
+4. Adım 6.10 → `Conversation.LastReadAt` iki ayrı alan (User1/User2), endişe yersizdi
+5. Adım 6.11 → `IPartialRenderer` zaten ortak, #38 gerçek içeriği farklıydı
+6. Adım 6.12 → rate-limit pencereleri karışık (policy'ler dakika/saat farklı)
+
+Not: TargetFramework **.NET 10** başlangıçtan beri (`c640de2`, 25 Nisan 2026) — Faz 6'da
+upgrade YOK. (SignalR client yorumundaki ".NET 8/10" sürüm uyumluluğunu kasteder.)
 
 ---
 
 *Charter sürümü 1.0 — 29 Mayıs 2026. Faz 6 boyunca güncel kalır;
-değişiklikler commit'lerle işlenir.*
+değişiklikler commit'lerle işlenir. §10 kapanış notu Adım 6.13'te eklendi.*

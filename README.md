@@ -4,14 +4,14 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
-**Faz 6 — Olgunlaştırma + UX + Performance başladı (29 Mayıs 2026).**
+**Faz 6 — Olgunlaştırma + UX + Performance tamamlandı (2 Haziran 2026).**
 [Charter](./docs/phase-6-charter.md) · [Roadmap](./docs/phase-6-roadmap.md) · [Kapsam envanteri](./docs/phase-6-scope-inventory.md)
 
 **Faz 5 — Real-time + Olgunlaştırma + KVKK tamamlandı (15 Mayıs 2026).**
 [Charter](./docs/phase-5-charter.md) · [Roadmap](./docs/phase-5-roadmap.md)
 
 - 17/17 hesaplayıcı aktif
-- 779/779 test geçiyor
+- 838/838 test geçiyor
 - Public profil + bağlantı + engelleme + notification (Faz 4 Dalga A)
 - Kullanıcı içerik üretimi: makale + yorum + beğeni + şikayet + admin moderasyon (Faz 4 Dalga B)
 - 1-1 mesajlaşma: SignalR real-time + 30 sn polling fallback + moderasyon (Faz 5 Dalga B)
@@ -323,12 +323,53 @@ SQL Server LocalDB'ye geçişi.
 - **Spam koruması** (rate limiting middleware, 5 named policy)
 - **Test infrastructure:** SQL Server LocalDB (production-yakın IDENTITY/FK/transaction semantiği)
 
-### Faz 6 — Olgunlaştırma + UX + Performance (başladı 29 Mayıs 2026)
+### Faz 6 — Olgunlaştırma + UX + Performance (Tamamlandı 2 Haziran 2026)
 
 3 dalga, 12 alt adım (6.2-6.13). Email notification kanalı, UX iyileştirmeleri,
 performance + cleanliness.
 
 - [Faz 6 Charter](./docs/phase-6-charter.md) · [Roadmap](./docs/phase-6-roadmap.md) · [Kapsam envanteri](./docs/phase-6-scope-inventory.md)
+
+**Tag:** `phase-6-complete` (kullanıcının #40 manuel smoke onayından sonra atılacak) ·
+**Süre:** 29 Mayıs - 2 Haziran 2026 (~5 gün, charter 4-5 hafta tahmini)
+
+#### Faz 6 — Final özet (Dalga A + B + C)
+
+**Dalga A — Email + temizlik (6.2-6.5):** sosyal bildirim email template'leri +
+`INotificationEmailDispatcher` (master + 4 granüler opt-in) + Hangfire dijest job +
+`/profil` UI; NU1901 + CA2024 build temizliği.
+
+**Dalga B — UX iyileştirmeler (6.6-6.9):** tag autocomplete, view count dedupe, polling
+Page Visibility, mesaj sayfalama (`/older`), multi-tab read-state foundation, comment
+edit history, image responsive variants (WebP 480w+800w).
+
+**Dalga C — Performance + closeout (6.10-6.13):** ConversationService n+1 → tek query
+(2N+2→1), `IMessageHtmlRenderer` + TagUsageCount batch helper extract, `ChainedRateLimiter`
+(Faz 5 §3 Karar 7 tamamlama, çift pencere), SignalR JS self-host (CDN bağımsız).
+
+| Metrik | Değer |
+|---|---|
+| Test | 779 → 838 (+59, regresyon 0) |
+| Migration | +2 (AddSocialEmailPreferencesAndDigest, AddPostCommentRevisions) |
+| Yeni entity | EmailDigestEntry, PostCommentRevision |
+| Yeni servis/altyapı | INotificationEmailDispatcher, IMessageHtmlRenderer, ImageVariantEnricher, ChainedRateLimiter, QueryCounterInterceptor |
+| Yeni Hangfire job | ProcessMessageDigestJob |
+| Build | 0 hata + 0 uyarı (`-warnaserror` korundu) |
+| Kapanan tech-debt | 14 madde ✅ + 1 kısmen 🟡 (#37) + 1 bekleyen 🟡 (#40 manuel smoke) |
+
+**TargetFramework:** .NET 10 — başlangıçtan beri (`c640de2`, 25 Nisan 2026), Faz 6'da
+upgrade YOK. (SignalR client yorumundaki ".NET 8/10" sürüm uyumluluğunu kasteder.)
+
+**Faz 6 öğrenmeleri (süreç şeffaflık):** Faz 6 boyunca **6 envanter eksiği** yakalandı —
+(1) email altyapısı Faz 3'te kuruluydu, yeniden inşa planlandı (iptal); (2) #39
+`NotificationsEmailEnabled` "orphan" yanlış etiketlendi, `DataFreshnessCheckJob` aktif
+kullanıyordu (drop iptal); (3) view increment inline'dı (servis metodu yoktu); (4)
+`Conversation.LastReadAt` iki ayrı alandı (endişe yersiz); (5) `IPartialRenderer` zaten
+ortaktı (#38 gerçek içeriği farklı); (6) rate-limit pencereleri karışıktı (dakika/saat).
+Süreç borcu **tech-debt #41** (envanter denetimleri grep/usage taraması içermeli) Faz 7
+başlangıcında uygulanacak.
+
+Sonraki: **Faz 7** (charter ayrı adımda hazırlanacak).
 
 #### Faz 6 Dalga B — Tamamlandı (1 Haziran 2026)
 
