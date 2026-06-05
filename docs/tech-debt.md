@@ -1267,3 +1267,54 @@ kanıtlanmadan orphan denmez.
 
 **Önerilen zaman:** Süreç kuralı — Faz 6 closeout (Adım 6.13) retrospektifinde
 CLAUDE.md veya denetim şablonuna eklenir. Kod borcu değil, denetim-kalitesi borcu.
+
+---
+
+# Faz 7 Başlangıç Notu (Adım 7.1, 5 Haziran 2026)
+
+Adım 7.0 envanter denetimi (`docs/phase-7-scope-inventory.md`) sırasında
+keşfedilen iki madde. Charter (`phase-7-charter.md`) §10 ile deftere alındı.
+
+---
+
+## 42. Referans belge dangling commit riski (süreç)
+
+**Bağlam:** Adım 7.0 envanter denetiminde fark edildi. Teknik rapor
+(`LexCalculus_TeknikRapor.docx`) GitHub remote'taydı ama lokal `main`
+working tree'sinde yoktu — dangling commit `a90edc6` ("Add files via upload",
+3 Haziran 2026) içinde blob olarak duruyordu, `main` HEAD geçmişine **merge
+edilmemişti**. Bu yüzden hiçbir dosya taraması belgeyi bulamadı; blob
+`git show a90edc6:...` ile çıkarıldı, okundu ve `docs/templates/`'e kalıcı
+eklendi.
+
+**Mevcut durum:** Belge eklenirken yalnız push edilmiş, `main` branch'e
+merge edilmemişti. Binary upload'un branch'e bağlanmaması bir süreç açığı —
+kök sebep henüz adreslenmedi (envanterde tek belge `docs/templates/`'e
+taşındı ama süreç değişmedi).
+
+**İdeal çözüm:** Faz 7 sırasında üretilecek benzer dokümanlar (referans karar
+örnekleri, mevzuat değişiklik logları) doğrudan `main`'e commit'lenmeli.
+PR template'i veya commit hook ile binary/referans belgelerin `main`'e merge
+zorunluluğu — "push edildi ama branch'te yok" durumu engellenir.
+
+**Önerilen zaman:** Süreç borcu, Faz 7+ sürekli. Referans belge üretimi
+başladığında (Karar 4 referans karar test'leri) ilk uygulanır.
+
+---
+
+## 43. Enum comment drift (CalculatorCategory)
+
+**Bağlam:** Adım 7.0 envanterinde (`§2a`) fark edildi. `CalculatorCategory`
+enum'unda D-I kategorileri (Gayrimenkul, AileMiras, Ceza, VergiIdare, Ticaret,
+Bilirkisi) için XML comment'ler bu kategorileri **"Faz 5"** olarak etiketliyor;
+gerçekte Faz 7'de implemente ediliyorlar (erteleme zinciri Faz 3-6 boyunca
+kaydı). Doküman drift'i — enum değerleri ve davranış doğru, yalnız yorum eski.
+
+**Mevcut durum:** Kozmetik. Kod davranışı etkilenmiyor (slug/display/short
+adları `CalculatorCategoryExtensions.cs`'te eksiksiz). Sadece yanıltıcı yorum.
+
+**İdeal çözüm:** D-I enum comment'lerini "Faz 7" olarak güncelle. Adım 7.2'de
+D Gayrimenkul ilk araç (D1 Arsa Payı) eklenirken enum'a dokunulurken birlikte
+düzeltilebilir.
+
+**Önerilen zaman:** Adım 7.2 — kod hijyen, kolay temizlik (~5 dk).

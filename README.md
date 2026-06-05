@@ -4,6 +4,17 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
+### Faz 7 — Hesaplama Tamamlama başladı
+
+[Charter](./docs/phase-7-charter.md) · [Roadmap](./docs/phase-7-roadmap.md) · [Envanter](./docs/phase-7-scope-inventory.md)
+
+- **Tahmin:** 13-16 gün (charter 3-4 hafta)
+- D-I kategorileri için 26 yeni hesaplama aracı (3 dalga, 12 alt adım: 7.2-7.13)
+- Faz 7 sonrası: **43 aktif hesaplama aracı** (9 kategori tam), lansman hazırlık
+- Sonraki: Adım 7.2 — Gayrimenkul altyapı + Arsa Payı
+
+---
+
 **Faz 6 — Olgunlaştırma + UX + Performance tamamlandı (2 Haziran 2026).**
 [Charter](./docs/phase-6-charter.md) · [Roadmap](./docs/phase-6-roadmap.md) · [Kapsam envanteri](./docs/phase-6-scope-inventory.md)
 
