@@ -67,7 +67,17 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4925m, EffectiveDate = new DateTime(2024, 12, 28), Source = "TCMB", Note = "TCMB avans oranı %49.25" },
             new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4425m, EffectiveDate = new DateTime(2025, 3, 8), Source = "TCMB", Note = "TCMB avans oranı %44.25" },
             new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.4225m, EffectiveDate = new DateTime(2025, 9, 17), Source = "TCMB", Note = "TCMB avans oranı %42.25" },
-            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.3975m, EffectiveDate = new DateTime(2025, 12, 20), Source = "TCMB", Note = "TCMB avans oranı %39.75" }
+            new() { ToolSlug = "tcmb-avans", Key = "yillik-oran", Value = 0.3975m, EffectiveDate = new DateTime(2025, 12, 20), Source = "TCMB", Note = "TCMB avans oranı %39.75" },
+
+            // ----- D1 Arsa Payı (634 s.K. m.3) — değer ağırlıklı yüzölçümü katsayıları -----
+            // Kullanım türü katsayıları (mesken = taban 1.0). Admin paneli ileride ayarlayabilir.
+            new() { ToolSlug = "arsa-payi", Key = "katsayi.mesken", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem (taban)", Note = "Mesken kullanım türü katsayısı (taban)" },
+            new() { ToolSlug = "arsa-payi", Key = "katsayi.dukkan", Value = 1.3m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem", Note = "Dükkan/işyeri katsayısı (mesken'e göre yüksek değer)" },
+            new() { ToolSlug = "arsa-payi", Key = "katsayi.bodrum", Value = 0.6m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem", Note = "Bodrum katsayısı (mesken'e göre düşük değer)" },
+            new() { ToolSlug = "arsa-payi", Key = "katsayi.cati-kati", Value = 0.8m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem", Note = "Çatı katı katsayısı" },
+            // Kat etkisi: zemin = taban; her üst kat artış oranı kadar değer kazanır.
+            new() { ToolSlug = "arsa-payi", Key = "katsayi.kat.zemin", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem (taban)", Note = "Zemin kat etkisi katsayısı (taban)" },
+            new() { ToolSlug = "arsa-payi", Key = "katsayi.kat.ust-artis-orani", Value = 0.05m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem", Note = "Her üst kat için artış oranı (1. kat 1.05, 2. kat 1.10, ...)" }
         };
 
         foreach (var seed in seeds)

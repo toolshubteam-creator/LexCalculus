@@ -1302,7 +1302,12 @@ başladığında (Karar 4 referans karar test'leri) ilk uygulanır.
 
 ---
 
-## 43. Enum comment drift (CalculatorCategory)
+## ✅ 43. Enum comment drift (CalculatorCategory) — ÇÖZÜLDÜ (Adım 7.2, 5 Haziran 2026)
+
+**Çözüm:** `CalculatorCategory.cs`'te D-I kategorileri (Gayrimenkul…Bilirkisi)
+için XML comment'lerdeki "Faz 5" etiketi "Faz 7" olarak güncellendi (6 satır).
+D1 Arsa Payı eklenirken Gayrimenkul kategorisine ilk kez gerçekten dokunulduğu
+için birlikte temizlendi. Kozmetik; kod davranışı zaten doğruydu.
 
 **Bağlam:** Adım 7.0 envanterinde (`§2a`) fark edildi. `CalculatorCategory`
 enum'unda D-I kategorileri (Gayrimenkul, AileMiras, Ceza, VergiIdare, Ticaret,

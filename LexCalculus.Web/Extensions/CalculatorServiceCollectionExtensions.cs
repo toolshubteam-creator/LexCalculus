@@ -2,6 +2,7 @@ using LexCalculus.Core.Calculators;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
+using LexCalculus.Core.Calculators.Gayrimenkul;
 using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Calculators;
@@ -62,6 +63,10 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<KiraArtisiInput, KiraArtisiResult>, KiraArtisiCalculator>();
         services.AddScoped<ICalculator, MenfiTespitFaizCalculator>();
         services.AddScoped<ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult>, MenfiTespitFaizCalculator>();
+
+        // Kategori D — Gayrimenkul ve Kat Mülkiyeti (Faz 7)
+        services.AddScoped<ICalculator, ArsaPayiCalculator>();
+        services.AddScoped<ICalculator<ArsaPayiInput, ArsaPayiResult>, ArsaPayiCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

@@ -24,7 +24,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 |---|---|---|---|---|---|
 | 7.0 | Envanter | - | - | - | ✅ |
 | 7.1 | Charter | - | - | - | ✅ (bu commit) |
-| 7.2 | D Gayrimenkul altyapı + D1 Arsa Payı | 1 | D base | BASİT | ⏳ |
+| 7.2 | D Gayrimenkul altyapı + D1 Arsa Payı | 1 | D base | BASİT | ✅ |
 | 7.3 | D2 + D3 | 2 | - | KARMAŞIK + ORTA | ⏳ |
 | 7.4 | D4 + D5 | 2 | - | ORTA + ORTA | ⏳ |
 | 7.5 | E altyapı + E1 + E4 | 2 | E base | ORTA + ORTA | ⏳ |
@@ -41,11 +41,18 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 
 ## Dalga A — Gayrimenkul + Aile/Miras (7.2-7.6, 9 araç)
 
-### Adım 7.2 — D Gayrimenkul altyapı + D1 Arsa Payı ⏳
-- **Kapsam:** D kategori view/landing iskeleti + D1 Arsa Payı Hesabı.
+### Adım 7.2 — D Gayrimenkul altyapı + D1 Arsa Payı ✅
+- **Kapsam:** D kategori ilk aracı + D1 Arsa Payı Hesabı.
 - **Mevzuat:** 634 s.K. m.3 (Kat Mülkiyeti — arsa payı).
-- **Parametre:** HAZIR (katsayı in-code). Yeni FormulaParameter gerekmez.
-- **Not:** #43 enum comment drift (D-I "Faz 5" → Faz 7) bu adımda düzeltilebilir.
+- **Yöntem:** Değer ağırlıklı yüzölçümü (yüzölçümü × kullanım türü × kat etkisi),
+  1000 üzerinden dağıtım. Katsayılar FormulaParameter (`arsa-payi/katsayi.*`, 6 satır).
+- **Sapma:** Parametre "HAZIR (in-code)" öngörülmüştü; Faz 2 pattern'e uymak için
+  katsayılar in-code yerine zaman-versiyonlu FormulaParameter olarak seed edildi
+  (admin ileride ayarlayabilir, tutarlı lookup). DTO/Calculator/View/Controller/test
+  Faz 2 pattern birebir (spec'in ViewModel + throw-validation pseudo-kodu yerine
+  gerçek `@model Input` + `ViewData["Result"]` + `ValidationErrors` sözleşmesi).
+- **#43 enum comment drift** (D-I "Faz 5" → Faz 7) düzeltildi.
+- **Test:** +6 (838 → 844). Sitemap/kategori landing otomatik (Active register).
 
 ### Adım 7.3 — D2 Kamulaştırma + D3 Ecrimisil ⏳
 - **D2 Kamulaştırma Bedeli** (KARMAŞIK) — 2942 s.K. YENİ-PARAMETRE

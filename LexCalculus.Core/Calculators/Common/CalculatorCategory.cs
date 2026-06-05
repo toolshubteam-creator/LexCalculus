@@ -16,21 +16,21 @@ public enum CalculatorCategory
     /// <summary>Faiz ve Alacak — yasal/ticari/temerrüt faizi, kira artışı...</summary>
     Faiz = 3,
 
-    /// <summary>Gayrimenkul ve Kat Mülkiyeti — Faz 5</summary>
+    /// <summary>Gayrimenkul ve Kat Mülkiyeti — Faz 7</summary>
     Gayrimenkul = 4,
 
-    /// <summary>Aile ve Miras — Faz 5</summary>
+    /// <summary>Aile ve Miras — Faz 7</summary>
     AileMiras = 5,
 
-    /// <summary>Ceza Hukuku ve İnfaz — Faz 5</summary>
+    /// <summary>Ceza Hukuku ve İnfaz — Faz 7</summary>
     Ceza = 6,
 
-    /// <summary>Vergi ve İdare — Faz 5</summary>
+    /// <summary>Vergi ve İdare — Faz 7</summary>
     VergiIdare = 7,
 
-    /// <summary>Ticaret Hukuku — Faz 5</summary>
+    /// <summary>Ticaret Hukuku — Faz 7</summary>
     Ticaret = 8,
 
-    /// <summary>Bilirkişilik Özel Araçları — Faz 5</summary>
+    /// <summary>Bilirkişilik Özel Araçları — Faz 7</summary>
     Bilirkisi = 9
 }

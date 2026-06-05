@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
+using LexCalculus.Core.Calculators.Gayrimenkul;
 using LexCalculus.Core.Calculators.IsHukuku;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Services;
@@ -32,6 +33,7 @@ public class HesaplaController : Controller
     private readonly ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult> _akdiTemerrutCalculator;
     private readonly ICalculator<KiraArtisiInput, KiraArtisiResult> _kiraArtisiCalculator;
     private readonly ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> _menfiTespitFaizCalculator;
+    private readonly ICalculator<ArsaPayiInput, ArsaPayiResult> _arsaPayiCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -54,6 +56,7 @@ public class HesaplaController : Controller
         ICalculator<AkdiTemerrutFaizInput, AkdiTemerrutFaizResult> akdiTemerrutCalculator,
         ICalculator<KiraArtisiInput, KiraArtisiResult> kiraArtisiCalculator,
         ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> menfiTespitFaizCalculator,
+        ICalculator<ArsaPayiInput, ArsaPayiResult> arsaPayiCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -76,6 +79,7 @@ public class HesaplaController : Controller
         _akdiTemerrutCalculator = akdiTemerrutCalculator ?? throw new ArgumentNullException(nameof(akdiTemerrutCalculator));
         _kiraArtisiCalculator = kiraArtisiCalculator ?? throw new ArgumentNullException(nameof(kiraArtisiCalculator));
         _menfiTespitFaizCalculator = menfiTespitFaizCalculator ?? throw new ArgumentNullException(nameof(menfiTespitFaizCalculator));
+        _arsaPayiCalculator = arsaPayiCalculator ?? throw new ArgumentNullException(nameof(arsaPayiCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1073,6 +1077,57 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _menfiTespitFaizCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("gayrimenkul/arsa-payi")]
+    public async Task<IActionResult> ArsaPayi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "arsa-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<ArsaPayiInput>(restore, ct) ?? new ArsaPayiInput
+        {
+            BagimsizBolumler = new List<BagimsizBolumGirdi> { new(), new() }
+        };
+
+        return View("~/Views/Hesapla/Gayrimenkul/ArsaPayi.cshtml", input);
+    }
+
+    [HttpPost("gayrimenkul/arsa-payi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ArsaPayi(ArsaPayiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "arsa-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Gayrimenkul/ArsaPayi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _arsaPayiCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
