@@ -1,0 +1,157 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.Gayrimenkul
+@model KatKarsiligiInsaatInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as KatKarsiligiInsaatResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--info">
+    <strong>Bu hesap ne zaman kullanılır?</strong>
+    <ul style="margin: var(--sp-2) 0 0 var(--sp-4); padding: 0;">
+        <li>Kat karşılığı inşaat sözleşmesinde arsa sahibi / müteahhit pay tespiti</li>
+        <li>Kentsel dönüşümde değer bazlı paylaşım değerlendirmesi</li>
+        <li>Sözleşme öncesi farklı oran senaryolarının karşılaştırılması</li>
+    </ul>
+    <div style="font-size: var(--fs-xs); margin-top: var(--sp-3); opacity: 0.8;">
+        İki yöntem: <strong>oransal</strong> (arsa değeri / toplam) veya
+        <strong>sabit</strong> (sözleşme oranı).
+    </div>
+</div>
+
+<div class="info-box info-box--warning">
+    <strong>Uyarı:</strong> Bu hesap değer dağılımı seviyesinde sonuç verir. Somut sözleşme
+    detayları (hangi bağımsız bölüm kime, dış kalemler, taahhütler) ayrı düzenlenir.
+    Yaklaşık bağımsız bölüm sayısı yalnızca referans amaçlıdır. <strong>Bu sonuç sözleşme
+    yerine geçmez.</strong>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="KatKarsiligiInsaat">
+        <h2 class="form-section__title">Proje Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="Yontem" class="field__label">@Html.DisplayNameFor(m => m.Yontem)</label>
+            <select asp-for="Yontem" asp-items="Html.GetEnumSelectList<KatKarsiligiYontemi>()" class="field__input" id="yontem-select" onchange="toggleYontem()"></select>
+        </div>
+
+        <div class="field">
+            <label asp-for="ToplamProjeDegeri" class="field__label field__label--required">
+                @Html.DisplayNameFor(m => m.ToplamProjeDegeri) <span class="required">*</span>
+            </label>
+            <input asp-for="ToplamProjeDegeri" class="field__input" type="number" step="0.01" min="0.01" placeholder="örn. 10000000" />
+            <div class="field-hint">Bina dahil satılabilir toplam proje değeri.</div>
+            <span asp-validation-for="ToplamProjeDegeri" class="field-hint"></span>
+        </div>
+
+        <fieldset class="form-fieldset" id="oransal-alanlari">
+            <h3 class="form-section__title form-section__title--sub">Oransal Yöntem</h3>
+            <div class="field-row">
+                <div class="field">
+                    <label asp-for="ArsaDegeri" class="field__label">@Html.DisplayNameFor(m => m.ArsaDegeri)</label>
+                    <input asp-for="ArsaDegeri" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 4000000" />
+                    <span asp-validation-for="ArsaDegeri" class="field-hint"></span>
+                </div>
+                <div class="field">
+                    <label asp-for="ToplamInsaatMaliyeti" class="field__label">@Html.DisplayNameFor(m => m.ToplamInsaatMaliyeti)</label>
+                    <input asp-for="ToplamInsaatMaliyeti" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 6000000" />
+                    <span asp-validation-for="ToplamInsaatMaliyeti" class="field-hint"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="form-fieldset" id="sabit-alanlari">
+            <h3 class="form-section__title form-section__title--sub">Sabit Oran Yöntemi</h3>
+            <div class="field">
+                <label asp-for="ArsaSahibiOrani" class="field__label">@Html.DisplayNameFor(m => m.ArsaSahibiOrani)</label>
+                <input asp-for="ArsaSahibiOrani" class="field__input" type="number" step="0.01" min="0" max="100" placeholder="örn. 40" />
+                <span asp-validation-for="ArsaSahibiOrani" class="field-hint"></span>
+            </div>
+        </fieldset>
+
+        <div class="field">
+            <label asp-for="ToplamBagimsizBolumSayisi" class="field__label">@Html.DisplayNameFor(m => m.ToplamBagimsizBolumSayisi)</label>
+            <input asp-for="ToplamBagimsizBolumSayisi" class="field__input" type="number" step="1" min="0" placeholder="örn. 20" />
+            <div class="field-hint">Girilirse yaklaşık bölüm dağılımı (referans) gösterilir.</div>
+        </div>
+
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Proje değerini ve paylaşım yöntemini girip "Hesapla" butonuna basarak arsa sahibi / müteahhit payını görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+                <div class="result-total__sublabel">Müteahhit payı: @result.MuteahhitPay.ToString("N2", tr) TL</div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/gayrimenkul">← Gayrimenkul ve Kat Mülkiyeti</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleYontem() {
+            var v = document.getElementById('yontem-select').value;
+            // Enum: Oransal=1, Sabit=2
+            var oransal = (v === '1' || v === 'Oransal');
+            document.getElementById('oransal-alanlari').style.display = oransal ? '' : 'none';
+            document.getElementById('sabit-alanlari').style.display = oransal ? 'none' : '';
+        }
+        toggleYontem();
+    </script>
+}

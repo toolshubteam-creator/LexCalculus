@@ -1,0 +1,136 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.Gayrimenkul
+@model HasilatKiraInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as HasilatKiraResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--info">
+    <strong>Bu hesap ne zaman kullanılır?</strong>
+    <ul style="margin: var(--sp-2) 0 0 var(--sp-4); padding: 0;">
+        <li>AVM mağaza kiralarında ciro üzerinden kira hesabı</li>
+        <li>Minimum kira güvencesi + ciro bazlı kira karşılaştırması</li>
+        <li>Maksimum kira tavanı uygulanan ticari kira sözleşmeleri</li>
+    </ul>
+    <div style="font-size: var(--fs-xs); margin-top: var(--sp-3); opacity: 0.8;">
+        Kira = ciro × hâsılat oranı; varsa <strong>minimum güvence</strong> (taban) ve
+        <strong>maksimum tavan</strong> ile sınırlanır.
+    </div>
+</div>
+
+<div class="info-box info-box--warning">
+    <strong>Uyarı:</strong> Bu hesap sözleşmede belirtilen oran ve sınırlara göre dönem
+    kirasını verir. Damga vergisi, KDV ve sözleşme şartları ayrıca değerlendirilir.
+    <strong>Bu sonuç sözleşme detaylarının yerine geçmez.</strong>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="HasilatKira">
+        <h2 class="form-section__title">Kira Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="Ciro" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.Ciro) <span class="required">*</span>
+                </label>
+                <input asp-for="Ciro" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 500000" />
+                <span asp-validation-for="Ciro" class="field-hint"></span>
+            </div>
+            <div class="field">
+                <label asp-for="HasilatOrani" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.HasilatOrani) <span class="required">*</span>
+                </label>
+                <input asp-for="HasilatOrani" class="field__input" type="number" step="0.01" min="0.01" max="100" placeholder="örn. 8" />
+                <span asp-validation-for="HasilatOrani" class="field-hint"></span>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="MinimumKira" class="field__label">@Html.DisplayNameFor(m => m.MinimumKira)</label>
+                <input asp-for="MinimumKira" class="field__input" type="number" step="0.01" min="0" placeholder="opsiyonel" />
+                <span asp-validation-for="MinimumKira" class="field-hint"></span>
+            </div>
+            <div class="field">
+                <label asp-for="MaksimumKira" class="field__label">@Html.DisplayNameFor(m => m.MaksimumKira)</label>
+                <input asp-for="MaksimumKira" class="field__input" type="number" step="0.01" min="0" placeholder="opsiyonel" />
+                <span asp-validation-for="MaksimumKira" class="field-hint"></span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="DonemTuru" class="field__label">@Html.DisplayNameFor(m => m.DonemTuru)</label>
+            <select asp-for="DonemTuru" asp-items="Html.GetEnumSelectList<HasilatDonemTuru>()" class="field__input"></select>
+            <div class="field-hint">Ciro ve kira figürleri aylık mı yıllık mı?</div>
+        </div>
+
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Ciro ve hâsılat oranını girip "Hesapla" butonuna basarak ödenecek kirayı görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/gayrimenkul">← Gayrimenkul ve Kat Mülkiyeti</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

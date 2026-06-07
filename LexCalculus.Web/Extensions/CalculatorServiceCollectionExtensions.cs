@@ -71,6 +71,10 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<KamulastirmaBedeliInput, KamulastirmaBedeliResult>, KamulastirmaBedeliCalculator>();
         services.AddScoped<ICalculator, EcrimisilCalculator>();
         services.AddScoped<ICalculator<EcrimisilInput, EcrimisilResult>, EcrimisilCalculator>();
+        services.AddScoped<ICalculator, KatKarsiligiInsaatCalculator>();
+        services.AddScoped<ICalculator<KatKarsiligiInsaatInput, KatKarsiligiInsaatResult>, KatKarsiligiInsaatCalculator>();
+        services.AddScoped<ICalculator, HasilatKiraCalculator>();
+        services.AddScoped<ICalculator<HasilatKiraInput, HasilatKiraResult>, HasilatKiraCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

@@ -36,6 +36,8 @@ public class HesaplaController : Controller
     private readonly ICalculator<ArsaPayiInput, ArsaPayiResult> _arsaPayiCalculator;
     private readonly ICalculator<KamulastirmaBedeliInput, KamulastirmaBedeliResult> _kamulastirmaCalculator;
     private readonly ICalculator<EcrimisilInput, EcrimisilResult> _ecrimisilCalculator;
+    private readonly ICalculator<KatKarsiligiInsaatInput, KatKarsiligiInsaatResult> _katKarsiligiCalculator;
+    private readonly ICalculator<HasilatKiraInput, HasilatKiraResult> _hasilatKiraCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -61,6 +63,8 @@ public class HesaplaController : Controller
         ICalculator<ArsaPayiInput, ArsaPayiResult> arsaPayiCalculator,
         ICalculator<KamulastirmaBedeliInput, KamulastirmaBedeliResult> kamulastirmaCalculator,
         ICalculator<EcrimisilInput, EcrimisilResult> ecrimisilCalculator,
+        ICalculator<KatKarsiligiInsaatInput, KatKarsiligiInsaatResult> katKarsiligiCalculator,
+        ICalculator<HasilatKiraInput, HasilatKiraResult> hasilatKiraCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -86,6 +90,8 @@ public class HesaplaController : Controller
         _arsaPayiCalculator = arsaPayiCalculator ?? throw new ArgumentNullException(nameof(arsaPayiCalculator));
         _kamulastirmaCalculator = kamulastirmaCalculator ?? throw new ArgumentNullException(nameof(kamulastirmaCalculator));
         _ecrimisilCalculator = ecrimisilCalculator ?? throw new ArgumentNullException(nameof(ecrimisilCalculator));
+        _katKarsiligiCalculator = katKarsiligiCalculator ?? throw new ArgumentNullException(nameof(katKarsiligiCalculator));
+        _hasilatKiraCalculator = hasilatKiraCalculator ?? throw new ArgumentNullException(nameof(hasilatKiraCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1228,6 +1234,100 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _ecrimisilCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("gayrimenkul/kat-karsiligi-insaat")]
+    public async Task<IActionResult> KatKarsiligiInsaat([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "kat-karsiligi-insaat");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Gayrimenkul/KatKarsiligiInsaat.cshtml",
+            await RestoreFromHistoryAsync<KatKarsiligiInsaatInput>(restore, ct) ?? new KatKarsiligiInsaatInput());
+    }
+
+    [HttpPost("gayrimenkul/kat-karsiligi-insaat")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> KatKarsiligiInsaat(KatKarsiligiInsaatInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "kat-karsiligi-insaat");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Gayrimenkul/KatKarsiligiInsaat.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _katKarsiligiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("gayrimenkul/hasilat-kira")]
+    public async Task<IActionResult> HasilatKira([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "hasilat-kira");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Gayrimenkul/HasilatKira.cshtml",
+            await RestoreFromHistoryAsync<HasilatKiraInput>(restore, ct) ?? new HasilatKiraInput());
+    }
+
+    [HttpPost("gayrimenkul/hasilat-kira")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> HasilatKira(HasilatKiraInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "hasilat-kira");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Gayrimenkul/HasilatKira.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _hasilatKiraCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

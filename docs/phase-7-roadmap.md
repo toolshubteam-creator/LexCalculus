@@ -26,7 +26,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 | 7.1 | Charter | - | - | - | ✅ (bu commit) |
 | 7.2 | D Gayrimenkul altyapı + D1 Arsa Payı | 1 | D base | BASİT | ✅ |
 | 7.3 | D2 + D3 | 2 | - | KARMAŞIK + ORTA | ✅ |
-| 7.4 | D4 + D5 | 2 | - | ORTA + ORTA | ⏳ |
+| 7.4 | D4 + D5 | 2 | - | ORTA + ORTA | ✅ |
 | 7.5 | E altyapı + E1 + E4 | 2 | E base | ORTA + ORTA | ⏳ |
 | 7.6 | Miras servisi + E2 + E3 + Dalga A closeout | 2 | Miras servisi | KARMAŞIK × 2 | ⏳ |
 | 7.7 | Ceza takvim + F1 + F2 | 2 | Ceza servisi | ORTA + KARMAŞIK | ⏳ |
@@ -70,9 +70,20 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
   Eksik-yıl tam-eşleşme tespiti + uyarı. tech-debt #44.
 - **Test:** +14 (844 → 858).
 
-### Adım 7.4 — D4 Kat Karşılığı + D5 Hâsılat Kira ⏳
-- **D4 Kat Karşılığı İnşaat Paylaşımı** (ORTA) — TBK genel, girdi-bazlı.
-- **D5 Hâsılat Kira Hesabı** (ORTA) — TBK ticari kira, girdi-bazlı.
+### Adım 7.4 — D4 Kat Karşılığı + D5 Hâsılat Kira ✅
+- **D4 Kat Karşılığı İnşaat Paylaşımı** (ORTA) — TBK + içtihat. İki yöntem:
+  oransal (arsa değeri / (arsa + inşaat)) + sabit sözleşme oranı. Çıktı arsa
+  sahibi/müteahhit pay (TL) + yaklaşık bağımsız bölüm sayısı (referans).
+- **D5 Hâsılat Kira Hesabı** (ORTA) — TBK + ticari kira (AVM modeli). Ciro × oran,
+  min güvence (taban) + max tavan clamp; uygulanan kural raporlanır
+  (CiroBazli / MinimumGuvence / MaksimumTavan).
+- Her iki araç **parametresiz** (saf hesap, DB gerekmez) — testler hızlı.
+- View uyarısı her ikisinde: "Bu sonuç sözleşme(/detaylarının) yerine geçmez."
+- **Test:** +12 (858 → 870).
+
+> 🏁 **Dalga A — Gayrimenkul (D1-D5) tamamlandı.** 5 araç aktif: Arsa Payı,
+> Kamulaştırma Bedeli, Ecrimisil, Kat Karşılığı, Hâsılat Kira. Kalan Dalga A:
+> E Aile/Miras (7.5-7.6).
 
 ### Adım 7.5 — E Aile/Miras altyapı + E1 Nafaka + E4 Mal Rejimi ⏳
 - E kategori view/landing iskeleti.
