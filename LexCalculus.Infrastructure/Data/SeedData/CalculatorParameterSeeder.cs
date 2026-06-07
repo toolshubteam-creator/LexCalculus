@@ -77,7 +77,21 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "arsa-payi", Key = "katsayi.cati-kati", Value = 0.8m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem", Note = "Çatı katı katsayısı" },
             // Kat etkisi: zemin = taban; her üst kat artış oranı kadar değer kazanır.
             new() { ToolSlug = "arsa-payi", Key = "katsayi.kat.zemin", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem (taban)", Note = "Zemin kat etkisi katsayısı (taban)" },
-            new() { ToolSlug = "arsa-payi", Key = "katsayi.kat.ust-artis-orani", Value = 0.05m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem", Note = "Her üst kat için artış oranı (1. kat 1.05, 2. kat 1.10, ...)" }
+            new() { ToolSlug = "arsa-payi", Key = "katsayi.kat.ust-artis-orani", Value = 0.05m, EffectiveDate = new DateTime(2026, 1, 1), Source = "634 s.K. m.3 — değer ağırlıklı yöntem", Note = "Her üst kat için artış oranı (1. kat 1.05, 2. kat 1.10, ...)" },
+
+            // ----- D2 Kamulaştırma Bedeli (2942 s.K. m.11) -----
+            new() { ToolSlug = "kamulastirma-bedeli", Key = "objektif-artis.max-orani", Value = 1.0m, EffectiveDate = new DateTime(2005, 1, 1), Source = "Yargıtay 5. HD E. 2004/12813 K. 2005/675", Note = "Objektif değer artırıcı unsur tavanı %100 (çarpan 2.0) — içtihat" },
+            new() { ToolSlug = "kamulastirma-bedeli", Key = "kapitalizasyon-orani.default", Value = 0.06m, EffectiveDate = new DateTime(2020, 1, 1), Source = "2942 s.K. m.11 gelir yöntemi — referans", Note = "Gelir kapitalizasyonu varsayılan oranı %6 (kullanıcı override edebilir)" },
+
+            // ----- ÜFE yıllık artış oranları (global "*") — D3 Ecrimisil + ileride D-I güncellemeleri -----
+            // Yargıtay ecrimisil içtihadı TÜFE değil ÜFE kullanır. Değerler TÜİK yıllık ÜFE (% artış).
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 25.7m, EffectiveDate = new DateTime(2020, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık", Note = "2020 yıllık ÜFE artışı %25,7" },
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 79.9m, EffectiveDate = new DateTime(2021, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık", Note = "2021 yıllık ÜFE artışı %79,9" },
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 97.7m, EffectiveDate = new DateTime(2022, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık", Note = "2022 yıllık ÜFE artışı %97,7" },
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 64.8m, EffectiveDate = new DateTime(2023, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık", Note = "2023 yıllık ÜFE artışı %64,8" },
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 51.3m, EffectiveDate = new DateTime(2024, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık", Note = "2024 yıllık ÜFE artışı %51,3" },
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 33.0m, EffectiveDate = new DateTime(2025, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık — örnek değer", Note = "2025 yıllık ÜFE (örnek; gerçek değerle güncellenmeli)" },
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 15.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık — örnek/yıl içi", Note = "2026 yıl içi ÜFE (örnek placeholder; hukuk profesyoneli güncelleyecek)" }
         };
 
         foreach (var seed in seeds)

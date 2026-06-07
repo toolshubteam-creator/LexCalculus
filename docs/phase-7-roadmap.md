@@ -25,7 +25,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 | 7.0 | Envanter | - | - | - | ✅ |
 | 7.1 | Charter | - | - | - | ✅ (bu commit) |
 | 7.2 | D Gayrimenkul altyapı + D1 Arsa Payı | 1 | D base | BASİT | ✅ |
-| 7.3 | D2 + D3 | 2 | - | KARMAŞIK + ORTA | ⏳ |
+| 7.3 | D2 + D3 | 2 | - | KARMAŞIK + ORTA | ✅ |
 | 7.4 | D4 + D5 | 2 | - | ORTA + ORTA | ⏳ |
 | 7.5 | E altyapı + E1 + E4 | 2 | E base | ORTA + ORTA | ⏳ |
 | 7.6 | Miras servisi + E2 + E3 + Dalga A closeout | 2 | Miras servisi | KARMAŞIK × 2 | ⏳ |
@@ -54,10 +54,21 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 - **#43 enum comment drift** (D-I "Faz 5" → Faz 7) düzeltildi.
 - **Test:** +6 (838 → 844). Sitemap/kategori landing otomatik (Active register).
 
-### Adım 7.3 — D2 Kamulaştırma + D3 Ecrimisil ⏳
-- **D2 Kamulaştırma Bedeli** (KARMAŞIK) — 2942 s.K. YENİ-PARAMETRE
-  (kapitalizasyon/kira çarpanı) + IActuarialService değerleme reuse.
-- **D3 Ecrimisil** (ORTA) — TMK/HMK, mevcut faiz altyapısı reuse.
+### Adım 7.3 — D2 Kamulaştırma + D3 Ecrimisil ✅
+- **D2 Kamulaştırma Bedeli** (KARMAŞIK) — 2942 s.K. m.11. İki yöntem: emsal
+  karşılaştırma (objektif artış %100 cap, Yargıtay 5. HD K. 2005/675) +
+  gelir kapitalizasyonu (net gelir / kapitalizasyon oranı — perpetüite).
+  Opsiyonel yapı (bina) bedeli. Referans karar test (Karar 4) ✅.
+- **D3 Ecrimisil** (ORTA) — TMK m.995 + Yargıtay 1. HD (K. 2014/4059). İlk dönem
+  rayiç kira + yıllık ÜFE birikimli artış. Yerleşik içtihat prensip testi ✅.
+- **Sapma (reuse):** D2 için `IActuarialService.AnnuityPresentValue` öngörülmüştü;
+  ancak o **sonlu** annuity (maluliyet gibi ömür-bağlı gelir kaybı) içindir —
+  kamulaştırma gelir kapitalizasyonu **perpetüel** arazi gelirini değerler
+  (`gelir / oran`). Doğru model basit kapitalizasyon; AnnuityPresentValue
+  kullanılmadı (durma notu escape-hatch, raporlandı).
+- **ÜFE parametresi** global `*`/`ufe.yillik` (TÜFE değil — Yargıtay ÜFE kullanır).
+  Eksik-yıl tam-eşleşme tespiti + uyarı. tech-debt #44.
+- **Test:** +14 (844 → 858).
 
 ### Adım 7.4 — D4 Kat Karşılığı + D5 Hâsılat Kira ⏳
 - **D4 Kat Karşılığı İnşaat Paylaşımı** (ORTA) — TBK genel, girdi-bazlı.

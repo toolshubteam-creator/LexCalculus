@@ -67,6 +67,10 @@ public static class CalculatorServiceCollectionExtensions
         // Kategori D — Gayrimenkul ve Kat Mülkiyeti (Faz 7)
         services.AddScoped<ICalculator, ArsaPayiCalculator>();
         services.AddScoped<ICalculator<ArsaPayiInput, ArsaPayiResult>, ArsaPayiCalculator>();
+        services.AddScoped<ICalculator, KamulastirmaBedeliCalculator>();
+        services.AddScoped<ICalculator<KamulastirmaBedeliInput, KamulastirmaBedeliResult>, KamulastirmaBedeliCalculator>();
+        services.AddScoped<ICalculator, EcrimisilCalculator>();
+        services.AddScoped<ICalculator<EcrimisilInput, EcrimisilResult>, EcrimisilCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

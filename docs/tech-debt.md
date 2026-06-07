@@ -1323,3 +1323,27 @@ D Gayrimenkul ilk araç (D1 Arsa Payı) eklenirken enum'a dokunulurken birlikte
 düzeltilebilir.
 
 **Önerilen zaman:** Adım 7.2 — kod hijyen, kolay temizlik (~5 dk).
+
+---
+
+## 44. ÜFE yıllık parametreleri elle seed (admin UI + tazelik gerek)
+
+**Bağlam:** Adım 7.3 (D3 Ecrimisil). Yargıtay ecrimisil içtihadı TÜFE değil
+**ÜFE** (Yİ-ÜFE) kullanır. ÜFE yıllık artış oranları global FormulaParameter
+olarak (`*`/`ufe.yillik`, yıl başına bir satır) eklendi — global çünkü ileride
+D2 inşaat maliyeti güncelleme gibi başka D-I araçları da kullanabilir.
+
+**Mevcut durum:** 2020-2024 TÜİK kesin değerleri + 2025/2026 **örnek/placeholder**
+değerler (`Source` alanında "örnek" notu var). Her yıl başında yeni ÜFE oranı
+elle eklenmeli; otomatik çekme yok. EcrimisilCalculator eksik yılı tam-yıl
+eşleşmesiyle tespit edip ("`EffectiveDate.Year == y`") o yıl için artış
+uygulamadan **uyarı** üretir (stale prior-year ÜFE'yi sessizce uygulamaz).
+
+**İdeal çözüm:** (1) 2025/2026 placeholder'ları gerçek TÜİK kesin değerleriyle
+güncelle (hukuk profesyoneli / veri sorumlusu). (2) Faz 8 "otomatik veri çekme"
+temasında TÜİK Yİ-ÜFE entegrasyonu (TÜFE/TCMB job pattern reuse). (3) Admin
+parametre UI zaten mevcut (`*`/`ufe.yillik` oradan yönetilebilir) — yıllık
+hatırlatma `DataFreshnessCheckJob`'a eklenebilir (`ExpectedUpdateFrequency`).
+
+**Önerilen zaman:** Placeholder güncelleme — Faz 7 sonu hukuk incelemesi.
+Otomatik çekme — Faz 8. Kategori: veri tazelik + süreç borcu.

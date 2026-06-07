@@ -34,6 +34,8 @@ public class HesaplaController : Controller
     private readonly ICalculator<KiraArtisiInput, KiraArtisiResult> _kiraArtisiCalculator;
     private readonly ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> _menfiTespitFaizCalculator;
     private readonly ICalculator<ArsaPayiInput, ArsaPayiResult> _arsaPayiCalculator;
+    private readonly ICalculator<KamulastirmaBedeliInput, KamulastirmaBedeliResult> _kamulastirmaCalculator;
+    private readonly ICalculator<EcrimisilInput, EcrimisilResult> _ecrimisilCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -57,6 +59,8 @@ public class HesaplaController : Controller
         ICalculator<KiraArtisiInput, KiraArtisiResult> kiraArtisiCalculator,
         ICalculator<MenfiTespitFaizInput, MenfiTespitFaizResult> menfiTespitFaizCalculator,
         ICalculator<ArsaPayiInput, ArsaPayiResult> arsaPayiCalculator,
+        ICalculator<KamulastirmaBedeliInput, KamulastirmaBedeliResult> kamulastirmaCalculator,
+        ICalculator<EcrimisilInput, EcrimisilResult> ecrimisilCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -80,6 +84,8 @@ public class HesaplaController : Controller
         _kiraArtisiCalculator = kiraArtisiCalculator ?? throw new ArgumentNullException(nameof(kiraArtisiCalculator));
         _menfiTespitFaizCalculator = menfiTespitFaizCalculator ?? throw new ArgumentNullException(nameof(menfiTespitFaizCalculator));
         _arsaPayiCalculator = arsaPayiCalculator ?? throw new ArgumentNullException(nameof(arsaPayiCalculator));
+        _kamulastirmaCalculator = kamulastirmaCalculator ?? throw new ArgumentNullException(nameof(kamulastirmaCalculator));
+        _ecrimisilCalculator = ecrimisilCalculator ?? throw new ArgumentNullException(nameof(ecrimisilCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1128,6 +1134,100 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _arsaPayiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("gayrimenkul/kamulastirma-bedeli")]
+    public async Task<IActionResult> KamulastirmaBedeli([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "kamulastirma-bedeli");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Gayrimenkul/KamulastirmaBedeli.cshtml",
+            await RestoreFromHistoryAsync<KamulastirmaBedeliInput>(restore, ct) ?? new KamulastirmaBedeliInput());
+    }
+
+    [HttpPost("gayrimenkul/kamulastirma-bedeli")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> KamulastirmaBedeli(KamulastirmaBedeliInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "kamulastirma-bedeli");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Gayrimenkul/KamulastirmaBedeli.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _kamulastirmaCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("gayrimenkul/ecrimisil")]
+    public async Task<IActionResult> Ecrimisil([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "ecrimisil");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/Gayrimenkul/Ecrimisil.cshtml",
+            await RestoreFromHistoryAsync<EcrimisilInput>(restore, ct) ?? new EcrimisilInput());
+    }
+
+    [HttpPost("gayrimenkul/ecrimisil")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Ecrimisil(EcrimisilInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Gayrimenkul, "ecrimisil");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Gayrimenkul/Ecrimisil.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _ecrimisilCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
