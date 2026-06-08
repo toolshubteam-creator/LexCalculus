@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LexCalculus.Core.Calculators.Akturya;
+using LexCalculus.Core.Calculators.AileMiras;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
@@ -38,6 +39,8 @@ public class HesaplaController : Controller
     private readonly ICalculator<EcrimisilInput, EcrimisilResult> _ecrimisilCalculator;
     private readonly ICalculator<KatKarsiligiInsaatInput, KatKarsiligiInsaatResult> _katKarsiligiCalculator;
     private readonly ICalculator<HasilatKiraInput, HasilatKiraResult> _hasilatKiraCalculator;
+    private readonly ICalculator<NafakaInput, NafakaResult> _nafakaCalculator;
+    private readonly ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult> _malRejimiCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -65,6 +68,8 @@ public class HesaplaController : Controller
         ICalculator<EcrimisilInput, EcrimisilResult> ecrimisilCalculator,
         ICalculator<KatKarsiligiInsaatInput, KatKarsiligiInsaatResult> katKarsiligiCalculator,
         ICalculator<HasilatKiraInput, HasilatKiraResult> hasilatKiraCalculator,
+        ICalculator<NafakaInput, NafakaResult> nafakaCalculator,
+        ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult> malRejimiCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -92,6 +97,8 @@ public class HesaplaController : Controller
         _ecrimisilCalculator = ecrimisilCalculator ?? throw new ArgumentNullException(nameof(ecrimisilCalculator));
         _katKarsiligiCalculator = katKarsiligiCalculator ?? throw new ArgumentNullException(nameof(katKarsiligiCalculator));
         _hasilatKiraCalculator = hasilatKiraCalculator ?? throw new ArgumentNullException(nameof(hasilatKiraCalculator));
+        _nafakaCalculator = nafakaCalculator ?? throw new ArgumentNullException(nameof(nafakaCalculator));
+        _malRejimiCalculator = malRejimiCalculator ?? throw new ArgumentNullException(nameof(malRejimiCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1328,6 +1335,105 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _hasilatKiraCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("aile-miras/nafaka")]
+    public async Task<IActionResult> Nafaka([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "nafaka");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<NafakaInput>(restore, ct) ?? new NafakaInput
+        {
+            Cocuklar = new List<NafakaCocukGirdi> { new() },
+            HesapTarihi = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/AileMiras/Nafaka.cshtml", input);
+    }
+
+    [HttpPost("aile-miras/nafaka")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Nafaka(NafakaInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "nafaka");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/AileMiras/Nafaka.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _nafakaCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("aile-miras/mal-rejimi-tasfiyesi")]
+    public async Task<IActionResult> MalRejimiTasfiyesi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "mal-rejimi-tasfiyesi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        return View("~/Views/Hesapla/AileMiras/MalRejimiTasfiyesi.cshtml",
+            await RestoreFromHistoryAsync<MalRejimiTasfiyesiInput>(restore, ct) ?? new MalRejimiTasfiyesiInput());
+    }
+
+    [HttpPost("aile-miras/mal-rejimi-tasfiyesi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MalRejimiTasfiyesi(MalRejimiTasfiyesiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "mal-rejimi-tasfiyesi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/AileMiras/MalRejimiTasfiyesi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _malRejimiCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

@@ -91,7 +91,31 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "*", Key = "ufe.yillik", Value = 64.8m, EffectiveDate = new DateTime(2023, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık", Note = "2023 yıllık ÜFE artışı %64,8" },
             new() { ToolSlug = "*", Key = "ufe.yillik", Value = 51.3m, EffectiveDate = new DateTime(2024, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık", Note = "2024 yıllık ÜFE artışı %51,3" },
             new() { ToolSlug = "*", Key = "ufe.yillik", Value = 33.0m, EffectiveDate = new DateTime(2025, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık — örnek değer", Note = "2025 yıllık ÜFE (örnek; gerçek değerle güncellenmeli)" },
-            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 15.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık — örnek/yıl içi", Note = "2026 yıl içi ÜFE (örnek placeholder; hukuk profesyoneli güncelleyecek)" }
+            new() { ToolSlug = "*", Key = "ufe.yillik", Value = 15.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TÜİK Yİ-ÜFE yıllık — örnek/yıl içi", Note = "2026 yıl içi ÜFE (örnek placeholder; hukuk profesyoneli güncelleyecek)" },
+
+            // ----- E1 Nafaka (TMK m.175/182) — iştirak + yoksulluk katsayıları -----
+            // İştirak nafakası baz oranları (çocuk başına, yükümlü net gelirinin oranı).
+            new() { ToolSlug = "nafaka", Key = "istirak.baz-oran.1cocuk", Value = 0.20m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — Yargıtay yerleşik içtihat (referans)", Note = "Tek çocuk için yükümlü gelirinin %20'si" },
+            new() { ToolSlug = "nafaka", Key = "istirak.baz-oran.2cocuk", Value = 0.15m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — Yargıtay yerleşik içtihat (referans)", Note = "İki çocuk için çocuk başına %15" },
+            new() { ToolSlug = "nafaka", Key = "istirak.baz-oran.3plus", Value = 0.12m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — Yargıtay yerleşik içtihat (referans)", Note = "Üç ve üzeri çocuk için çocuk başına %12" },
+            // Yaş katsayıları.
+            new() { ToolSlug = "nafaka", Key = "istirak.yas-katsayisi.0-6", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "0-6 yaş (taban)" },
+            new() { ToolSlug = "nafaka", Key = "istirak.yas-katsayisi.7-11", Value = 1.1m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "7-11 yaş" },
+            new() { ToolSlug = "nafaka", Key = "istirak.yas-katsayisi.12-17", Value = 1.2m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "12-17 yaş" },
+            // Eğitim seviyesi katsayıları.
+            new() { ToolSlug = "nafaka", Key = "istirak.egitim-katsayisi.anaokul", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "Okul öncesi/anaokulu (taban)" },
+            new() { ToolSlug = "nafaka", Key = "istirak.egitim-katsayisi.ilkokul", Value = 1.05m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "İlkokul" },
+            new() { ToolSlug = "nafaka", Key = "istirak.egitim-katsayisi.ortaokul", Value = 1.1m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "Ortaokul" },
+            new() { ToolSlug = "nafaka", Key = "istirak.egitim-katsayisi.lise", Value = 1.2m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "Lise" },
+            new() { ToolSlug = "nafaka", Key = "istirak.egitim-katsayisi.universite", Value = 1.4m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "Üniversite" },
+            // Şehir katsayısı (büyükşehir; diğer = 1.0 hardcoded taban).
+            new() { ToolSlug = "nafaka", Key = "istirak.sehir-katsayisi.buyuksehir", Value = 1.15m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.182 — referans katsayı", Note = "Büyükşehir yaşam maliyeti katsayısı" },
+            // Yoksulluk nafakası (m.175) — temel oran + evlilik süresi katsayıları (YHGK 2024-15.10).
+            new() { ToolSlug = "nafaka", Key = "yoksulluk.oran", Value = 0.30m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 — Yargıtay %25-35 bandı (referans)", Note = "Gelir farkına uygulanan temel oran %30" },
+            new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.0-2", Value = 0.5m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "0-2 yıl (kısa evlilik)" },
+            new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.3-5", Value = 0.8m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "3-5 yıl" },
+            new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.6-10", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "6-10 yıl (taban)" },
+            new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.11plus", Value = 1.2m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "11+ yıl (uzun evlilik)" }
         };
 
         foreach (var seed in seeds)

@@ -1,5 +1,6 @@
 using LexCalculus.Core.Calculators;
 using LexCalculus.Core.Calculators.Akturya;
+using LexCalculus.Core.Calculators.AileMiras;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
@@ -75,6 +76,12 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<KatKarsiligiInsaatInput, KatKarsiligiInsaatResult>, KatKarsiligiInsaatCalculator>();
         services.AddScoped<ICalculator, HasilatKiraCalculator>();
         services.AddScoped<ICalculator<HasilatKiraInput, HasilatKiraResult>, HasilatKiraCalculator>();
+
+        // Kategori E — Aile ve Miras Hukuku (Faz 7)
+        services.AddScoped<ICalculator, NafakaCalculator>();
+        services.AddScoped<ICalculator<NafakaInput, NafakaResult>, NafakaCalculator>();
+        services.AddScoped<ICalculator, MalRejimiTasfiyesiCalculator>();
+        services.AddScoped<ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult>, MalRejimiTasfiyesiCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

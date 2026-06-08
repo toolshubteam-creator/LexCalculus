@@ -1347,3 +1347,32 @@ hatırlatma `DataFreshnessCheckJob`'a eklenebilir (`ExpectedUpdateFrequency`).
 
 **Önerilen zaman:** Placeholder güncelleme — Faz 7 sonu hukuk incelemesi.
 Otomatik çekme — Faz 8. Kategori: veri tazelik + süreç borcu.
+
+---
+
+## 45. Nafaka katsayı modeli heuristik referans (hukuk incelemesi + takdir yetkisi)
+
+**Bağlam:** Adım 7.5 (E1 Nafaka). İştirak (m.182) ve yoksulluk (m.175) nafakası
+hesabı, mahkemenin TMK m.4 takdir yetkisini katsayı tablolarıyla (yaş, eğitim,
+şehir, evlilik süresi + baz oran) **yaklaşık** modelliyor. Türk hukukunda nafaka
+için yasal/içtihadi sabit bir formül YOKTUR; tutar hâkimin somut olaydaki
+takdiriyle belirlenir.
+
+**Mevcut durum:** 17 katsayı `nafaka` slug'ı altında FormulaParameter olarak
+seed edildi (`Source` alanında "referans katsayı" notu). Değerler makul aralıkta
+ama **bağlayıcı içtihat değil**; hesap çıktısı "tahmini önerilen nafaka" olarak
+sunuluyor ve view'da güçlü `info-box--warning` ("Bu sonuç mahkeme kararı yerine
+geçmez, TMK m.4 takdir yetkisi") gösteriliyor. Artış yolu ise sağlam zemine
+oturuyor: TÜFE 12 aylık ortalama (`tufe-12-ay-ort` slug, ITUFEService reuse —
+KiraArtisi ile aynı kaynak), YHGK yerleşik içtihat.
+
+**İdeal çözüm:** (1) Katsayı tablolarını bir aile hukuku uzmanı / hukuk
+sorumlusu gözden geçirsin; gerekirse il bazlı asgari geçim endeksi veya güncel
+Yargıtay 2. HD ortalamalarıyla kalibre edilsin. (2) Admin parametre UI zaten
+mevcut (`nafaka/*` oradan ayarlanabilir) — kod değişikliği gerekmez. (3) Uzun
+vadede "emsal karar bandı" (min-max aralık) sunumu düşünülebilir; tek nokta
+tahmin yerine güven aralığı kullanıcıya takdir payını daha iyi aktarır.
+
+**Önerilen zaman:** Katsayı kalibrasyonu — Faz 7 sonu hukuk incelemesi (D3 ÜFE
+placeholder'ları ile birlikte, madde 44). Min-max bandı sunumu — Faz 8+ (UX
+iyileştirme). Kategori: hukuki doğruluk + veri kalibrasyonu.

@@ -27,7 +27,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 | 7.2 | D Gayrimenkul altyapı + D1 Arsa Payı | 1 | D base | BASİT | ✅ |
 | 7.3 | D2 + D3 | 2 | - | KARMAŞIK + ORTA | ✅ |
 | 7.4 | D4 + D5 | 2 | - | ORTA + ORTA | ✅ |
-| 7.5 | E altyapı + E1 + E4 | 2 | E base | ORTA + ORTA | ⏳ |
+| 7.5 | E altyapı + E1 + E4 | 2 | E base | ORTA + ORTA | ✅ |
 | 7.6 | Miras servisi + E2 + E3 + Dalga A closeout | 2 | Miras servisi | KARMAŞIK × 2 | ⏳ |
 | 7.7 | Ceza takvim + F1 + F2 | 2 | Ceza servisi | ORTA + KARMAŞIK | ⏳ |
 | 7.8 | F3 + F4 + F5 | 3 | - | KARMAŞIK + ORTA + BASİT | ⏳ |
@@ -85,10 +85,23 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 > Kamulaştırma Bedeli, Ecrimisil, Kat Karşılığı, Hâsılat Kira. Kalan Dalga A:
 > E Aile/Miras (7.5-7.6).
 
-### Adım 7.5 — E Aile/Miras altyapı + E1 Nafaka + E4 Mal Rejimi ⏳
-- E kategori view/landing iskeleti.
-- **E1 Nafaka** (ORTA) — TMK m.182/197/364, ITUFEService reuse (TÜFE artış).
-- **E4 Mal Rejimi Tasfiyesi** (ORTA) — TMK m.218 vd., edinilmiş/kişisel ayrım.
+### Adım 7.5 — E Aile/Miras altyapı + E1 Nafaka + E4 Mal Rejimi ✅
+- E kategori view klasörü açıldı: `/Views/Hesapla/AileMiras/` (registry-driven
+  landing/index/sitemap — ek kod gerekmedi).
+- **E1 Nafaka** (ORTA) — TMK m.169/175/182. Tek calculator, 3 nafaka türü
+  (iştirak / yoksulluk / tedbir) + 2 hesap türü (yeni belirleme / artış)
+  dispatch. İştirak: 12 katsayı (baz oran + yaş + eğitim + şehir), asgari ücret
+  %25 alt sınır. Yoksulluk: gelir farkı × %30 × evlilik süresi katsayısı (YHGK
+  2024-15.10). Artış: **ITUFEService reuse** — TÜFE 12 aylık ortalama
+  (`tufe-12-ay-ort` slug, KiraArtisi ile aynı kaynak; yeni seed gerekmedi).
+  17 katsayı `nafaka` slug'ı altında seed (bkz. tech-debt madde 45 — heuristik
+  referans, hukuk incelemesi gerek).
+- **E4 Mal Rejimi Tasfiyesi** (ORTA) — TMK m.218-241, **parametresiz**.
+  Artık değer = edinilmiş − borç (negatif → 0); katılma alacağı = karşı eş
+  artık değer × ½; kişisel mal (evlilik öncesi + miras/bağış) tasfiye dışı.
+- Her iki araçta güçlü `info-box--warning`: "Bu sonuç mahkeme kararı / bilirkişi
+  raporu yerine geçmez, referans niteliğindedir."
+- Calculator sayısı: 22 → 24 (Dalga A: 7/9 araç). **Test:** +13 (870 → 883).
 
 ### Adım 7.6 — Miras dağıtım servisi + E2 + E3 + Dalga A closeout ⏳
 - **Altyapı:** `IInheritanceDistributionService` (Karar 3) — TMK m.495-501
