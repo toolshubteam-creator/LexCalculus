@@ -14,7 +14,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 
 | Dalga | Konu | Adım Aralığı | Tahmin | Durum |
 |---|---|---|---|---|
-| A | Gayrimenkul + Aile/Miras | 7.2-7.6 | 5-6 gün | ⏳ |
+| A | Gayrimenkul + Aile/Miras | 7.2-7.6 | 5-6 gün | ✅ |
 | B | Ceza + Vergi/İdare | 7.7-7.10 | 5-6 gün | ⏳ |
 | C | Ticaret + Bilirkişi + closeout | 7.11-7.13 | 3-4 gün | ⏳ |
 
@@ -28,7 +28,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 | 7.3 | D2 + D3 | 2 | - | KARMAŞIK + ORTA | ✅ |
 | 7.4 | D4 + D5 | 2 | - | ORTA + ORTA | ✅ |
 | 7.5 | E altyapı + E1 + E4 | 2 | E base | ORTA + ORTA | ✅ |
-| 7.6 | Miras servisi + E2 + E3 + Dalga A closeout | 2 | Miras servisi | KARMAŞIK × 2 | ⏳ |
+| 7.6 | Miras servisi + E2 + E3 + Dalga A closeout | 2 | Miras servisi | KARMAŞIK × 2 | ✅ |
 | 7.7 | Ceza takvim + F1 + F2 | 2 | Ceza servisi | ORTA + KARMAŞIK | ⏳ |
 | 7.8 | F3 + F4 + F5 | 3 | - | KARMAŞIK + ORTA + BASİT | ⏳ |
 | 7.9 | Vergi dilim + G1 + G2 | 2 | Vergi entity | KARMAŞIK + BASİT | ⏳ |
@@ -39,7 +39,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 
 ---
 
-## Dalga A — Gayrimenkul + Aile/Miras (7.2-7.6, 9 araç)
+## Dalga A — Gayrimenkul + Aile/Miras (7.2-7.6, 9 araç) 🏁 ✅
 
 ### Adım 7.2 — D Gayrimenkul altyapı + D1 Arsa Payı ✅
 - **Kapsam:** D kategori ilk aracı + D1 Arsa Payı Hesabı.
@@ -103,13 +103,27 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
   raporu yerine geçmez, referans niteliğindedir."
 - Calculator sayısı: 22 → 24 (Dalga A: 7/9 araç). **Test:** +13 (870 → 883).
 
-### Adım 7.6 — Miras dağıtım servisi + E2 + E3 + Dalga A closeout ⏳
-- **Altyapı:** `IInheritanceDistributionService` (Karar 3) — TMK m.495-501
-  derece hiyerarşisi + saklı pay.
-- **E2 Miras Payı** (KARMAŞIK) — TMK m.495-501. Referans karar test zorunlu.
-- **E3 Tenkis** (KARMAŞIK) — TMK m.560, E2 saklı pay altyapısına bağımlı.
-  Referans karar test zorunlu.
-- Dalga A closeout (mini doküman güncelleme).
+### Adım 7.6 — Miras dağıtım servisi + E2 + E3 + Dalga A closeout ✅
+- **Altyapı:** `IInheritanceDistributionService` (Karar 3) — `Core/Services/`
+  (saf hesap, interface + impl Core'da). TMK m.495-501 zümre hiyerarşisi
+  (1./2./3. derece), m.498 halefiyet (ölmüş çocuk → torun, ölmüş kardeş →
+  yeğen), m.506 saklı pay oranları. 4. derece (büyük ana-baba altsoyu) kapsam
+  dışı → tech-debt #46.
+- **E2 Miras Payı** (KARMAŞIK, TMK m.495-501) — servisi sarar; eş + 3 derece +
+  halefiyet kombinasyonları. 8 test (sentetik referans dahil).
+- **E3 Tenkis** (KARMAŞIK, TMK m.506 + m.560-571) — net miras = malvarlığı +
+  bağışlar (m.565); saklı pay ihlali; tenkis sırası önce vasiyet sonra son
+  bağıştan geriye (m.561). 7 test (sentetik referans dahil).
+- **Karar/sapma:** (1) Servis DTO/identifier'ları ASCII (`MirasciPay`,
+  `MirasciTuru` — kod konvansiyonu; roadmap'teki `ı` yalnız notasyondu).
+  (2) `SakliPayOrani` imzasına `int aktifDerece = 0` eklendi (eş 1./2. zümre ile
+  tamamı, diğer ¾ — TMK m.506/3 doğruluğu; tek-arg çağrı uyumlu kalır).
+- Calculator: 24 → 26. **Test:** +17 (883 → 900).
+
+> 🏁 **Dalga A tamamlandı (Adım 7.2-7.6, 9 araç).** D Gayrimenkul (5): Arsa
+> Payı, Kamulaştırma Bedeli, Ecrimisil, Kat Karşılığı, Hâsılat Kira. E
+> Aile/Miras (4): Nafaka, Mal Rejimi Tasfiyesi, Miras Payı, Tenkis. Aktif
+> araç 17 → 26. Sonraki: **Dalga B** — Ceza + Vergi/İdare (Adım 7.7-7.10).
 
 ---
 

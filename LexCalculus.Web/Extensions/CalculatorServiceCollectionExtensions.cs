@@ -78,10 +78,15 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<HasilatKiraInput, HasilatKiraResult>, HasilatKiraCalculator>();
 
         // Kategori E — Aile ve Miras Hukuku (Faz 7)
+        services.AddScoped<IInheritanceDistributionService, InheritanceDistributionService>();
         services.AddScoped<ICalculator, NafakaCalculator>();
         services.AddScoped<ICalculator<NafakaInput, NafakaResult>, NafakaCalculator>();
         services.AddScoped<ICalculator, MalRejimiTasfiyesiCalculator>();
         services.AddScoped<ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult>, MalRejimiTasfiyesiCalculator>();
+        services.AddScoped<ICalculator, MirasPayiCalculator>();
+        services.AddScoped<ICalculator<MirasPayiInput, MirasPayiResult>, MirasPayiCalculator>();
+        services.AddScoped<ICalculator, TenkisCalculator>();
+        services.AddScoped<ICalculator<TenkisInput, TenkisResult>, TenkisCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

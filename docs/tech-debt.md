@@ -1376,3 +1376,30 @@ tahmin yerine güven aralığı kullanıcıya takdir payını daha iyi aktarır.
 **Önerilen zaman:** Katsayı kalibrasyonu — Faz 7 sonu hukuk incelemesi (D3 ÜFE
 placeholder'ları ile birlikte, madde 44). Min-max bandı sunumu — Faz 8+ (UX
 iyileştirme). Kategori: hukuki doğruluk + veri kalibrasyonu.
+
+---
+
+## 46. TMK m.501 4. derece (büyük ana-baba altsoyu) mirasçılık eklenmedi
+
+**Bağlam:** Adım 7.6 (E2 Miras Payı + E3 Tenkis). `IInheritanceDistributionService`
+TMK zümre sistemini 1./2./3. derece için uyguluyor. 3. derecede büyük ana-baba
+(dede/nine) eşit pay alıyor ancak onların **altsoyuna halefiyet** (amca, hala,
+dayı, teyze ve onların çocukları) modellenmedi. Ayrıca 4. derece kavramsal
+olarak Türk miras hukukunda zümre yok (3 zümre + eş ile sınırlı); pratikte "4.
+derece" diye andığımız şey 3. zümrenin altsoyudur.
+
+**Mevcut durum:** `MirasciYapisi` yalnız `DedeNineSayisi` taşıyor; ölmüş dede/nine
+ve onların altsoyu (amca/hala/dayı/teyze → kuzenler) girilemiyor. 3. derecede
+halefiyet uygulanmıyor — dede/nine arasında eşit bölünüyor. Çoğu pratik senaryo
+1./2. derece olduğu için kapsam etkisi düşük; ancak dede/nine ölmüş + altsoyu
+sağ olan ender senaryolarda eksik sonuç verir (bu durumda araç zaten "referans
+niteliğinde, mahkeme/bilirkişi yerine geçmez" uyarısı gösterir).
+
+**İdeal çözüm:** (1) `MirasciYapisi`'ye `OlmusDedeNine` (altsoy halefiyeti ile)
+eklenir; servis 3. derece halefiyetini 1./2. derece ile aynı kök-mantığıyla
+uygular. (2) Bir aile/miras hukuku uzmanı 3. zümre altsoy dağılımını (paternal/
+maternal ayrımı dahil) gözden geçirir. (3) E2/E3 için 3. derece halefiyet
+referans testleri eklenir.
+
+**Önerilen zaman:** Faz 8+ hukuk incelemesi sonrası (nafaka katsayı kalibrasyonu
+madde 45 ile birlikte değerlendirilebilir). Kategori: hukuki kapsam genişletme.

@@ -1,0 +1,191 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.AileMiras
+@model MirasPayiInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as MirasPayiResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--info">
+    <strong>Bu hesap ne zaman kullanılır?</strong>
+    <ul style="margin: var(--sp-2) 0 0 var(--sp-4); padding: 0;">
+        <li>Yasal mirasçılık paylarının (zümre sistemi) belirlenmesinde</li>
+        <li>Sağ kalan eşin payının zümreye göre hesabında (¼ / ½ / ¾)</li>
+        <li>Ölmüş mirasçının payının altsoyuna geçişinde (halefiyet, TMK m.498)</li>
+    </ul>
+    <div style="font-size: var(--fs-xs); margin-top: var(--sp-3); opacity: 0.8;">
+        Önce aktif zümre tespit edilir (1. altsoy, 2. ana-baba, 3. büyük ana-baba),
+        sonra eş payı düşülüp kalan zümreye dağıtılır.
+    </div>
+</div>
+
+<div class="info-box info-box--warning">
+    <strong>Uyarı:</strong> Bu hesap TMK m.495-501 yasal mirasçılık oranlarına dayanır.
+    Vasiyet, bağış, mirastan ıskat, mirastan yoksunluk gibi durumlar bu hesabın dışındadır;
+    saklı pay/tenkis için <a href="/hesapla/aile-miras/tenkis">Tenkis Hesaplama</a> aracına bakınız.
+    <strong>Bu sonuç mahkeme kararı veya uzman bilirkişi raporu yerine geçmez.</strong>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="MirasPayi">
+        <h2 class="form-section__title">Mirasçı Yapısı</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="ToplamMalvarligi" class="field__label field__label--required">
+                @Html.DisplayNameFor(m => m.ToplamMalvarligi) <span class="required">*</span>
+            </label>
+            <input asp-for="ToplamMalvarligi" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 1000000" />
+            <span asp-validation-for="ToplamMalvarligi" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label class="field__label">
+                <input asp-for="Yapi.SagKalanEsVar" type="checkbox" /> @Html.DisplayNameFor(m => m.Yapi.SagKalanEsVar)
+            </label>
+        </div>
+
+        <h3 class="form-section__subtitle">1. Derece — Altsoy</h3>
+        <div class="field">
+            <label asp-for="Yapi.SagCocukSayisi" class="field__label">@Html.DisplayNameFor(m => m.Yapi.SagCocukSayisi)</label>
+            <input asp-for="Yapi.SagCocukSayisi" class="field__input" type="number" step="1" min="0" />
+        </div>
+        <p class="field-hint">Ölmüş çocuk (halefiyet — payı torunlarına geçer):</p>
+        <div id="olmus-cocuk-listesi">
+            @for (var i = 0; i < Model.Yapi.OlmusCocuklar.Count; i++)
+            {
+                <div class="field-row" data-oc-index="@i">
+                    <div class="field">
+                        <label class="field__label">Tanım</label>
+                        <input asp-for="Yapi.OlmusCocuklar[i].Tanim" class="field__input" placeholder="örn. Ölmüş çocuk @(i + 1)" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label">Torun Sayısı</label>
+                        <input asp-for="Yapi.OlmusCocuklar[i].TorunSayisi" class="field__input" type="number" step="1" min="0" />
+                    </div>
+                </div>
+            }
+        </div>
+        <button type="button" class="btn btn--ghost" onclick="addOlmusCocuk()">+ Ölmüş Çocuk Ekle</button>
+
+        <h3 class="form-section__subtitle">2. Derece — Ana-Baba ve Kardeşler</h3>
+        <div class="field-row">
+            <div class="field">
+                <label class="field__label"><input asp-for="Yapi.AnaSag" type="checkbox" /> @Html.DisplayNameFor(m => m.Yapi.AnaSag)</label>
+            </div>
+            <div class="field">
+                <label class="field__label"><input asp-for="Yapi.BabaSag" type="checkbox" /> @Html.DisplayNameFor(m => m.Yapi.BabaSag)</label>
+            </div>
+        </div>
+        <div class="field">
+            <label asp-for="Yapi.KardesSayisi" class="field__label">@Html.DisplayNameFor(m => m.Yapi.KardesSayisi)</label>
+            <input asp-for="Yapi.KardesSayisi" class="field__input" type="number" step="1" min="0" />
+        </div>
+        <p class="field-hint">Ölmüş kardeş (halefiyet — payı yeğenlerine geçer):</p>
+        <div id="olmus-kardes-listesi">
+            @for (var i = 0; i < Model.Yapi.OlmusKardesler.Count; i++)
+            {
+                <div class="field-row" data-ok-index="@i">
+                    <div class="field">
+                        <label class="field__label">Tanım</label>
+                        <input asp-for="Yapi.OlmusKardesler[i].Tanim" class="field__input" placeholder="örn. Ölmüş kardeş @(i + 1)" />
+                    </div>
+                    <div class="field">
+                        <label class="field__label">Yeğen Sayısı</label>
+                        <input asp-for="Yapi.OlmusKardesler[i].YeginSayisi" class="field__input" type="number" step="1" min="0" />
+                    </div>
+                </div>
+            }
+        </div>
+        <button type="button" class="btn btn--ghost" onclick="addOlmusKardes()">+ Ölmüş Kardeş Ekle</button>
+
+        <h3 class="form-section__subtitle">3. Derece — Büyük Ana-Baba</h3>
+        <div class="field">
+            <label asp-for="Yapi.DedeNineSayisi" class="field__label">@Html.DisplayNameFor(m => m.Yapi.DedeNineSayisi)</label>
+            <input asp-for="Yapi.DedeNineSayisi" class="field__input" type="number" step="1" min="0" max="4" />
+        </div>
+
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Malvarlığı ve mirasçı yapısını girip "Hesapla" butonuna basarak yasal miras paylarını görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/aile-miras">← Aile ve Miras Hukuku</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function addRepeaterRow(containerId, prefix, label2, attr) {
+            var c = document.getElementById(containerId);
+            var i = c.children.length;
+            var html =
+                '<div class="field-row" data-' + attr + '="' + i + '">' +
+                  '<div class="field"><label class="field__label">Tanım</label>' +
+                    '<input name="' + prefix + '[' + i + '].Tanim" class="field__input" /></div>' +
+                  '<div class="field"><label class="field__label">' + label2 + '</label>' +
+                    '<input name="' + prefix + '[' + i + '].' + (prefix.indexOf('Cocuk') > -1 ? 'TorunSayisi' : 'YeginSayisi') + '" class="field__input" type="number" step="1" min="0" /></div>' +
+                '</div>';
+            c.insertAdjacentHTML('beforeend', html);
+        }
+        function addOlmusCocuk() { addRepeaterRow('olmus-cocuk-listesi', 'Yapi.OlmusCocuklar', 'Torun Sayısı', 'oc-index'); }
+        function addOlmusKardes() { addRepeaterRow('olmus-kardes-listesi', 'Yapi.OlmusKardesler', 'Yeğen Sayısı', 'ok-index'); }
+    </script>
+}

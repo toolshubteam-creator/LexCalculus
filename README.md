@@ -11,7 +11,11 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 - **Tahmin:** 13-16 gün (charter 3-4 hafta)
 - D-I kategorileri için 26 yeni hesaplama aracı (3 dalga, 12 alt adım: 7.2-7.13)
 - Faz 7 sonrası: **43 aktif hesaplama aracı** (9 kategori tam), lansman hazırlık
-- Sonraki: Adım 7.2 — Gayrimenkul altyapı + Arsa Payı
+- 🏁 **Dalga A ✅ tamamlandı (Adım 7.2-7.6, 9 araç):** D Gayrimenkul (Arsa Payı,
+  Kamulaştırma, Ecrimisil, Kat Karşılığı, Hâsılat Kira) + E Aile/Miras (Nafaka,
+  Mal Rejimi Tasfiyesi, Miras Payı, Tenkis). Aktif araç: 17 → 26.
+- Sonraki: Adım 7.7 — Ceza takvim servisi + F1 Erteleme + F2 Koşullu Salıverilme
+  (Dalga B açılışı)
 
 ---
 

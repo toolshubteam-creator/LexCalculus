@@ -41,6 +41,8 @@ public class HesaplaController : Controller
     private readonly ICalculator<HasilatKiraInput, HasilatKiraResult> _hasilatKiraCalculator;
     private readonly ICalculator<NafakaInput, NafakaResult> _nafakaCalculator;
     private readonly ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult> _malRejimiCalculator;
+    private readonly ICalculator<MirasPayiInput, MirasPayiResult> _mirasPayiCalculator;
+    private readonly ICalculator<TenkisInput, TenkisResult> _tenkisCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -70,6 +72,8 @@ public class HesaplaController : Controller
         ICalculator<HasilatKiraInput, HasilatKiraResult> hasilatKiraCalculator,
         ICalculator<NafakaInput, NafakaResult> nafakaCalculator,
         ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult> malRejimiCalculator,
+        ICalculator<MirasPayiInput, MirasPayiResult> mirasPayiCalculator,
+        ICalculator<TenkisInput, TenkisResult> tenkisCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -99,6 +103,8 @@ public class HesaplaController : Controller
         _hasilatKiraCalculator = hasilatKiraCalculator ?? throw new ArgumentNullException(nameof(hasilatKiraCalculator));
         _nafakaCalculator = nafakaCalculator ?? throw new ArgumentNullException(nameof(nafakaCalculator));
         _malRejimiCalculator = malRejimiCalculator ?? throw new ArgumentNullException(nameof(malRejimiCalculator));
+        _mirasPayiCalculator = mirasPayiCalculator ?? throw new ArgumentNullException(nameof(mirasPayiCalculator));
+        _tenkisCalculator = tenkisCalculator ?? throw new ArgumentNullException(nameof(tenkisCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1434,6 +1440,109 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _malRejimiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("aile-miras/miras-payi")]
+    public async Task<IActionResult> MirasPayi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "miras-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<MirasPayiInput>(restore, ct) ?? new MirasPayiInput
+        {
+            Yapi = new MirasciYapisiInput { SagKalanEsVar = true, SagCocukSayisi = 2 }
+        };
+
+        return View("~/Views/Hesapla/AileMiras/MirasPayi.cshtml", input);
+    }
+
+    [HttpPost("aile-miras/miras-payi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MirasPayi(MirasPayiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "miras-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/AileMiras/MirasPayi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _mirasPayiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("aile-miras/tenkis")]
+    public async Task<IActionResult> Tenkis([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "tenkis");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<TenkisInput>(restore, ct) ?? new TenkisInput
+        {
+            Yapi = new MirasciYapisiInput { SagKalanEsVar = true, SagCocukSayisi = 1 },
+            Bagislar = new List<BagisGirdi> { new() { Tarih = DateTime.Today } }
+        };
+
+        return View("~/Views/Hesapla/AileMiras/Tenkis.cshtml", input);
+    }
+
+    [HttpPost("aile-miras/tenkis")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Tenkis(TenkisInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.AileMiras, "tenkis");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/AileMiras/Tenkis.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _tenkisCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
