@@ -1,6 +1,5 @@
 using System.Globalization;
 using LexCalculus.Core.Calculators.Common;
-using LexCalculus.Core.Services;
 
 namespace LexCalculus.Core.Calculators.Ceza;
 
@@ -23,18 +22,13 @@ namespace LexCalculus.Core.Calculators.Ceza;
 ///   4. Asli bitiş mutlak bitişi aşıyorsa cap uygulanır (m.67/4).
 ///   5. Etkin bitiş = min(asli, mutlak); AsOfDate ile karşılaştırılır.
 ///
-/// Saf hesap — DB bağımlılığı yok. ICriminalCalendarService sadece tarih
-/// aritmetiği (yıl ekleme) ve referans tarih için kullanılır.
+/// Saf hesap — DB bağımlılığı yok, parametresiz. Tarih aritmetiği doğrudan
+/// <see cref="DateOnly.AddYears(int)"/> + <see cref="DateOnly.AddDays(int)"/>
+/// üzerinden yapılır; "iş günü / resmi tatil" filtresi zamanaşımı süresinde
+/// anlamlı değildir (TCK m.66 "yıl" cinsinden ölçer).
 /// </summary>
 public sealed class DavaZamanasimiCalculator : ICalculator<DavaZamanasimiInput, DavaZamanasimiResult>
 {
-    private readonly ICriminalCalendarService _takvim;
-
-    public DavaZamanasimiCalculator(ICriminalCalendarService takvim)
-    {
-        _takvim = takvim ?? throw new ArgumentNullException(nameof(takvim));
-    }
-
     public CalculatorMetadata Metadata { get; } = new()
     {
         Slug = "dava-zamanasimi",

@@ -1455,7 +1455,7 @@ ileriye projekte yapılır, 2030 sonu sınırı sorun yaratmaz.
 
 ---
 
-## 49. F3 DavaZamanasimiCalculator — kullanılmayan ICriminalCalendarService inject
+## ✅ 49. F3 DavaZamanasimiCalculator — kullanılmayan ICriminalCalendarService inject — ÇÖZÜLDÜ (2026-06-15, Adım 7.10 Dalga B closeout)
 
 **Bağlam:** Adım 7.8 — F3 Dava Zamanaşımı `ICriminalCalendarService` constructor
 injection alıyor (Adım 7.7'de F1/F2 pattern'i ile tutarlılık için), ancak tarih
@@ -1464,18 +1464,12 @@ listesinden veya gün hesap modlarından F3 yararlanmıyor. Zamanaşımı sürel
 "iş günü" / "resmi tatil" filtresi anlamlı değil (TCK m.66 "yıl" cinsinden
 ölçer).
 
-**Mevcut durum:** Dependency boşa duruyor; testlerde de `new CriminalCalendarService()`
-oluşturup geçiriyoruz. Constructor sözleşmesi ileride F3'ün kalan gün hesabını
-"iş günü" cinsinden de sunma seçeneğine kapı açıyor olabilir.
-
-**İdeal çözüm:** İki seçenek:
-1. `DavaZamanasimiCalculator` constructor'ından `ICriminalCalendarService`'i
-   çıkar — servis yokken de hesap aynı sonucu verir.
-2. F3'e "kalan iş günü" çıktısı ekleyerek servisi gerçekten kullan
-   (mahkeme/yargılama makamı tatil günlerinde işlem yapmaz argümanı).
-
-**Önerilen zaman:** Dalga B closeout (Adım 7.10) veya Faz 7 sonu temizlik.
-Bloklayıcı değil, sadece niyet/kod tutarsızlığı.
+**Çözüm:** Adım 7.10 closeout temizliğinde 1. seçenek uygulandı —
+`DavaZamanasimiCalculator` constructor'ından `ICriminalCalendarService` inject
+kaldırıldı. Testler `new DavaZamanasimiCalculator()` parametresiz çağırıyor,
+mevcut 7 test aynı sonuçları döner. Sınıf docstring'i "tarih aritmetiği doğrudan
+`DateOnly.AddYears/AddDays` üzerinden" notuyla güncellendi. İleride "kalan iş
+günü" çıktısı istenirse servis tekrar inject edilebilir.
 
 ---
 

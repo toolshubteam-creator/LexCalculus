@@ -118,7 +118,28 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.11plus", Value = 1.2m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "11+ yıl (uzun evlilik)" },
 
             // ----- G2 Tapu Harcı (492 s.K. Tapu ve Kadastro Harçları Tarifesi) -----
-            new() { ToolSlug = "tapu-harci", Key = "oran", Value = 0.02m, EffectiveDate = new DateTime(2026, 1, 1), Source = "492 s.K. Harçlar Kanunu Tapu ve Kadastro Harçları Tarifesi", Note = "Alıcı + satıcı her biri %2 (toplam %4)" }
+            new() { ToolSlug = "tapu-harci", Key = "oran", Value = 0.02m, EffectiveDate = new DateTime(2026, 1, 1), Source = "492 s.K. Harçlar Kanunu Tapu ve Kadastro Harçları Tarifesi", Note = "Alıcı + satıcı her biri %2 (toplam %4)" },
+
+            // ----- G3 Damga Vergisi (488 s.K., 86 Seri No'lu Damga Vergisi Genel Tebliği) -----
+            new() { ToolSlug = "damga-vergisi", Key = "oran.genel-sozlesme", Value = 0.00948m, EffectiveDate = new DateTime(2026, 1, 1), Source = "488 s.K. + 86 Seri No'lu DV Tebliği — RG 31.12.2025/33124 5.Mük.", Note = "Genel sözleşme ‰9,48" },
+            new() { ToolSlug = "damga-vergisi", Key = "oran.kira-mukavelesi", Value = 0.00189m, EffectiveDate = new DateTime(2026, 1, 1), Source = "488 s.K. + 86 Seri No'lu DV Tebliği", Note = "Kira mukavelesi ‰1,89" },
+            new() { ToolSlug = "damga-vergisi", Key = "oran.ihale-karari", Value = 0.00569m, EffectiveDate = new DateTime(2026, 1, 1), Source = "488 s.K. + 86 Seri No'lu DV Tebliği", Note = "İhale kararı ‰5,69" },
+            new() { ToolSlug = "damga-vergisi", Key = "oran.makbuz", Value = 0.00948m, EffectiveDate = new DateTime(2026, 1, 1), Source = "488 s.K. + 86 Seri No'lu DV Tebliği", Note = "Makbuz ‰9,48" },
+            new() { ToolSlug = "damga-vergisi", Key = "oran.diger", Value = 0.00948m, EffectiveDate = new DateTime(2026, 1, 1), Source = "488 s.K. + 86 Seri No'lu DV Tebliği", Note = "Diğer belgeler için varsayılan ‰9,48" },
+            new() { ToolSlug = "damga-vergisi", Key = "azami-sinir", Value = 5_281_302.40m, EffectiveDate = new DateTime(2026, 1, 1), Source = "488 s.K. + 86 Seri No'lu DV Tebliği", Note = "2026 azami damga vergisi sınırı (belge başına cap)" },
+
+            // ----- G5 Gecikme Faizi (213 s.K. m.112) — yıllık aylık oran tarihçesi -----
+            // Faiz reuse pattern: "*" global slug, key "gecikme-faizi.aylik-oran".
+            new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.014m, EffectiveDate = new DateTime(2020, 1, 1), Source = "213 s.K. m.112 + Hazine/Maliye Tebliğleri", Note = "2020 yılı gecikme faizi aylık %1,4" },
+            new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.025m, EffectiveDate = new DateTime(2021, 1, 1), Source = "213 s.K. m.112", Note = "2021 yılı gecikme faizi aylık %2,5" },
+            new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.025m, EffectiveDate = new DateTime(2022, 1, 1), Source = "213 s.K. m.112", Note = "2022 yılı gecikme faizi aylık %2,5" },
+            new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.030m, EffectiveDate = new DateTime(2023, 1, 1), Source = "213 s.K. m.112", Note = "2023 yılı gecikme faizi aylık %3,0" },
+            new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.035m, EffectiveDate = new DateTime(2024, 1, 1), Source = "213 s.K. m.112", Note = "2024 yılı gecikme faizi aylık %3,5" },
+            new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.035m, EffectiveDate = new DateTime(2025, 1, 1), Source = "213 s.K. m.112", Note = "2025 yılı gecikme faizi aylık %3,5" },
+            new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.035m, EffectiveDate = new DateTime(2026, 1, 1), Source = "213 s.K. m.112", Note = "2026 yılı gecikme faizi aylık %3,5" },
+
+            // ----- G5 Gecikme Zammı (6183 s.K. m.51) — aynı pattern, 2026 oranı -----
+            new() { ToolSlug = "*", Key = "gecikme-zammi.aylik-oran", Value = 0.035m, EffectiveDate = new DateTime(2026, 1, 1), Source = "6183 s.K. m.51 — Cumhurbaşkanı Kararı 2026", Note = "Gecikme zammı aylık %3,5" }
         };
 
         foreach (var seed in seeds)

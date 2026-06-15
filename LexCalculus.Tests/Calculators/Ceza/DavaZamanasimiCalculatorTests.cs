@@ -1,14 +1,13 @@
 using FluentAssertions;
 using LexCalculus.Core.Calculators.Ceza;
-using LexCalculus.Core.Services;
 using Xunit;
 
 namespace LexCalculus.Tests.Calculators.Ceza;
 
-// Saf hesap — DB gerekmez. ICriminalCalendarService reuse (Adım 7.7).
+// Saf hesap — DB gerekmez, parametresiz (Adım 7.10 cleanup — tech-debt #49 ÇÖZÜLDÜ).
 public class DavaZamanasimiCalculatorTests
 {
-    private readonly DavaZamanasimiCalculator _calc = new(new CriminalCalendarService());
+    private readonly DavaZamanasimiCalculator _calc = new();
 
     [Fact]
     public async Task Reference_TCK66_Orta_15Yil_NoKesinti()

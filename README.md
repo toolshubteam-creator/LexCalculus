@@ -14,8 +14,12 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 - 🏁 **Dalga A ✅ tamamlandı (Adım 7.2-7.6, 9 araç):** D Gayrimenkul (Arsa Payı,
   Kamulaştırma, Ecrimisil, Kat Karşılığı, Hâsılat Kira) + E Aile/Miras (Nafaka,
   Mal Rejimi Tasfiyesi, Miras Payı, Tenkis). Aktif araç: 17 → 26.
-- Sonraki: Adım 7.7 — Ceza takvim servisi + F1 Erteleme + F2 Koşullu Salıverilme
-  (Dalga B açılışı)
+- 🏁 **Dalga B ✅ tamamlandı (Adım 7.7-7.10, 10 araç):** F Ceza (Erteleme,
+  Koşullu Salıverilme, Zamanaşımı, Adli Para, Tutukluluk Mahsup) + G Vergi/İdare
+  (Veraset, Tapu Harcı, Damga, KDV İade, Vergi Cezası). Aktif araç: 26 → 36.
+- **Faz 7 ilerleme: 19/26 araç (%73)** — Dalga C'de H Ticaret (3) + I Bilirkişi (4) kaldı.
+- Sonraki: Adım 7.11 — H Ticaret (Dalga C açılışı): H1 Tasfiye + H2 Kâr Payı +
+  H3 Sözleşme Cezası
 
 ---
 

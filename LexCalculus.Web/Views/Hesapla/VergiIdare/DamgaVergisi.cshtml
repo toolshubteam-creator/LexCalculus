@@ -1,0 +1,126 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.VergiIdare
+@model DamgaVergisiInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as DamgaVergisiResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--info">
+    <strong>Bu hesap ne zaman kullanılır?</strong>
+    <ul style="margin: var(--sp-2) 0 0 var(--sp-4); padding: 0;">
+        <li>Sözleşme, kira mukavelesi, ihale kararı gibi belgelerin damga vergisinde</li>
+        <li>2026 azami sınırı (belge başına 5.281.302,40 TL) cap uygulamasında</li>
+        <li>86 Seri No'lu Damga Vergisi Genel Tebliği oranları</li>
+    </ul>
+    <div style="font-size: var(--fs-xs); margin-top: var(--sp-3); opacity: 0.8;">
+        Belge türünü seçtikçe ilgili oran otomatik uygulanır.
+    </div>
+</div>
+
+<div class="info-box info-box--warning">
+    <strong>Uyarı:</strong> Bu hesap 488 s.K. 2026 oranlarını uygular. Bazı belgeler maktu
+    damga vergisine tabidir (bu hesabın dışında), indirimli oranlar (mali müşavir
+    hizmetleri, kamu istisnaları vb.) ayrıca değerlendirilir.
+    <strong>Bu sonuç vergi dairesi tarafından kesin tarh edilmiş tutar yerine geçmez.</strong>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="DamgaVergisi">
+        <h2 class="form-section__title">Belge Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="BelgeTuru" class="field__label">@Html.DisplayNameFor(m => m.BelgeTuru)</label>
+            <select asp-for="BelgeTuru" asp-items="Html.GetEnumSelectList<DamgaBelgeTuru>()" class="field__input"></select>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="DegerTutari" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.DegerTutari) <span class="required">*</span>
+                </label>
+                <input asp-for="DegerTutari" class="field__input" type="number" step="0.01" min="0.01" placeholder="örn. 1000000" />
+                <span asp-validation-for="DegerTutari" class="field-hint"></span>
+            </div>
+            <div class="field">
+                <label asp-for="BelgeAdedi" class="field__label">@Html.DisplayNameFor(m => m.BelgeAdedi)</label>
+                <input asp-for="BelgeAdedi" class="field__input" type="number" step="1" min="1" max="10000" />
+                <span asp-validation-for="BelgeAdedi" class="field-hint"></span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="AsOfDate" class="field__label">@Html.DisplayNameFor(m => m.AsOfDate)</label>
+            <input asp-for="AsOfDate" class="field__input" type="date" />
+        </div>
+
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Belge türü ve değerini girip "Hesapla" butonuna basarak damga vergisi tutarını
+                görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/vergi-idare">← Vergi ve İdare</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -15,7 +15,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 | Dalga | Konu | Adım Aralığı | Tahmin | Durum |
 |---|---|---|---|---|
 | A | Gayrimenkul + Aile/Miras | 7.2-7.6 | 5-6 gün | ✅ |
-| B | Ceza + Vergi/İdare | 7.7-7.10 | 5-6 gün | ⏳ |
+| B | Ceza + Vergi/İdare | 7.7-7.10 | 5-6 gün | ✅ |
 | C | Ticaret + Bilirkişi + closeout | 7.11-7.13 | 3-4 gün | ⏳ |
 
 ## Adım tablosu
@@ -29,10 +29,10 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 | 7.4 | D4 + D5 | 2 | - | ORTA + ORTA | ✅ |
 | 7.5 | E altyapı + E1 + E4 | 2 | E base | ORTA + ORTA | ✅ |
 | 7.6 | Miras servisi + E2 + E3 + Dalga A closeout | 2 | Miras servisi | KARMAŞIK × 2 | ✅ |
-| 7.7 | Ceza takvim + F1 + F2 | 2 | Ceza servisi | ORTA + KARMAŞIK | ⏳ |
-| 7.8 | F3 + F4 + F5 | 3 | - | KARMAŞIK + ORTA + BASİT | ⏳ |
-| 7.9 | Vergi dilim + G1 + G2 | 2 | Vergi entity | KARMAŞIK + BASİT | ⏳ |
-| 7.10 | G3 + G4 + G5 + Dalga B closeout | 3 | - | ORTA × 2 + KARMAŞIK | ⏳ |
+| 7.7 | Ceza takvim + F1 + F2 | 2 | Ceza servisi | ORTA + KARMAŞIK | ✅ |
+| 7.8 | F3 + F4 + F5 | 3 | - | KARMAŞIK + ORTA + BASİT | ✅ |
+| 7.9 | Vergi dilim + G1 + G2 | 2 | Vergi entity | KARMAŞIK + BASİT | ✅ |
+| 7.10 | G3 + G4 + G5 + Dalga B closeout | 3 | - | ORTA × 2 + KARMAŞIK | ✅ |
 | 7.11 | H1 + H2 + H3 | 3 | - | ORTA × 3 | ⏳ |
 | 7.12 | I1 + I2 + I3 + I4 | 4 | - | BASİT × 2 + KARMAŞIK + ORTA | ⏳ |
 | 7.13 | Faz 7 closeout | - | - | - | ⏳ |
@@ -127,35 +127,50 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 
 ---
 
-## Dalga B — Ceza + Vergi/İdare (7.7-7.10, 10 araç)
+## Dalga B — Ceza + Vergi/İdare (7.7-7.10, 10 araç) 🏁 ✅
 
-### Adım 7.7 — Ceza takvim servisi + F1 + F2 ⏳
+### Adım 7.7 — Ceza takvim servisi + F1 + F2 ✅
 - **Altyapı:** `ICriminalCalendarService` (Karar 2) — gün/ay/yıl, tahliye
-  tarihi, resmi tatil seed.
-- **F1 Ceza Erteleme Süresi** (ORTA) — 5237 s.K. m.51.
-- **F2 Koşullu Salıverilme Tarihi** (KARMAŞIK) — 5275 s.K. m.107. Suç tipine
-  göre 2/3 veya 3/4 oran + uyarı metni. Referans karar test zorunlu.
+  tarihi, resmi tatil seed 2020-2030 (Diyanet referansı).
+- **F1 Ceza Erteleme Süresi** (ORTA) — TCK m.51, yetişkin 2 yıl / çocuk 3 yıl.
+- **F2 Koşullu Salıverilme Tarihi** (KARMAŞIK) — 5275 s.K. m.107, suç tipi
+  enum (Genel 2/3, Terör/Cinsel/Örgütlü/Ağır 3/4) + tutukluluk mahsubu.
+- Test: +17 (900 → 917). Calculator 26 → 28.
 
-### Adım 7.8 — F3 + F4 + F5 ⏳
-- **F3 Dava Zamanaşımı** (KARMAŞIK) — 5237 s.K. m.66-67, YENİ-PARAMETRE
-  (suç tipi süre tablosu) + takvim. Referans karar test zorunlu.
-- **F4 Adli Para Cezası** (ORTA) — 5237 s.K. m.52, gün × günlük tutar.
-- **F5 Tutukluluk Mahsup** (BASİT) — CMK / 5275 s.K., takvim/süre mahsup.
+### Adım 7.8 — F3 + F4 + F5 ✅
+- **F3 Dava Zamanaşımı** (KARMAŞIK) — TCK m.66-67, 5 suç ağırlığı kategorisi
+  (8/15/20/25/30 yıl) + kesinti + m.67/4 mutlak sınır (asli × 1.5).
+- **F4 Adli Para Cezası** (ORTA) — TCK m.52, Direkt + Hapis Çevrim.
+- **F5 Tutukluluk Mahsup** (BASİT) — TCK m.63 + 5275 s.K. m.108, inclusive
+  gün hesabı + opsiyonel adli para mahsubu.
+- Test: +18 (917 → 935). Calculator 28 → 31. F kategori 5/5 tamamlandı.
 
-### Adım 7.9 — Vergi dilim altyapı + G1 + G2 ⏳
-- **Altyapı:** `TaxBracket` entity (Karar 1) — artan oranlı matrah dilimleri,
-  tarih bazlı versiyonlama.
-- **G1 Veraset ve İntikal Vergisi** (KARMAŞIK) — 7338 s.K., dilim + istisna.
-  Referans karar test zorunlu. Dilim tutarları elle seed (Resmi Gazete).
-- **G2 Tapu Harcı** (BASİT) — 492 s.K., YENİ-PARAMETRE (harç oranı).
+### Adım 7.9 — Vergi dilim altyapı + G1 + G2 ✅
+- **Altyapı:** `TaxBracket` entity (Karar 1) — `TaxBrackets` tablosu,
+  `ITaxBracketService` (24sa cache + marjinal dilim hesabı), 10 seed satırı.
+- **G1 Veraset ve İntikal Vergisi** (KARMAŞIK) — 7338 s.K. m.4 + m.16, 2026
+  tarifesi (RG 31.12.2025/33124 5.Mük., 57 Seri No'lu Tebliğ). Veraset
+  %1-10, ivazsız %10-30; istisna 2.907.136 / 5.817.845 / 66.935 TL.
+- **G2 Tapu Harcı** (BASİT) — 492 s.K., alıcı %2 + satıcı %2 (toplam %4).
+- Test: +16 (935 → 951). Calculator 31 → 33.
 
-### Adım 7.10 — G3 + G4 + G5 + Dalga B closeout ⏳
-- **G3 Damga Vergisi** (ORTA) — 488 s.K., YENİ-PARAMETRE (sözleşme türü
-  oranı + azami sınır).
-- **G4 KDV İadesi Alacağı** (ORTA) — 3065 s.K. m.29, indirimli oran.
-- **G5 Vergi Cezası ve Gecikme Faizi** (KARMAŞIK) — 213 s.K., gecikme zammı
-  + TaxBracket reuse. Referans karar test zorunlu.
-- Dalga B closeout (mini).
+### Adım 7.10 — G3 + G4 + G5 + Dalga B closeout ✅
+- **G3 Damga Vergisi** (ORTA) — 488 s.K., 5 belge türü oranı (‰1,89-9,48)
+  + 2026 azami sınır 5.281.302,40 TL cap. FormulaParameter (6 satır).
+- **G4 KDV İadesi** (ORTA) — 3065 s.K. m.32, parametresiz formül +
+  mahsup öncesi/sonrası raporlama.
+- **G5 Vergi Cezası ve Gecikme Faizi** (KARMAŞIK) — 213 s.K. m.341-376,
+  vergi ziyaı %50 / kaçakçılık %100 / usulsüzlük maktu + m.112 basit aylık
+  faiz (yıl segmentasyonlu). FormulaParameter zaman-versiyonlu aylık oran
+  (2020-2026, 7 satır + 1 zam).
+- F3 cleanup: `DavaZamanasimiCalculator` `ICriminalCalendarService` inject
+  kaldırıldı (tech-debt #49 ÇÖZÜLDÜ).
+- Test: +16 (951 → 967). Calculator 33 → 36. G kategori 5/5 tamamlandı.
+
+> 🏁 **Dalga B tamamlandı (Adım 7.7-7.10, 10 araç).** F Ceza (5): Erteleme,
+> Koşullu Salıverilme, Zamanaşımı, Adli Para, Tutukluluk Mahsup. G Vergi/İdare
+> (5): Veraset, Tapu Harcı, Damga, KDV İade, Vergi Cezası. Aktif araç 26 → 36.
+> Sonraki: **Dalga C** — Ticaret + Bilirkişi + Faz 7 closeout (Adım 7.11-7.13).
 
 ---
 

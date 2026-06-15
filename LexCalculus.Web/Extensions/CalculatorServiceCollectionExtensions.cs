@@ -109,6 +109,12 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<VerasetVergisiInput, VerasetVergisiResult>, VerasetVergisiCalculator>();
         services.AddScoped<ICalculator, TapuHarciCalculator>();
         services.AddScoped<ICalculator<TapuHarciInput, TapuHarciResult>, TapuHarciCalculator>();
+        services.AddScoped<ICalculator, DamgaVergisiCalculator>();
+        services.AddScoped<ICalculator<DamgaVergisiInput, DamgaVergisiResult>, DamgaVergisiCalculator>();
+        services.AddScoped<ICalculator, KdvIadesiCalculator>();
+        services.AddScoped<ICalculator<KdvIadesiInput, KdvIadesiResult>, KdvIadesiCalculator>();
+        services.AddScoped<ICalculator, VergiCezasiCalculator>();
+        services.AddScoped<ICalculator<VergiCezasiInput, VergiCezasiResult>, VergiCezasiCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

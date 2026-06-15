@@ -52,6 +52,9 @@ public class HesaplaController : Controller
     private readonly ICalculator<TutuklulukMahsubuInput, TutuklulukMahsubuResult> _tutuklulukMahsubuCalculator;
     private readonly ICalculator<VerasetVergisiInput, VerasetVergisiResult> _verasetVergisiCalculator;
     private readonly ICalculator<TapuHarciInput, TapuHarciResult> _tapuHarciCalculator;
+    private readonly ICalculator<DamgaVergisiInput, DamgaVergisiResult> _damgaVergisiCalculator;
+    private readonly ICalculator<KdvIadesiInput, KdvIadesiResult> _kdvIadesiCalculator;
+    private readonly ICalculator<VergiCezasiInput, VergiCezasiResult> _vergiCezasiCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -90,6 +93,9 @@ public class HesaplaController : Controller
         ICalculator<TutuklulukMahsubuInput, TutuklulukMahsubuResult> tutuklulukMahsubuCalculator,
         ICalculator<VerasetVergisiInput, VerasetVergisiResult> verasetVergisiCalculator,
         ICalculator<TapuHarciInput, TapuHarciResult> tapuHarciCalculator,
+        ICalculator<DamgaVergisiInput, DamgaVergisiResult> damgaVergisiCalculator,
+        ICalculator<KdvIadesiInput, KdvIadesiResult> kdvIadesiCalculator,
+        ICalculator<VergiCezasiInput, VergiCezasiResult> vergiCezasiCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -128,6 +134,9 @@ public class HesaplaController : Controller
         _tutuklulukMahsubuCalculator = tutuklulukMahsubuCalculator ?? throw new ArgumentNullException(nameof(tutuklulukMahsubuCalculator));
         _verasetVergisiCalculator = verasetVergisiCalculator ?? throw new ArgumentNullException(nameof(verasetVergisiCalculator));
         _tapuHarciCalculator = tapuHarciCalculator ?? throw new ArgumentNullException(nameof(tapuHarciCalculator));
+        _damgaVergisiCalculator = damgaVergisiCalculator ?? throw new ArgumentNullException(nameof(damgaVergisiCalculator));
+        _kdvIadesiCalculator = kdvIadesiCalculator ?? throw new ArgumentNullException(nameof(kdvIadesiCalculator));
+        _vergiCezasiCalculator = vergiCezasiCalculator ?? throw new ArgumentNullException(nameof(vergiCezasiCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1924,6 +1933,160 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _tapuHarciCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("vergi-idare/damga-vergisi")]
+    public async Task<IActionResult> DamgaVergisi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "damga-vergisi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<DamgaVergisiInput>(restore, ct) ?? new DamgaVergisiInput
+        {
+            AsOfDate = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/VergiIdare/DamgaVergisi.cshtml", input);
+    }
+
+    [HttpPost("vergi-idare/damga-vergisi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DamgaVergisi(DamgaVergisiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "damga-vergisi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/VergiIdare/DamgaVergisi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _damgaVergisiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("vergi-idare/kdv-iadesi")]
+    public async Task<IActionResult> KdvIadesi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "kdv-iadesi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<KdvIadesiInput>(restore, ct) ?? new KdvIadesiInput
+        {
+            AsOfDate = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/VergiIdare/KdvIadesi.cshtml", input);
+    }
+
+    [HttpPost("vergi-idare/kdv-iadesi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> KdvIadesi(KdvIadesiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "kdv-iadesi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/VergiIdare/KdvIadesi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _kdvIadesiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("vergi-idare/vergi-cezasi")]
+    public async Task<IActionResult> VergiCezasi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "vergi-cezasi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<VergiCezasiInput>(restore, ct) ?? new VergiCezasiInput
+        {
+            VadeTarihi = DateTime.Today.AddMonths(-6),
+            OdemeTarihi = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/VergiIdare/VergiCezasi.cshtml", input);
+    }
+
+    [HttpPost("vergi-idare/vergi-cezasi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VergiCezasi(VergiCezasiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "vergi-cezasi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/VergiIdare/VergiCezasi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _vergiCezasiCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

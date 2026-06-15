@@ -1,0 +1,131 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.VergiIdare
+@model KdvIadesiInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as KdvIadesiResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--info">
+    <strong>Bu hesap ne zaman kullanılır?</strong>
+    <ul style="margin: var(--sp-2) 0 0 var(--sp-4); padding: 0;">
+        <li>İndirimli oran (m.29/2), ihraç kayıtlı (m.11) ve diğer iade hâllerinde</li>
+        <li>İndirilebilir KDV'nin hesaplanan KDV'yi aşan kısmının tespitinde</li>
+        <li>Mahsup öncesi/sonrası net iade tutarının raporlanmasında</li>
+    </ul>
+</div>
+
+<div class="info-box info-box--warning">
+    <strong>Uyarı:</strong> Bu hesap 3065 s.K. m.32 KDV iade formülünü uygular. İadenin
+    gerçekleşmesi mahsup öncelikleri (vergi/SGK borçları), dönem KDV beyannamesi tutarlılığı,
+    belge düzeni ve YMM raporu/inceleme gibi koşullara bağlıdır.
+    <strong>Bu sonuç vergi dairesi onayı yerine geçmez.</strong>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="KdvIadesi">
+        <h2 class="form-section__title">KDV Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="IadeBasvuruTuru" class="field__label">@Html.DisplayNameFor(m => m.IadeBasvuruTuru)</label>
+            <select asp-for="IadeBasvuruTuru" asp-items="Html.GetEnumSelectList<KdvIadeBasvuruTuru>()" class="field__input"></select>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="ToplamHesaplananKDV" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.ToplamHesaplananKDV) <span class="required">*</span>
+                </label>
+                <input asp-for="ToplamHesaplananKDV" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 50000" />
+                <span asp-validation-for="ToplamHesaplananKDV" class="field-hint"></span>
+            </div>
+            <div class="field">
+                <label asp-for="ToplamIndirimKDV" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.ToplamIndirimKDV) <span class="required">*</span>
+                </label>
+                <input asp-for="ToplamIndirimKDV" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 200000" />
+                <span asp-validation-for="ToplamIndirimKDV" class="field-hint"></span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="MahsupEdilenKDV" class="field__label">@Html.DisplayNameFor(m => m.MahsupEdilenKDV)</label>
+            <input asp-for="MahsupEdilenKDV" class="field__input" type="number" step="0.01" min="0" placeholder="örn. 30000" />
+            <span asp-validation-for="MahsupEdilenKDV" class="field-hint"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="AsOfDate" class="field__label">@Html.DisplayNameFor(m => m.AsOfDate)</label>
+            <input asp-for="AsOfDate" class="field__input" type="date" />
+        </div>
+
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Hesaplanan ve indirim KDV tutarlarını girip "Hesapla" butonuna basarak iadeye
+                konu ve net iade tutarını görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/vergi-idare">← Vergi ve İdare</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
