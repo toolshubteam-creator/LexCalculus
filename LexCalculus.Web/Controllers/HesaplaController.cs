@@ -46,6 +46,9 @@ public class HesaplaController : Controller
     private readonly ICalculator<TenkisInput, TenkisResult> _tenkisCalculator;
     private readonly ICalculator<CezaErtelemeInput, CezaErtelemeResult> _cezaErtelemeCalculator;
     private readonly ICalculator<KosulluSaliverilmeInput, KosulluSaliverilmeResult> _kosulluSaliverilmeCalculator;
+    private readonly ICalculator<DavaZamanasimiInput, DavaZamanasimiResult> _davaZamanasimiCalculator;
+    private readonly ICalculator<AdliParaCezasiInput, AdliParaCezasiResult> _adliParaCalculator;
+    private readonly ICalculator<TutuklulukMahsubuInput, TutuklulukMahsubuResult> _tutuklulukMahsubuCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -79,6 +82,9 @@ public class HesaplaController : Controller
         ICalculator<TenkisInput, TenkisResult> tenkisCalculator,
         ICalculator<CezaErtelemeInput, CezaErtelemeResult> cezaErtelemeCalculator,
         ICalculator<KosulluSaliverilmeInput, KosulluSaliverilmeResult> kosulluSaliverilmeCalculator,
+        ICalculator<DavaZamanasimiInput, DavaZamanasimiResult> davaZamanasimiCalculator,
+        ICalculator<AdliParaCezasiInput, AdliParaCezasiResult> adliParaCalculator,
+        ICalculator<TutuklulukMahsubuInput, TutuklulukMahsubuResult> tutuklulukMahsubuCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -112,6 +118,9 @@ public class HesaplaController : Controller
         _tenkisCalculator = tenkisCalculator ?? throw new ArgumentNullException(nameof(tenkisCalculator));
         _cezaErtelemeCalculator = cezaErtelemeCalculator ?? throw new ArgumentNullException(nameof(cezaErtelemeCalculator));
         _kosulluSaliverilmeCalculator = kosulluSaliverilmeCalculator ?? throw new ArgumentNullException(nameof(kosulluSaliverilmeCalculator));
+        _davaZamanasimiCalculator = davaZamanasimiCalculator ?? throw new ArgumentNullException(nameof(davaZamanasimiCalculator));
+        _adliParaCalculator = adliParaCalculator ?? throw new ArgumentNullException(nameof(adliParaCalculator));
+        _tutuklulukMahsubuCalculator = tutuklulukMahsubuCalculator ?? throw new ArgumentNullException(nameof(tutuklulukMahsubuCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1653,6 +1662,159 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _kosulluSaliverilmeCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ceza/dava-zamanasimi")]
+    public async Task<IActionResult> DavaZamanasimi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "dava-zamanasimi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<DavaZamanasimiInput>(restore, ct) ?? new DavaZamanasimiInput
+        {
+            SucIslemeTarihi = DateTime.Today.AddYears(-1),
+            AsOfDate = DateTime.Today,
+            Kesintiler = new List<KesintiGirdi>()
+        };
+
+        return View("~/Views/Hesapla/Ceza/DavaZamanasimi.cshtml", input);
+    }
+
+    [HttpPost("ceza/dava-zamanasimi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DavaZamanasimi(DavaZamanasimiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "dava-zamanasimi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ceza/DavaZamanasimi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _davaZamanasimiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ceza/adli-para-cezasi")]
+    public async Task<IActionResult> AdliParaCezasi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "adli-para-cezasi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<AdliParaCezasiInput>(restore, ct) ?? new AdliParaCezasiInput();
+
+        return View("~/Views/Hesapla/Ceza/AdliParaCezasi.cshtml", input);
+    }
+
+    [HttpPost("ceza/adli-para-cezasi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AdliParaCezasi(AdliParaCezasiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "adli-para-cezasi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ceza/AdliParaCezasi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _adliParaCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ceza/tutukluluk-mahsubu")]
+    public async Task<IActionResult> TutuklulukMahsubu([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "tutukluluk-mahsubu");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<TutuklulukMahsubuInput>(restore, ct) ?? new TutuklulukMahsubuInput
+        {
+            TutuklulukBaslangic = DateTime.Today.AddMonths(-3),
+            TutuklulukBitis = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/Ceza/TutuklulukMahsubu.cshtml", input);
+    }
+
+    [HttpPost("ceza/tutukluluk-mahsubu")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TutuklulukMahsubu(TutuklulukMahsubuInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "tutukluluk-mahsubu");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ceza/TutuklulukMahsubu.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _tutuklulukMahsubuCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {
