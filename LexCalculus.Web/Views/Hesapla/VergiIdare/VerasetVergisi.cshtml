@@ -1,0 +1,143 @@
+@using LexCalculus.Core.Calculators.Common
+@using LexCalculus.Core.Calculators.VergiIdare
+@model VerasetVergisiInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as VerasetVergisiResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--info">
+    <strong>Bu hesap ne zaman kullanılır?</strong>
+    <ul style="margin: var(--sp-2) 0 0 var(--sp-4); padding: 0;">
+        <li>Veraset yoluyla intikalde (mirasçı başına istisna + %1-10 dilim)</li>
+        <li>İvazsız intikal / bağışta (sabit istisna + %10-30 dilim)</li>
+        <li>2026 tarifesi: RG 31.12.2025/33124 5.Mük., 57 Seri No'lu Tebliğ</li>
+    </ul>
+    <div style="font-size: var(--fs-xs); margin-top: var(--sp-3); opacity: 0.8;" id="istisna-bilgi">
+        Veraset (füruğ/eş varsa): kişi başı 2.907.136 TL istisna.
+    </div>
+</div>
+
+<div class="info-box info-box--warning">
+    <strong>Uyarı:</strong> Bu hesap 7338 s.K. m.4 + m.16'yı 2026 tarifesine göre uygular.
+    Akrabalık derecesine göre indirim (m.18), engelli/vakıf gibi özel istisnalar ve diğer
+    indirimler ayrıca değerlendirilir. Beyan ve ödeme süreleri 7338 s.K. m.19-20'ye tabidir.
+    <strong>Bu sonuç vergi dairesi tarafından kesin tarh edilmiş tutar yerine geçmez.</strong>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="VerasetVergisi">
+        <h2 class="form-section__title">İntikal Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="IntikalTuru" class="field__label">@Html.DisplayNameFor(m => m.IntikalTuru)</label>
+            <select asp-for="IntikalTuru" asp-items="Html.GetEnumSelectList<IntikalTuru>()" class="field__input" id="intikalTuru"></select>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="BrutDeger" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.BrutDeger) <span class="required">*</span>
+                </label>
+                <input asp-for="BrutDeger" class="field__input" type="number" step="0.01" min="0.01" placeholder="örn. 5000000" />
+                <span asp-validation-for="BrutDeger" class="field-hint"></span>
+            </div>
+            <div class="field">
+                <label asp-for="MirascıSayisi" class="field__label">@Html.DisplayNameFor(m => m.MirascıSayisi)</label>
+                <input asp-for="MirascıSayisi" class="field__input" type="number" step="1" min="1" max="100" />
+                <span asp-validation-for="MirascıSayisi" class="field-hint"></span>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="AsOfDate" class="field__label">@Html.DisplayNameFor(m => m.AsOfDate)</label>
+            <input asp-for="AsOfDate" class="field__input" type="date" />
+            <p class="field-hint">Boş bırakılırsa bugün kabul edilir.</p>
+        </div>
+
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
+        <button type="submit" class="btn btn--primary btn--block">Hesapla</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                İntikal türü, brüt değer ve mirasçı sayısını girip "Hesapla" butonuna basarak
+                istisna sonrası dilim bazlı vergi tutarını görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/vergi-idare">← Vergi ve İdare</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var sel = document.getElementById('intikalTuru');
+            var info = document.getElementById('istisna-bilgi');
+            function refresh() {
+                switch (sel.value) {
+                    case '1':
+                        info.textContent = 'Veraset (füruğ/eş varsa): kişi başı 2.907.136 TL istisna.';
+                        break;
+                    case '2':
+                        info.textContent = 'Veraset (yalnız eş, füruğ yok): 5.817.845 TL istisna.';
+                        break;
+                    case '3':
+                        info.textContent = 'İvazsız intikal / bağış: 66.935 TL sabit istisna, dilim oranları %10-30.';
+                        break;
+                }
+            }
+            sel.addEventListener('change', refresh);
+            refresh();
+        })();
+    </script>
+}

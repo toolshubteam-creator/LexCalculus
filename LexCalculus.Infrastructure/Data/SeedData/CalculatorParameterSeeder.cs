@@ -115,7 +115,10 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.0-2", Value = 0.5m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "0-2 yıl (kısa evlilik)" },
             new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.3-5", Value = 0.8m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "3-5 yıl" },
             new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.6-10", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "6-10 yıl (taban)" },
-            new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.11plus", Value = 1.2m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "11+ yıl (uzun evlilik)" }
+            new() { ToolSlug = "nafaka", Key = "yoksulluk.evlilik-suresi.11plus", Value = 1.2m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TMK m.175 yorumu — YHGK 2024-15.10 hakkaniyet", Note = "11+ yıl (uzun evlilik)" },
+
+            // ----- G2 Tapu Harcı (492 s.K. Tapu ve Kadastro Harçları Tarifesi) -----
+            new() { ToolSlug = "tapu-harci", Key = "oran", Value = 0.02m, EffectiveDate = new DateTime(2026, 1, 1), Source = "492 s.K. Harçlar Kanunu Tapu ve Kadastro Harçları Tarifesi", Note = "Alıcı + satıcı her biri %2 (toplam %4)" }
         };
 
         foreach (var seed in seeds)

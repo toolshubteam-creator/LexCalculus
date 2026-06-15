@@ -1452,3 +1452,51 @@ gösterir).
 **Önerilen zaman:** Faz 8+ (2031'e yaklaşırken). Şu an 2020-2030 sabit listesi
 ceza/infaz hesapları için yeterli — pratikte koşullu salıverilme hesabı 6-8 yıl
 ileriye projekte yapılır, 2030 sonu sınırı sorun yaratmaz.
+
+---
+
+## 49. F3 DavaZamanasimiCalculator — kullanılmayan ICriminalCalendarService inject
+
+**Bağlam:** Adım 7.8 — F3 Dava Zamanaşımı `ICriminalCalendarService` constructor
+injection alıyor (Adım 7.7'de F1/F2 pattern'i ile tutarlılık için), ancak tarih
+aritmetiği doğrudan `DateOnly.AddYears/AddDays` ile yapıldı — servisin tatil
+listesinden veya gün hesap modlarından F3 yararlanmıyor. Zamanaşımı sürelerinde
+"iş günü" / "resmi tatil" filtresi anlamlı değil (TCK m.66 "yıl" cinsinden
+ölçer).
+
+**Mevcut durum:** Dependency boşa duruyor; testlerde de `new CriminalCalendarService()`
+oluşturup geçiriyoruz. Constructor sözleşmesi ileride F3'ün kalan gün hesabını
+"iş günü" cinsinden de sunma seçeneğine kapı açıyor olabilir.
+
+**İdeal çözüm:** İki seçenek:
+1. `DavaZamanasimiCalculator` constructor'ından `ICriminalCalendarService`'i
+   çıkar — servis yokken de hesap aynı sonucu verir.
+2. F3'e "kalan iş günü" çıktısı ekleyerek servisi gerçekten kullan
+   (mahkeme/yargılama makamı tatil günlerinde işlem yapmaz argümanı).
+
+**Önerilen zaman:** Dalga B closeout (Adım 7.10) veya Faz 7 sonu temizlik.
+Bloklayıcı değil, sadece niyet/kod tutarsızlığı.
+
+---
+
+## 50. TaxBracket admin UI + otomatik dilim güncelleme
+
+**Bağlam:** Adım 7.9 (Charter Karar 1) — `TaxBracket` entity ve `TaxBracketSeeder`
+2026 vergi tarifesini idempotent olarak seed ediyor. Vergi dilim güncellemeleri
+her yıl Resmi Gazete yayını ile değişiyor (yeniden değerleme oranı 213 s.K.
+m.298). Şu an her yıl yeni satırlar manuel olarak seeder'a eklenmesi gerekir;
+admin paneli bu işi otomatize edebilir.
+
+**Mevcut durum:** Yeni tarife = yeni seed PR + deploy. Bunun yerine 2026/2027
+geçişinde admin paneli "yeni dilim seti ekle" UI'ı ile yapılmalı.
+
+**İdeal çözüm:** İki paralel iş:
+1. Admin paneli (Areas/Admin) `TaxBrackets` CRUD sayfası —
+   `FormulaParametersController` pattern reuse; (ToolSlug, EffectiveDate, Sira)
+   uniqueness + versiyonlu okuma.
+2. Otomatik veri çekme: Maliye Bakanlığı/GİB Resmi Gazete tebliğleri için
+   scheduled job (yıllık Aralık ayında çalışıp yeni yılın tarifesini hazırlar).
+
+**Önerilen zaman:** Faz 8+ (G3 Damga + G5 Vergi Cezası dilim ihtiyaçlarıyla
+birlikte). Şu an seeder yeterli — Faz 7 closing'inde G kategorisi 5 araç + 2
+dilim seti, manuel maintenance maliyeti düşük.

@@ -7,6 +7,7 @@ using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
 using LexCalculus.Core.Calculators.IsHukuku;
+using LexCalculus.Core.Calculators.VergiIdare;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Services;
 using LexCalculus.Web.Models.Hesapla;
@@ -49,6 +50,8 @@ public class HesaplaController : Controller
     private readonly ICalculator<DavaZamanasimiInput, DavaZamanasimiResult> _davaZamanasimiCalculator;
     private readonly ICalculator<AdliParaCezasiInput, AdliParaCezasiResult> _adliParaCalculator;
     private readonly ICalculator<TutuklulukMahsubuInput, TutuklulukMahsubuResult> _tutuklulukMahsubuCalculator;
+    private readonly ICalculator<VerasetVergisiInput, VerasetVergisiResult> _verasetVergisiCalculator;
+    private readonly ICalculator<TapuHarciInput, TapuHarciResult> _tapuHarciCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -85,6 +88,8 @@ public class HesaplaController : Controller
         ICalculator<DavaZamanasimiInput, DavaZamanasimiResult> davaZamanasimiCalculator,
         ICalculator<AdliParaCezasiInput, AdliParaCezasiResult> adliParaCalculator,
         ICalculator<TutuklulukMahsubuInput, TutuklulukMahsubuResult> tutuklulukMahsubuCalculator,
+        ICalculator<VerasetVergisiInput, VerasetVergisiResult> verasetVergisiCalculator,
+        ICalculator<TapuHarciInput, TapuHarciResult> tapuHarciCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -121,6 +126,8 @@ public class HesaplaController : Controller
         _davaZamanasimiCalculator = davaZamanasimiCalculator ?? throw new ArgumentNullException(nameof(davaZamanasimiCalculator));
         _adliParaCalculator = adliParaCalculator ?? throw new ArgumentNullException(nameof(adliParaCalculator));
         _tutuklulukMahsubuCalculator = tutuklulukMahsubuCalculator ?? throw new ArgumentNullException(nameof(tutuklulukMahsubuCalculator));
+        _verasetVergisiCalculator = verasetVergisiCalculator ?? throw new ArgumentNullException(nameof(verasetVergisiCalculator));
+        _tapuHarciCalculator = tapuHarciCalculator ?? throw new ArgumentNullException(nameof(tapuHarciCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1815,6 +1822,108 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _tutuklulukMahsubuCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("vergi-idare/veraset-vergisi")]
+    public async Task<IActionResult> VerasetVergisi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "veraset-vergisi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<VerasetVergisiInput>(restore, ct) ?? new VerasetVergisiInput
+        {
+            AsOfDate = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/VergiIdare/VerasetVergisi.cshtml", input);
+    }
+
+    [HttpPost("vergi-idare/veraset-vergisi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerasetVergisi(VerasetVergisiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "veraset-vergisi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/VergiIdare/VerasetVergisi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _verasetVergisiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("vergi-idare/tapu-harci")]
+    public async Task<IActionResult> TapuHarci([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "tapu-harci");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<TapuHarciInput>(restore, ct) ?? new TapuHarciInput
+        {
+            AsOfDate = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/VergiIdare/TapuHarci.cshtml", input);
+    }
+
+    [HttpPost("vergi-idare/tapu-harci")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TapuHarci(TapuHarciInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.VergiIdare, "tapu-harci");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/VergiIdare/TapuHarci.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _tapuHarciCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

@@ -6,6 +6,7 @@ using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
 using LexCalculus.Core.Calculators.IsHukuku;
+using LexCalculus.Core.Calculators.VergiIdare;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Calculators;
 using LexCalculus.Infrastructure.Services;
@@ -101,6 +102,13 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<AdliParaCezasiInput, AdliParaCezasiResult>, AdliParaCezasiCalculator>();
         services.AddScoped<ICalculator, TutuklulukMahsubuCalculator>();
         services.AddScoped<ICalculator<TutuklulukMahsubuInput, TutuklulukMahsubuResult>, TutuklulukMahsubuCalculator>();
+
+        // Kategori G — Vergi ve İdare (Faz 7)
+        services.AddScoped<ITaxBracketService, TaxBracketService>();
+        services.AddScoped<ICalculator, VerasetVergisiCalculator>();
+        services.AddScoped<ICalculator<VerasetVergisiInput, VerasetVergisiResult>, VerasetVergisiCalculator>();
+        services.AddScoped<ICalculator, TapuHarciCalculator>();
+        services.AddScoped<ICalculator<TapuHarciInput, TapuHarciResult>, TapuHarciCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

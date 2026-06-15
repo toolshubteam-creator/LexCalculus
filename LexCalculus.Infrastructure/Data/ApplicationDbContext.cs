@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<FormulaParameter> FormulaParameters => Set<FormulaParameter>();
+    public DbSet<TaxBracket> TaxBrackets => Set<TaxBracket>();
     public DbSet<LifeTable> LifeTables => Set<LifeTable>();
     public DbSet<LifeTableRow> LifeTableRows => Set<LifeTableRow>();
     public DbSet<CalculationHistory> CalculationHistories => Set<CalculationHistory>();

@@ -627,6 +627,7 @@ try
             await CalculatorParameterSeeder.SeedAsync(dbContext, startupLogger);
             await LexCalculus.Infrastructure.Persistence.Seed.FormulaParameterMetadataBackfill.BackfillAsync(dbContext);
             await LexCalculus.Infrastructure.Persistence.Seed.TUFESeedData.SeedAsync(dbContext);
+            await TaxBracketSeeder.SeedAsync(dbContext, startupLogger);
             await LifeTableSeeder.SeedAsync(dbContext, startupLogger);
             await PostCategorySeeder.SeedAsync(dbContext, startupLogger);
         }
