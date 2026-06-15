@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.AileMiras;
+using LexCalculus.Core.Calculators.Ceza;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
@@ -43,6 +44,8 @@ public class HesaplaController : Controller
     private readonly ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult> _malRejimiCalculator;
     private readonly ICalculator<MirasPayiInput, MirasPayiResult> _mirasPayiCalculator;
     private readonly ICalculator<TenkisInput, TenkisResult> _tenkisCalculator;
+    private readonly ICalculator<CezaErtelemeInput, CezaErtelemeResult> _cezaErtelemeCalculator;
+    private readonly ICalculator<KosulluSaliverilmeInput, KosulluSaliverilmeResult> _kosulluSaliverilmeCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -74,6 +77,8 @@ public class HesaplaController : Controller
         ICalculator<MalRejimiTasfiyesiInput, MalRejimiTasfiyesiResult> malRejimiCalculator,
         ICalculator<MirasPayiInput, MirasPayiResult> mirasPayiCalculator,
         ICalculator<TenkisInput, TenkisResult> tenkisCalculator,
+        ICalculator<CezaErtelemeInput, CezaErtelemeResult> cezaErtelemeCalculator,
+        ICalculator<KosulluSaliverilmeInput, KosulluSaliverilmeResult> kosulluSaliverilmeCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -105,6 +110,8 @@ public class HesaplaController : Controller
         _malRejimiCalculator = malRejimiCalculator ?? throw new ArgumentNullException(nameof(malRejimiCalculator));
         _mirasPayiCalculator = mirasPayiCalculator ?? throw new ArgumentNullException(nameof(mirasPayiCalculator));
         _tenkisCalculator = tenkisCalculator ?? throw new ArgumentNullException(nameof(tenkisCalculator));
+        _cezaErtelemeCalculator = cezaErtelemeCalculator ?? throw new ArgumentNullException(nameof(cezaErtelemeCalculator));
+        _kosulluSaliverilmeCalculator = kosulluSaliverilmeCalculator ?? throw new ArgumentNullException(nameof(kosulluSaliverilmeCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -1543,6 +1550,109 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _tenkisCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ceza/erteleme")]
+    public async Task<IActionResult> CezaErteleme([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "ceza-erteleme");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<CezaErtelemeInput>(restore, ct) ?? new CezaErtelemeInput
+        {
+            KararTarihi = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/Ceza/CezaErteleme.cshtml", input);
+    }
+
+    [HttpPost("ceza/erteleme")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CezaErteleme(CezaErtelemeInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "ceza-erteleme");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ceza/CezaErteleme.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _cezaErtelemeCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ceza/kosullu-saliverilme")]
+    public async Task<IActionResult> KosulluSaliverilme([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "kosullu-saliverilme");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<KosulluSaliverilmeInput>(restore, ct) ?? new KosulluSaliverilmeInput
+        {
+            CezaevineGirisTarihi = DateTime.Today,
+            AsOfDate = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/Ceza/KosulluSaliverilme.cshtml", input);
+    }
+
+    [HttpPost("ceza/kosullu-saliverilme")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> KosulluSaliverilme(KosulluSaliverilmeInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ceza, "kosullu-saliverilme");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ceza/KosulluSaliverilme.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _kosulluSaliverilmeCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

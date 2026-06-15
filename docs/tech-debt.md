@@ -1403,3 +1403,52 @@ referans testleri eklenir.
 
 **Önerilen zaman:** Faz 8+ hukuk incelemesi sonrası (nafaka katsayı kalibrasyonu
 madde 45 ile birlikte değerlendirilebilir). Kategori: hukuki kapsam genişletme.
+
+---
+
+## 47. Yarım kardeş ayrımı (TMK m.497) — IInheritanceDistributionService
+
+**Bağlam:** Adım 7.6 (E2 Miras Payı + E3 Tenkis) — `IInheritanceDistributionService`
+2. zümrede tüm kardeşleri tam kardeş varsayar. TMK m.497 ise yarım kardeşin
+(baba bir ana ayrı veya ana bir baba ayrı) tam kardeşin yarısı kadar pay aldığını
+düzenler. Hesap, yarım kardeş senaryosunda tam kardeşle aynı payı verir.
+
+**Mevcut durum:** `MirasciYapisi.KardesSayisi` ve `OlmusKardesler` ayrımsız.
+Yarım kardeş girişi yapılamaz, hesap m.497 uygulamaz. Çoğu yaygın senaryo (tam
+kardeşler) doğru, ancak boşanmış/yeniden evlenmiş aile yapılarında sonuç eksik
+çıkar. Araç zaten "mahkeme/bilirkişi yerine geçmez" uyarısı gösterir.
+
+**İdeal çözüm:** `MirasciYapisi`'a `YarimKardesSayisi` ek alanı veya
+`OlmusKardes` DTO'sunu `TamKardesMi` flag'i ile genişletme. Servis 2. zümre
+dağıtımında m.497 uygulamasını eklesin (yarım kardeş kökü 0.5 ağırlık).
+Hukuk profesyoneli incelemesinde tam/yarım/üvey ayrımının tüm hâlleri ele
+alınmalı.
+
+**Önerilen zaman:** Faz 8+ hukuk incelemesi (madde 45 + 46 ile birlikte
+değerlendirilebilir). E2/E3 testlerine yarım kardeş senaryoları eklenmeli.
+
+---
+
+## 48. Dini bayram kameri takvim (ICriminalCalendarService seed)
+
+**Bağlam:** Adım 7.7 (Ceza takvim servisi). Ramazan ve Kurban Bayramı
+tarihleri kameri takvime göre değişken (her yıl ~11 gün geri kayar). Servis
+2020-2030 dönemini Diyanet İşleri Başkanlığı yayınlarına dayanan **sabit
+miladi liste** ile çözüyor.
+
+**Mevcut durum:** `CriminalCalendarService.BuildTatiller` 11 yıl × ~14 tatil
+hard-coded. 2031 sonrası tarih sorgulanırsa o yıl için dini bayram döndürmez
+(sabit miladi tatiller yine doğru). Rüyet farkı nedeniyle 1-2 gün kayma
+olabilir (bu sapma 5275 s.K. m.107 ve TCK m.51 hesabını etkileyecek kadar
+kritik değildir; her iki hesap da "iyi hal/takdir yetkisi yerine geçmez" uyarısı
+gösterir).
+
+**İdeal çözüm:** İki seçenek:
+1. Bir kameri-miladi dönüşüm kütüphanesi (örn. `NodaTime.Calendars.IslamicCalendar`)
+   entegre edip dini bayramları runtime hesapla.
+2. Diyanet API entegrasyonu (resmi tatil + kameri takvim) — yıllık scheduled
+   job ile cache.
+
+**Önerilen zaman:** Faz 8+ (2031'e yaklaşırken). Şu an 2020-2030 sabit listesi
+ceza/infaz hesapları için yeterli — pratikte koşullu salıverilme hesabı 6-8 yıl
+ileriye projekte yapılır, 2030 sonu sınırı sorun yaratmaz.

@@ -1,6 +1,7 @@
 using LexCalculus.Core.Calculators;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.AileMiras;
+using LexCalculus.Core.Calculators.Ceza;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
@@ -87,6 +88,13 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<MirasPayiInput, MirasPayiResult>, MirasPayiCalculator>();
         services.AddScoped<ICalculator, TenkisCalculator>();
         services.AddScoped<ICalculator<TenkisInput, TenkisResult>, TenkisCalculator>();
+
+        // Kategori F — Ceza Hukuku ve İnfaz (Faz 7)
+        services.AddSingleton<ICriminalCalendarService, CriminalCalendarService>();
+        services.AddScoped<ICalculator, CezaErtelemeCalculator>();
+        services.AddScoped<ICalculator<CezaErtelemeInput, CezaErtelemeResult>, CezaErtelemeCalculator>();
+        services.AddScoped<ICalculator, KosulluSaliverilmeCalculator>();
+        services.AddScoped<ICalculator<KosulluSaliverilmeInput, KosulluSaliverilmeResult>, KosulluSaliverilmeCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>
