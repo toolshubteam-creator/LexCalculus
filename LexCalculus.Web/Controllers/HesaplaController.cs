@@ -7,6 +7,7 @@ using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
 using LexCalculus.Core.Calculators.IsHukuku;
+using LexCalculus.Core.Calculators.Ticaret;
 using LexCalculus.Core.Calculators.VergiIdare;
 using LexCalculus.Core.Models.Seo;
 using LexCalculus.Core.Services;
@@ -55,6 +56,9 @@ public class HesaplaController : Controller
     private readonly ICalculator<DamgaVergisiInput, DamgaVergisiResult> _damgaVergisiCalculator;
     private readonly ICalculator<KdvIadesiInput, KdvIadesiResult> _kdvIadesiCalculator;
     private readonly ICalculator<VergiCezasiInput, VergiCezasiResult> _vergiCezasiCalculator;
+    private readonly ICalculator<SirketTasfiyePayiInput, SirketTasfiyePayiResult> _sirketTasfiyePayiCalculator;
+    private readonly ICalculator<KarPayiInput, KarPayiResult> _karPayiCalculator;
+    private readonly ICalculator<SozlesmeCezasiInput, SozlesmeCezasiResult> _sozlesmeCezasiCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -96,6 +100,9 @@ public class HesaplaController : Controller
         ICalculator<DamgaVergisiInput, DamgaVergisiResult> damgaVergisiCalculator,
         ICalculator<KdvIadesiInput, KdvIadesiResult> kdvIadesiCalculator,
         ICalculator<VergiCezasiInput, VergiCezasiResult> vergiCezasiCalculator,
+        ICalculator<SirketTasfiyePayiInput, SirketTasfiyePayiResult> sirketTasfiyePayiCalculator,
+        ICalculator<KarPayiInput, KarPayiResult> karPayiCalculator,
+        ICalculator<SozlesmeCezasiInput, SozlesmeCezasiResult> sozlesmeCezasiCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -137,6 +144,9 @@ public class HesaplaController : Controller
         _damgaVergisiCalculator = damgaVergisiCalculator ?? throw new ArgumentNullException(nameof(damgaVergisiCalculator));
         _kdvIadesiCalculator = kdvIadesiCalculator ?? throw new ArgumentNullException(nameof(kdvIadesiCalculator));
         _vergiCezasiCalculator = vergiCezasiCalculator ?? throw new ArgumentNullException(nameof(vergiCezasiCalculator));
+        _sirketTasfiyePayiCalculator = sirketTasfiyePayiCalculator ?? throw new ArgumentNullException(nameof(sirketTasfiyePayiCalculator));
+        _karPayiCalculator = karPayiCalculator ?? throw new ArgumentNullException(nameof(karPayiCalculator));
+        _sozlesmeCezasiCalculator = sozlesmeCezasiCalculator ?? throw new ArgumentNullException(nameof(sozlesmeCezasiCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -2087,6 +2097,151 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _vergiCezasiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ticaret/sirket-tasfiye-payi")]
+    public async Task<IActionResult> SirketTasfiyePayi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ticaret, "sirket-tasfiye-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<SirketTasfiyePayiInput>(restore, ct) ?? new SirketTasfiyePayiInput
+        {
+            ImtiyazliPaylar = new List<ImtiyazliPayGirdi>()
+        };
+
+        return View("~/Views/Hesapla/Ticaret/SirketTasfiyePayi.cshtml", input);
+    }
+
+    [HttpPost("ticaret/sirket-tasfiye-payi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SirketTasfiyePayi(SirketTasfiyePayiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ticaret, "sirket-tasfiye-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ticaret/SirketTasfiyePayi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _sirketTasfiyePayiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ticaret/kar-payi")]
+    public async Task<IActionResult> KarPayi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ticaret, "kar-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<KarPayiInput>(restore, ct) ?? new KarPayiInput();
+        return View("~/Views/Hesapla/Ticaret/KarPayi.cshtml", input);
+    }
+
+    [HttpPost("ticaret/kar-payi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> KarPayi(KarPayiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ticaret, "kar-payi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ticaret/KarPayi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _karPayiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("ticaret/sozlesme-cezasi")]
+    public async Task<IActionResult> SozlesmeCezasi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ticaret, "sozlesme-cezasi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<SozlesmeCezasiInput>(restore, ct) ?? new SozlesmeCezasiInput();
+        return View("~/Views/Hesapla/Ticaret/SozlesmeCezasi.cshtml", input);
+    }
+
+    [HttpPost("ticaret/sozlesme-cezasi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SozlesmeCezasi(SozlesmeCezasiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Ticaret, "sozlesme-cezasi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Ticaret/SozlesmeCezasi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _sozlesmeCezasiCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

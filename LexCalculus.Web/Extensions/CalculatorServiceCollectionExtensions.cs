@@ -6,6 +6,7 @@ using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
 using LexCalculus.Core.Calculators.Gayrimenkul;
 using LexCalculus.Core.Calculators.IsHukuku;
+using LexCalculus.Core.Calculators.Ticaret;
 using LexCalculus.Core.Calculators.VergiIdare;
 using LexCalculus.Core.Services;
 using LexCalculus.Infrastructure.Calculators;
@@ -115,6 +116,14 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<KdvIadesiInput, KdvIadesiResult>, KdvIadesiCalculator>();
         services.AddScoped<ICalculator, VergiCezasiCalculator>();
         services.AddScoped<ICalculator<VergiCezasiInput, VergiCezasiResult>, VergiCezasiCalculator>();
+
+        // Kategori H — Ticaret Hukuku (Faz 7, Dalga C)
+        services.AddScoped<ICalculator, SirketTasfiyePayiCalculator>();
+        services.AddScoped<ICalculator<SirketTasfiyePayiInput, SirketTasfiyePayiResult>, SirketTasfiyePayiCalculator>();
+        services.AddScoped<ICalculator, KarPayiCalculator>();
+        services.AddScoped<ICalculator<KarPayiInput, KarPayiResult>, KarPayiCalculator>();
+        services.AddScoped<ICalculator, SozlesmeCezasiCalculator>();
+        services.AddScoped<ICalculator<SozlesmeCezasiInput, SozlesmeCezasiResult>, SozlesmeCezasiCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>
