@@ -1,6 +1,7 @@
 using LexCalculus.Core.Calculators;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.AileMiras;
+using LexCalculus.Core.Calculators.Bilirkisi;
 using LexCalculus.Core.Calculators.Ceza;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
@@ -124,6 +125,16 @@ public static class CalculatorServiceCollectionExtensions
         services.AddScoped<ICalculator<KarPayiInput, KarPayiResult>, KarPayiCalculator>();
         services.AddScoped<ICalculator, SozlesmeCezasiCalculator>();
         services.AddScoped<ICalculator<SozlesmeCezasiInput, SozlesmeCezasiResult>, SozlesmeCezasiCalculator>();
+
+        // Kategori I — Bilirkişilik Özel Araçları (Faz 7, Dalga C son araç adımı)
+        services.AddScoped<ICalculator, YasamTablosuSorguCalculator>();
+        services.AddScoped<ICalculator<YasamTablosuSorguInput, YasamTablosuSorguResult>, YasamTablosuSorguCalculator>();
+        services.AddScoped<ICalculator, IskontoluNakitAkisiCalculator>();
+        services.AddScoped<ICalculator<IskontoluNakitAkisiInput, IskontoluNakitAkisiResult>, IskontoluNakitAkisiCalculator>();
+        services.AddScoped<ICalculator, HakkaniyetliTazminatCalculator>();
+        services.AddScoped<ICalculator<HakkaniyetliTazminatInput, HakkaniyetliTazminatResult>, HakkaniyetliTazminatCalculator>();
+        services.AddScoped<ICalculator, CevreselZararCalculator>();
+        services.AddScoped<ICalculator<CevreselZararInput, CevreselZararResult>, CevreselZararCalculator>();
 
         // Registry — Singleton, eagerly resolves all ICalculator instances
         services.AddSingleton<ICalculatorRegistry>(sp =>

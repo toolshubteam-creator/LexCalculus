@@ -1,0 +1,142 @@
+@using LexCalculus.Core.Calculators.Bilirkisi
+@using LexCalculus.Core.Calculators.Common
+@model HakkaniyetliTazminatInput
+@{
+    var meta = (CalculatorMetadata)ViewData["Meta"]!;
+    var result = ViewData["Result"] as HakkaniyetliTazminatResult;
+    var tr = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<div class="calc-header">
+    <h1 class="calc-header__title">@meta.Title</h1>
+    <div class="calc-meta">
+        <div>№ <strong>@meta.DisplayNumber</strong></div>
+        <div>@meta.LegalReference</div>
+        <div>@meta.Category.ToShortName().ToUpper()</div>
+    </div>
+</div>
+
+<section class="hero hero--inline">
+    <p class="hero__lead hero__lead--narrow">@meta.ShortDescription</p>
+</section>
+
+<div class="info-box info-box--info">
+    <strong>Bu hesap ne zaman kullanılır?</strong>
+    <ul style="margin: var(--sp-2) 0 0 var(--sp-4); padding: 0;">
+        <li>TBK m.51 + Yargıtay HGK hakkaniyet ölçütlerinin parametrik simülasyonunda</li>
+        <li>Baz tazminat üzerine kusur oranı, ekonomik durum, olay ağırlığı, yaş etkisi</li>
+        <li>Manevi tazminat alternatif değer projeksiyonlarında (referans)</li>
+    </ul>
+</div>
+
+<div class="info-box info-box--warning">
+    <strong>Uyarı:</strong> Bu hesap TBK m.51 hakkaniyet ölçütlerini parametrik simülasyon
+    olarak uygular. Çarpan değerleri heuristik referansdır (hukuk profesyoneli incelemesi
+    sonrası kalibre edilecek). Somut davada mahkeme TBK m.4 + m.51 takdir yetkisini
+    kullanır.
+    <strong>Bu sonuç mahkeme kararı veya bilirkişi raporu yerine geçmez.</strong>
+</div>
+
+<div class="calc-layout">
+    <form method="post" class="form-section" asp-controller="Hesapla" asp-action="HakkaniyetliTazminat">
+        <h2 class="form-section__title">Simülasyon Bilgileri</h2>
+
+        <div asp-validation-summary="ModelOnly" class="info-box info-box--danger" role="alert"></div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="BazTazminat" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.BazTazminat) <span class="required">*</span>
+                </label>
+                <input asp-for="BazTazminat" class="field__input" type="number" step="0.01" min="0.01" placeholder="örn. 100000" />
+                <span asp-validation-for="BazTazminat" class="field-hint"></span>
+            </div>
+            <div class="field">
+                <label asp-for="KusurOrani" class="field__label field__label--required">
+                    @Html.DisplayNameFor(m => m.KusurOrani) <span class="required">*</span>
+                </label>
+                <input asp-for="KusurOrani" class="field__input" type="number" step="0.01" min="0" max="1" placeholder="örn. 1.00" />
+                <span asp-validation-for="KusurOrani" class="field-hint"></span>
+                <p class="field-hint">1.0 = davacı tam kusursuz, 0.0 = tam kusurlu (tazminat yok)</p>
+            </div>
+        </div>
+
+        <div class="field-row">
+            <div class="field">
+                <label asp-for="EkonomikDurum" class="field__label">@Html.DisplayNameFor(m => m.EkonomikDurum)</label>
+                <select asp-for="EkonomikDurum" asp-items="Html.GetEnumSelectList<EkonomikDurum>()" class="field__input"></select>
+            </div>
+            <div class="field">
+                <label asp-for="OlayAgirligi" class="field__label">@Html.DisplayNameFor(m => m.OlayAgirligi)</label>
+                <select asp-for="OlayAgirligi" asp-items="Html.GetEnumSelectList<OlayAgirligi>()" class="field__input"></select>
+            </div>
+            <div class="field">
+                <label asp-for="YasKategorisi" class="field__label">@Html.DisplayNameFor(m => m.YasKategorisi)</label>
+                <select asp-for="YasKategorisi" asp-items="Html.GetEnumSelectList<YasKategorisi>()" class="field__input"></select>
+            </div>
+        </div>
+
+        <div class="field">
+            <label asp-for="AsOfDate" class="field__label">@Html.DisplayNameFor(m => m.AsOfDate)</label>
+            <input asp-for="AsOfDate" class="field__input" type="date" />
+        </div>
+
+        @await Html.PartialAsync("_PaylasimToggle", (bool?)null)
+
+        <button type="submit" class="btn btn--primary btn--block">Simüle Et</button>
+    </form>
+
+    <div class="result-panel">
+        <h3 class="result-panel__title">Sonuç</h3>
+
+        @if (result is null)
+        {
+            <div class="result-panel__empty">
+                Baz tazminat ve hakkaniyet faktörlerini girip "Simüle Et" butonuna basarak
+                referans tazminat tutarını görüntüleyebilirsiniz.
+            </div>
+        }
+        else
+        {
+            <div class="result-total">
+                <div class="result-total__label">@result.TotalLabel</div>
+                <div class="result-total__amount">
+                    @result.TotalAmount?.ToString("N2", tr)<span class="result-total__currency">@result.Unit</span>
+                </div>
+            </div>
+
+            <div class="result-rows">
+                @foreach (var row in result.Rows)
+                {
+                    <div class="result-row @(row.IsHighlighted ? "result-row--highlighted" : "")">
+                        <span class="result-row__key">@row.Key</span>
+                        <span class="result-row__val">@row.Value</span>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(result.UyariMesaji))
+            {
+                <div class="result-note">@result.UyariMesaji</div>
+            }
+
+            @foreach (var warning in result.Warnings)
+            {
+                <div class="result-note">@warning</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(result.Note))
+            {
+                <div class="result-note">@Html.Raw(result.Note)</div>
+            }
+        }
+    </div>
+</div>
+
+<div class="catalog-back-link">
+    <a class="btn btn--ghost" href="/hesapla/bilirkisi">← Bilirkişilik Özel Araçları</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

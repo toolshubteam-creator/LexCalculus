@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using LexCalculus.Core.Calculators.Akturya;
 using LexCalculus.Core.Calculators.AileMiras;
+using LexCalculus.Core.Calculators.Bilirkisi;
 using LexCalculus.Core.Calculators.Ceza;
 using LexCalculus.Core.Calculators.Common;
 using LexCalculus.Core.Calculators.Faiz;
@@ -59,6 +60,10 @@ public class HesaplaController : Controller
     private readonly ICalculator<SirketTasfiyePayiInput, SirketTasfiyePayiResult> _sirketTasfiyePayiCalculator;
     private readonly ICalculator<KarPayiInput, KarPayiResult> _karPayiCalculator;
     private readonly ICalculator<SozlesmeCezasiInput, SozlesmeCezasiResult> _sozlesmeCezasiCalculator;
+    private readonly ICalculator<YasamTablosuSorguInput, YasamTablosuSorguResult> _yasamTablosuSorguCalculator;
+    private readonly ICalculator<IskontoluNakitAkisiInput, IskontoluNakitAkisiResult> _iskontoluNakitAkisiCalculator;
+    private readonly ICalculator<HakkaniyetliTazminatInput, HakkaniyetliTazminatResult> _hakkaniyetliTazminatCalculator;
+    private readonly ICalculator<CevreselZararInput, CevreselZararResult> _cevreselZararCalculator;
     private readonly ICalculationHistoryService _historyService;
     private readonly ITenantContext _tenantContext;
 
@@ -103,6 +108,10 @@ public class HesaplaController : Controller
         ICalculator<SirketTasfiyePayiInput, SirketTasfiyePayiResult> sirketTasfiyePayiCalculator,
         ICalculator<KarPayiInput, KarPayiResult> karPayiCalculator,
         ICalculator<SozlesmeCezasiInput, SozlesmeCezasiResult> sozlesmeCezasiCalculator,
+        ICalculator<YasamTablosuSorguInput, YasamTablosuSorguResult> yasamTablosuSorguCalculator,
+        ICalculator<IskontoluNakitAkisiInput, IskontoluNakitAkisiResult> iskontoluNakitAkisiCalculator,
+        ICalculator<HakkaniyetliTazminatInput, HakkaniyetliTazminatResult> hakkaniyetliTazminatCalculator,
+        ICalculator<CevreselZararInput, CevreselZararResult> cevreselZararCalculator,
         ICalculationHistoryService historyService,
         ITenantContext tenantContext)
     {
@@ -147,6 +156,10 @@ public class HesaplaController : Controller
         _sirketTasfiyePayiCalculator = sirketTasfiyePayiCalculator ?? throw new ArgumentNullException(nameof(sirketTasfiyePayiCalculator));
         _karPayiCalculator = karPayiCalculator ?? throw new ArgumentNullException(nameof(karPayiCalculator));
         _sozlesmeCezasiCalculator = sozlesmeCezasiCalculator ?? throw new ArgumentNullException(nameof(sozlesmeCezasiCalculator));
+        _yasamTablosuSorguCalculator = yasamTablosuSorguCalculator ?? throw new ArgumentNullException(nameof(yasamTablosuSorguCalculator));
+        _iskontoluNakitAkisiCalculator = iskontoluNakitAkisiCalculator ?? throw new ArgumentNullException(nameof(iskontoluNakitAkisiCalculator));
+        _hakkaniyetliTazminatCalculator = hakkaniyetliTazminatCalculator ?? throw new ArgumentNullException(nameof(hakkaniyetliTazminatCalculator));
+        _cevreselZararCalculator = cevreselZararCalculator ?? throw new ArgumentNullException(nameof(cevreselZararCalculator));
         _historyService = historyService ?? throw new ArgumentNullException(nameof(historyService));
     }
 
@@ -2242,6 +2255,203 @@ public class HesaplaController : Controller
         if (!ModelState.IsValid) return View(viewPath, input);
 
         var result = await _sozlesmeCezasiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("bilirkisi/yasam-tablosu-sorgu")]
+    public async Task<IActionResult> YasamTablosuSorgu([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "yasam-tablosu-sorgu");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<YasamTablosuSorguInput>(restore, ct) ?? new YasamTablosuSorguInput
+        {
+            Yas = 40
+        };
+
+        return View("~/Views/Hesapla/Bilirkisi/YasamTablosuSorgu.cshtml", input);
+    }
+
+    [HttpPost("bilirkisi/yasam-tablosu-sorgu")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> YasamTablosuSorgu(YasamTablosuSorguInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "yasam-tablosu-sorgu");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Bilirkisi/YasamTablosuSorgu.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _yasamTablosuSorguCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("bilirkisi/iskontolu-nakit-akisi")]
+    public async Task<IActionResult> IskontoluNakitAkisi([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "iskontolu-nakit-akisi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<IskontoluNakitAkisiInput>(restore, ct) ?? new IskontoluNakitAkisiInput();
+        return View("~/Views/Hesapla/Bilirkisi/IskontoluNakitAkisi.cshtml", input);
+    }
+
+    [HttpPost("bilirkisi/iskontolu-nakit-akisi")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> IskontoluNakitAkisi(IskontoluNakitAkisiInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "iskontolu-nakit-akisi");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Bilirkisi/IskontoluNakitAkisi.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _iskontoluNakitAkisiCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("bilirkisi/hakkaniyetli-tazminat")]
+    public async Task<IActionResult> HakkaniyetliTazminat([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "hakkaniyetli-tazminat");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<HakkaniyetliTazminatInput>(restore, ct) ?? new HakkaniyetliTazminatInput
+        {
+            KusurOrani = 1.0m,
+            AsOfDate = DateTime.Today
+        };
+
+        return View("~/Views/Hesapla/Bilirkisi/HakkaniyetliTazminat.cshtml", input);
+    }
+
+    [HttpPost("bilirkisi/hakkaniyetli-tazminat")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> HakkaniyetliTazminat(HakkaniyetliTazminatInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "hakkaniyetli-tazminat");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Bilirkisi/HakkaniyetliTazminat.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _hakkaniyetliTazminatCalculator.CalculateAsync(input, cancellationToken);
+
+        if (!result.IsValid)
+        {
+            foreach (var (field, message) in result.ValidationErrors)
+                ModelState.AddModelError(field, message);
+            return View(viewPath, input);
+        }
+
+        ViewData["Result"] = result;
+        await LogHistoryAsync(meta, input, result, result.TotalAmount, result.Unit, shareWithTenant, cancellationToken);
+        return View(viewPath, input);
+    }
+
+    [HttpGet("bilirkisi/cevresel-zarar")]
+    public async Task<IActionResult> CevreselZarar([FromQuery] int? restore, CancellationToken ct)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "cevresel-zarar");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta
+        {
+            Title = $"{meta.Title} — Lex Calculus",
+            Description = meta.ShortDescription,
+            Keywords = string.Join(", ", meta.Keywords)
+        };
+
+        var input = await RestoreFromHistoryAsync<CevreselZararInput>(restore, ct) ?? new CevreselZararInput();
+        return View("~/Views/Hesapla/Bilirkisi/CevreselZarar.cshtml", input);
+    }
+
+    [HttpPost("bilirkisi/cevresel-zarar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CevreselZarar(CevreselZararInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
+    {
+        var meta = _registry.Find(CalculatorCategory.Bilirkisi, "cevresel-zarar");
+        if (meta is null) return NotFound();
+
+        ViewData["Title"] = meta.Title;
+        ViewData["Meta"] = meta;
+        ViewData["PageMeta"] = new SeoMeta { Title = $"{meta.Title} — Lex Calculus", Description = meta.ShortDescription };
+
+        const string viewPath = "~/Views/Hesapla/Bilirkisi/CevreselZarar.cshtml";
+        if (!ModelState.IsValid) return View(viewPath, input);
+
+        var result = await _cevreselZararCalculator.CalculateAsync(input, cancellationToken);
 
         if (!result.IsValid)
         {

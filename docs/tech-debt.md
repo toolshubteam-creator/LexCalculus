@@ -1494,3 +1494,31 @@ geçişinde admin paneli "yeni dilim seti ekle" UI'ı ile yapılmalı.
 **Önerilen zaman:** Faz 8+ (G3 Damga + G5 Vergi Cezası dilim ihtiyaçlarıyla
 birlikte). Şu an seeder yeterli — Faz 7 closing'inde G kategorisi 5 araç + 2
 dilim seti, manuel maintenance maliyeti düşük.
+
+---
+
+## 51. I3 Hakkaniyetli Tazminat çarpanları heuristik (nafaka #45 pattern)
+
+**Bağlam:** Adım 7.12 (I3 Hakkaniyetli Tazminat Simülatörü, TBK m.51) — 9
+katsayı (ekonomik durum × 3, olay ağırlığı × 3, yaş kategorisi × 3) heuristik
+referans değerlerle FormulaParameter olarak seed edildi. Çarpanlar Yargıtay
+HGK içtihat eğilimine yakındır ancak somut hukuk profesyoneli incelemesi
+yapılmadı (nafaka madde #45 ile aynı kategori).
+
+**Mevcut durum:** Çarpanlar `hakkaniyetli-tazminat/{ekonomik|olay|yas}.*`
+slug altında 2026-01-01 EffectiveDate ile aktif. View her sonuçta "çarpan
+değerleri heuristik referansdır, hâkim TBK m.4+m.51 takdir yetkisini
+kullanır" uyarısı gösterir.
+
+**İdeal çözüm:** Faz 7 sonu (Adım 7.13 closeout) veya Faz 8'de hukuk
+profesyoneli incelemesi: (1) Yargıtay HGK son 5 yıl manevi tazminat
+kararlarından çarpan kalibrasyonu (regresyon yöntemiyle ortalama etkileri
+çıkar); (2) Müterafik kusur indirim oranlarının ayrıca işlenip işlenmemesi
+(şu an `KusurOrani` davacı kusursuzluk derecesi olarak doğrudan çarpan);
+(3) Manevi tazminat dışındaki kalemler (maddi zarar) için ayrı parametre
+seti gerekip gerekmediği.
+
+**Önerilen zaman:** Faz 8+ hukuk profesyoneli incelemesi sürecinde (madde
+#45 nafaka katsayıları + #47 yarım kardeş ayrımı ile birlikte
+değerlendirilebilir). Kalibrasyon admin paneliyle çarpan güncellemesi
+yapılabilir hâle gelmiştir (Faz 3 FormulaParameters admin CRUD).

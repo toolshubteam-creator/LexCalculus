@@ -139,7 +139,21 @@ public static class CalculatorParameterSeeder
             new() { ToolSlug = "*", Key = "gecikme-faizi.aylik-oran", Value = 0.035m, EffectiveDate = new DateTime(2026, 1, 1), Source = "213 s.K. m.112", Note = "2026 yılı gecikme faizi aylık %3,5" },
 
             // ----- G5 Gecikme Zammı (6183 s.K. m.51) — aynı pattern, 2026 oranı -----
-            new() { ToolSlug = "*", Key = "gecikme-zammi.aylik-oran", Value = 0.035m, EffectiveDate = new DateTime(2026, 1, 1), Source = "6183 s.K. m.51 — Cumhurbaşkanı Kararı 2026", Note = "Gecikme zammı aylık %3,5" }
+            new() { ToolSlug = "*", Key = "gecikme-zammi.aylik-oran", Value = 0.035m, EffectiveDate = new DateTime(2026, 1, 1), Source = "6183 s.K. m.51 — Cumhurbaşkanı Kararı 2026", Note = "Gecikme zammı aylık %3,5" },
+
+            // ----- I3 Hakkaniyetli Tazminat Çarpanları (TBK m.51 + Yargıtay HGK heuristik, bkz. tech-debt #51) -----
+            // Ekonomik durum çarpanı (1.0 normal taban).
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "ekonomik.zor", Value = 1.2m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — Yargıtay HGK heuristik (referans)", Note = "Düşük ekonomik durum → tazminat artışı" },
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "ekonomik.normal", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "Normal ekonomik durum (taban)" },
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "ekonomik.refah", Value = 0.8m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "Refah → tazminat azalması" },
+            // Olay ağırlığı çarpanı.
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "olay.hafif", Value = 0.8m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "Hafif olay ağırlığı" },
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "olay.normal", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "Normal olay ağırlığı (taban)" },
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "olay.agir", Value = 1.3m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "Ağır olay → tazminat artışı" },
+            // Yaş kategorisi çarpanı.
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "yas.genc", Value = 1.1m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "Genç (≤30) yaş kategorisi" },
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "yas.orta", Value = 1.0m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "Orta yaş (taban)" },
+            new() { ToolSlug = "hakkaniyetli-tazminat", Key = "yas.ileri", Value = 0.9m, EffectiveDate = new DateTime(2026, 1, 1), Source = "TBK m.51 — referans katsayı", Note = "İleri yaş (60+) kategorisi" }
         };
 
         foreach (var seed in seeds)
