@@ -1558,3 +1558,40 @@ implementation'ında yakalanırdı.
 (maliyet ~10 dk/dalga). Otomatik browser test altyapısı Faz 8+ kalite
 girişiminin parçası olarak değerlendirilebilir (~1 gün setup + slug-başına
 1 test üretimi otomatik). Kategori: süreç borcu, sürekli.
+
+---
+
+## 53. jQuery validate console error — base jQuery library eksik
+
+**Bağlam:** Adım 7.13 closeout manuel smoke test'inde (6 araç tarayıcı
+doğrulama) yakalandı. `_Layout.cshtml` veya `_ValidationScriptsPartial`
+`jquery.validate.min.js` + `jquery.validate.unobtrusive.min.js` yüklüyor
+ancak bağımlı olduğu `jquery.min.js` (base library) yüklenmemiş. Her sayfa
+yüklemesinde tarayıcı console'a `Uncaught ReferenceError: jQuery is not
+defined` (veya benzeri) hatası düşüyor.
+
+**Mevcut durum:** Functional etki düşük — client-side validation pasif,
+server-side ModelState validation (`[Required]`, `[Range]`, `[StringLength]`,
+custom `IValidatableObject`) çalışıyor, form submit doğru hatalarla geri
+dönüyor. Sapma muhtemelen Faz 2'den beri mevcut (Identity scaffold'undan
+gelmiş olabilir veya `_Layout.cshtml` ilk kurulduğunda jQuery kasıtsız
+çıkarılmış). Faz 7 manuel smoke test'i sapmayı 17 Haziran 2026'da yakaladı.
+Sapma kapsam dışı (Faz 7 hedefi 26 calculator) — düzeltme Faz 8'e ertelendi.
+
+**İdeal çözüm:** İki seçenek:
+1. **jQuery base library ekle** (validation aktif olsun istiyorsak):
+   `wwwroot/lib/jquery/dist/jquery.min.js` (LibMan veya manuel) + layout'ta
+   validate scriptlerinden **önce** `<script src="~/lib/jquery/dist/jquery.min.js"></script>`.
+   Mevcut decimal binding (`FlexibleDecimalModelBinder`) ve form Razor tag
+   helper'lar etkilenmez.
+2. **3 validate scriptini de kaldır** (jQuery validation kullanmıyorsak):
+   `_ValidationScriptsPartial.cshtml` referansını layout'tan veya page'lerden
+   çıkar. Server-side validation tek koruma katmanı kalır (zaten birincil).
+
+Karar Faz 8 lansman önceliklerine göre verilecek. Seçenek 1 muhtemelen daha
+güvenli (sayfa hızı etkisi minimal, validation UI gelişmiş hata gösterimi
+sağlar); seçenek 2 daha sade.
+
+**Önerilen zaman:** **Faz 8 lansman öncesi** — production console error'leri
+profesyonel bir izlenim için temizlenmiş olmalı. Tahmini iş: ~30 dk (seçenek 1)
+veya ~15 dk (seçenek 2). Kategori: UX kalite + production temizlik.
