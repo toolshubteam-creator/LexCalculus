@@ -2,11 +2,14 @@
 
 ## Hesaplama Tamamlama
 
-**Başlangıç:** 5 Haziran 2026 · **Charter:** [phase-7-charter.md](./phase-7-charter.md)
+**Başlangıç:** 5 Haziran 2026 · **Bitiş:** 17 Haziran 2026 · **Süre:** ~13 gün
+(charter 3-4 hafta tahmini) · **Charter:** [phase-7-charter.md](./phase-7-charter.md)
 · **Envanter:** [phase-7-scope-inventory.md](./phase-7-scope-inventory.md)
 
-⏳ **Faz 7 başladı** — 3 dalga, 12 alt adım (7.2-7.13), 26 yeni hesaplama aracı.
-Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complete`.
+🏁 **Faz 7 — Hesaplama Tamamlama ✅ TAMAMLANDI** — 3 dalga, 12 alt adım (7.2-7.13)
++ 1 hotfix (7.13a), 26 yeni hesaplama aracı. **17 → 43 aktif araç** (9 kategori
+tam %100 kapsama). Tag: `phase-7-complete` (smoke onayı sonrası annotated tag,
+mesaj: `temp/phase-7-complete-tag-message.txt`).
 
 ---
 
@@ -16,7 +19,7 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 |---|---|---|---|---|
 | A | Gayrimenkul + Aile/Miras | 7.2-7.6 | 5-6 gün | ✅ |
 | B | Ceza + Vergi/İdare | 7.7-7.10 | 5-6 gün | ✅ |
-| C | Ticaret + Bilirkişi + closeout | 7.11-7.13 | 3-4 gün | ⏳ |
+| C | Ticaret + Bilirkişi + closeout | 7.11-7.13 | 3-4 gün | ✅ |
 
 ## Adım tablosu
 
@@ -33,9 +36,10 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 | 7.8 | F3 + F4 + F5 | 3 | - | KARMAŞIK + ORTA + BASİT | ✅ |
 | 7.9 | Vergi dilim + G1 + G2 | 2 | Vergi entity | KARMAŞIK + BASİT | ✅ |
 | 7.10 | G3 + G4 + G5 + Dalga B closeout | 3 | - | ORTA × 2 + KARMAŞIK | ✅ |
-| 7.11 | H1 + H2 + H3 | 3 | - | ORTA × 3 | ⏳ |
-| 7.12 | I1 + I2 + I3 + I4 | 4 | - | BASİT × 2 + KARMAŞIK + ORTA | ⏳ |
-| 7.13 | Faz 7 closeout | - | - | - | ⏳ |
+| 7.11 | H1 + H2 + H3 | 3 | - | ORTA × 3 | ✅ |
+| 7.12 | I1 + I2 + I3 + I4 | 4 | - | BASİT × 2 + KARMAŞIK + ORTA | ✅ |
+| 7.13a | F1 Ceza Erteleme route hotfix | - | - | - | ✅ |
+| 7.13 | Faz 7 closeout | - | - | - | ✅ |
 
 ---
 
@@ -174,26 +178,63 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 
 ---
 
-## Dalga C — Ticaret + Bilirkişi + closeout (7.11-7.13, 7 araç)
+## Dalga C — Ticaret + Bilirkişi + closeout (7.11-7.13, 7 araç) 🏁 ✅
 
-### Adım 7.11 — H1 + H2 + H3 ⏳
-- **H1 Şirket Tasfiye Payı** (ORTA) — 6102 s.K. TTK, girdi-bazlı bilanço.
-- **H2 Anonim Şirket Kâr Payı** (ORTA) — 6102 s.K. TTK, 1./2. temettü kuralları.
-- **H3 Tazminat Sözleşme Cezası** (ORTA) — TBK m.179-182, ceza şartı + hâkim indirimi.
+### Adım 7.11 — H1 + H2 + H3 ✅
+- **H1 Şirket Tasfiye Payı** (ORTA) — 6102 s.K. TTK m.543 + m.642, girdi-bazlı
+  bilanço (varlıklar − borçlar − tasfiye gideri = tasfiye edilebilir net),
+  pay sahibi başına dağıtım.
+- **H2 Anonim Şirket Kâr Payı** (ORTA) — 6102 s.K. TTK m.508 + m.519, 1.
+  temettü (yedek akçe sonrası dağıtılabilir kârın %5'i pay sahiplerine garanti)
+  + 2. temettü (yönetim kurulu kararına bağlı serbest).
+- **H3 Sözleşme Cezası** (ORTA) — TBK m.179-182, ceza şartı + TBK m.182/3
+  hâkim indirimi (fahiş ceza ölçütü).
+- Tüm 3 araç **parametresiz** (saf hesap, DB gerekmez).
+- Test: +18 (967 → 985). Calculator 36 → 39.
 
-### Adım 7.12 — I1 + I2 + I3 + I4 ⏳
-- **I1 PMF Yaşam Tablosu Sorgulama** (BASİT) — TRH 2010, ILifeTableService reuse.
-- **I2 İskontolu Nakit Akışı** (BASİT) — finans matematiği, IActuarialService
-  annuity/discount reuse.
-- **I3 Hakkaniyetli Tazminat Simülatörü** (KARMAŞIK) — emsal kararlar, girdi-bazlı
-  tahmin. Referans karar test zorunlu.
-- **I4 Çevresel Zarar Tazminatı** (ORTA) — 2872 s.K., YENİ-PARAMETRE (kirlilik
-  türü katsayısı).
+### Adım 7.12 — I1 + I2 + I3 + I4 ✅
+- **I1 PMF Yaşam Tablosu Sorgulama** (BASİT) — TRH 2010, `ILifeTableService`
+  reuse (Faz 1 altyapısı). Yaş + cinsiyet → beklenen yaşam süresi + ölüm olasılığı.
+- **I2 İskontolu Nakit Akışı** (BASİT) — finans matematiği, `IActuarialService`
+  annuity/discount reuse. Nakit akışı + iskonto oranı + dönem → bugünkü değer.
+- **I3 Hakkaniyetli Tazminat Simülatörü** (KARMAŞIK) — TBK m.51, 9 katsayı
+  (ekonomik durum × 3, olay ağırlığı × 3, yaş × 3) FormulaParameter
+  (`hakkaniyetli-tazminat/*`, heuristik referans — tech-debt #51). Referans
+  karar test (Karar 4) ✅. View'da güçlü uyarı.
+- **I4 Çevresel Zarar Tazminatı** (ORTA) — 2872 s.K. m.28, kirlilik türü +
+  alan büyüklüğü + süre + kalkınma maliyeti. FormulaParameter (kirlilik türü
+  katsayısı, ~5 satır).
+- Test: +15 (985 → 1000). Calculator 39 → 43. **🎯 43/43 milestone.**
 
-### Adım 7.13 — Faz 7 closeout ⏳
-- README + roadmap + tech-debt güncelleme.
-- Tamamlanma kriterleri doğrulama (§8 charter).
-- `phase-7-complete` annotated tag.
+> 🏁 **Dalga C tamamlandı (Adım 7.11-7.12, 7 araç).** H Ticaret (3): Tasfiye Payı,
+> Kâr Payı, Sözleşme Cezası. I Bilirkişi (4): PMF Sorgu, DCF, Hakkaniyetli Tazminat,
+> Çevresel Zarar. Aktif araç 36 → 43 (charter hedef %100). Sonraki: Adım 7.13a
+> (F1 hotfix) + Adım 7.13 (Faz 7 closeout).
+
+### Adım 7.13a — F1 Ceza Erteleme view sapması hotfix ✅
+- **Bağlam:** Closeout öncesi smoke test taramasında browser'da `/hesapla/ceza/ceza-erteleme`
+  "yakında" placeholder gösteriyordu — Calculator + DI register + test + view dosyası
+  hepsi DOĞRU; sapma `HesaplaController` route attribute'undaydı.
+- **Kök sebep:** Adım 7.7'de F1 GET/POST route `[HttpGet("ceza/erteleme")]`
+  yazılmış; ancak registry slug `"ceza-erteleme"`. Diğer 4 Ceza tool'u (F2-F5)
+  `ceza/{full-slug}` formatına uyuyor; F1 tek anomali. Kullanıcı slug-tabanlı
+  URL'ye gidince spesifik route match etmedi → generic catch-all
+  `[HttpGet("{categorySlug}/{toolSlug}")]` "yakında" placeholder döndürdü.
+- **Düzeltme:** `HesaplaController.cs` 2 satır:
+  `[HttpGet("ceza/erteleme")]` → `[HttpGet("ceza/ceza-erteleme")]`,
+  POST aynı. Form `asp-action` tag helper kullandığı için view dokunulmadı.
+- **Test:** 1000 yeşil (regresyon 0, test eklenmedi). Build 0/0.
+- **Sapma kaydı:** tech-debt #52 (manuel smoke test her dalga sonu zorunlu —
+  otomatik test view render uyumunu kapsamıyor, F1 sapması Faz 7 boyunca
+  yakalanmadı, closeout'a kadar geldi).
+- **Commit:** `55cdafb`.
+
+### Adım 7.13 — Faz 7 closeout ✅
+- Roadmap final ✅ + 🏁 banner + final istatistikler.
+- README durum bloğu Faz 7 ✅ TAMAMLANDI banner.
+- tech-debt güncel: #52 yeni eklendi, çözülen (#43, #49) + açık ayrımı net.
+- temp/phase-7-complete-tag-message.txt hazır (ASCII safe, multi-line).
+- `phase-7-complete` annotated tag smoke onayı sonrası ayrı komut ile.
 
 ---
 
@@ -213,3 +254,69 @@ Hedef: 17 → 43 aktif araç (9 kategori tam). Tag (kapanış): `phase-7-complet
 > kesinleşir). KARMAŞIK 9 araç tamamı için referans karar test zorunlu (Karar 4).
 
 **Toplam: 26 araç** — Faz 7 sonu 17 + 26 = **43 aktif hesaplama aracı**.
+
+---
+
+## 🏁 Faz 7 final istatistikler
+
+| Metrik | Faz başı | Faz sonu | Delta |
+|---|---|---|---|
+| Aktif hesaplama aracı | 17 | **43** | +26 (%100 katalog kapsama) |
+| Test | 838 | **1000** | +162 (regresyon 0) |
+| Build | 0/0 | 0/0 | warnaserror korundu |
+| Yeni altyapı servisi | — | **3** | IInheritanceDistributionService + ICriminalCalendarService + TaxBracket entity |
+| Yeni view klasörü | — | **6** | Gayrimenkul, AileMiras, Ceza, VergiIdare, Ticaret, Bilirkisi |
+| Yeni migration | — | **1** | AddTaxBrackets |
+| FormulaParameter seed | — | **~75 satır** | yeni |
+| TaxBracket seed | — | **10 satır** | yeni |
+| Commit | — | **13** | 11 implementation + 1 hotfix (7.13a) + 1 closeout |
+| Charter karar | 4/4 | 4/4 ✓ | TaxBracket entity, CriminalCalendarService, InheritanceDistributionService, sentetik referans test pattern |
+
+### Dalga kırılımı (gerçek)
+
+| Dalga | Adım | Araç | Commit | Test delta |
+|---|---|---|---|---|
+| A — Gayrimenkul + Aile/Miras | 7.2-7.6 | 9 | 5 | 838 → 900 (+62) |
+| B — Ceza + Vergi/İdare | 7.7-7.10 | 10 | 4 | 900 → 967 (+67) |
+| C — Ticaret + Bilirkişi | 7.11-7.12 | 7 | 2 | 967 → 1000 (+33) |
+| Hotfix | 7.13a | F1 route | 1 | 1000 (regresyon 0) |
+| Closeout | 7.13 | docs | 1 | — |
+
+### Kapanan tech-debt (Faz 7'de)
+- **#43** Enum comment drift (CalculatorCategory) — Adım 7.2
+- **#49** F3 DavaZamanasimi unused ICriminalCalendarService inject — Adım 7.10
+
+### Açık tech-debt (Faz 8'e devredildi)
+- **Hukuk profesyoneli incelemesi:** #45 nafaka katsayı, #46 TMK m.501 4. derece,
+  #47 yarım kardeş ayrımı, #51 hakkaniyetli tazminat çarpan kalibrasyon.
+- **Otomatik veri çekme:** #44 ÜFE elle seed, #48 dini bayram kameri takvim,
+  #50 TaxBracket admin UI + otomatik dilim.
+- **Süreç:** #42 referans belge dangling commit, **#52 manuel smoke test
+  her dalga sonu zorunlu** (yeni — F1 sapması Adım 7.13 closeout'a kadar
+  yakalanmadı).
+
+### Süreç öğrenmeleri (Faz 7'den Faz 8'e)
+1. **Pseudo-kod ≠ ground truth** — Claude Code her komutta varsayımları gerçek
+   koda göre düzeltti (E4 net alacak yönü, ILifeTableService imzası, TÜFE
+   altyapı reuse, vb.). Pattern Faz 8'de devam.
+2. **F1 route sapması (7.7) Faz 7 boyunca yakalanmadı** — generic catch-all
+   placeholder maskeleme yaptı. Otomatik test view render doğrulamasını
+   kapsamıyor. #52 olarak deftere alındı.
+3. **#41 envanter denetim usage taraması her komutta uygulandı** — Faz 6
+   öğrenmesi pattern olarak yerleşti.
+4. **Sentetik referans test pattern (Karar 4)** — Yargıtay metni gerektirmeden
+   mevzuat formül doğrulama için yeterli.
+5. **Parametresiz Calculator + DB'siz test pattern** (Adım 7.4'ten itibaren) —
+   hızlı test koşumu, izolasyon temiz.
+6. **Yeni altyapı Core vs Infrastructure ayrımı:** DB IO yapanlar Infrastructure
+   (TaxBracketService), saf hesap Core (Inheritance, CriminalCalendar).
+
+### Manuel smoke test (kullanıcı doğrulaması)
+6 araç: D1 Arsa Payı, E2 Miras Payı, F2 Koşullu Salıverilme, G1 Veraset,
+I3 Hakkaniyetli Tazminat, F1 Ceza Erteleme (hotfix sonrası).
+
+### Sonraki: Faz 8 — Lansman Planı
+- Production deploy
+- Hukuk profesyoneli incelemesi (9 KARMAŞIK araç + #45 + #46 + #47 + #51)
+- İlk kullanıcılar + geri bildirim
+- Faz 8 teması veri-temelli karar.

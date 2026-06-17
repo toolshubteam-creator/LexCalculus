@@ -1522,3 +1522,39 @@ seti gerekip gerekmediği.
 #45 nafaka katsayıları + #47 yarım kardeş ayrımı ile birlikte
 değerlendirilebilir). Kalibrasyon admin paneliyle çarpan güncellemesi
 yapılabilir hâle gelmiştir (Faz 3 FormulaParameters admin CRUD).
+
+---
+
+## 52. Manuel smoke test her dalga sonu zorunlu (süreç)
+
+**Bağlam:** Adım 7.13a (Faz 7 closeout öncesi). F1 Ceza Erteleme browser'da
+`/hesapla/ceza/ceza-erteleme` URL'sinde "yakında" placeholder gösteriyordu —
+Calculator + DI register + view dosyası + test (1000 yeşil) hepsi DOĞRU; sapma
+`HesaplaController` route attribute'undaydı (Adım 7.7'de `[HttpGet("ceza/erteleme")]`
+yazılmış, slug `ceza-erteleme`). Diğer 4 Ceza tool'u (F2-F5) `ceza/{full-slug}`
+formatına uyuyor; F1 tek anomali. Generic catch-all
+`[HttpGet("{categorySlug}/{toolSlug}")]` defansif olarak "yakında" döndürdü,
+bu da sapmayı **maskeleyerek 6 adım boyunca (7.7 → 7.13) gizledi**.
+
+**Mevcut durum:** Otomatik test altyapısı (unit + integration) view dosyasının
+gerçek HTTP route üzerinden render edilebildiğini doğrulamıyor; Calculator
+mantığı + DI register izole edildiğinden test 1000/1000 yeşil iken sayfa
+browser'da kırık olabilir. Generic catch-all "yakında" davranışı sapmaları
+sessizleştiriyor — daha gürültülü `NotFound()` olsaydı en geç Adım 7.8 (F3)
+implementation'ında yakalanırdı.
+
+**İdeal çözüm:** İki paralel önlem:
+1. **Süreç:** Her dalga sonu kullanıcı manuel smoke test (5 araç spot kontrol)
+   — Dalga A/B/C closeout commit'leri öncesi tarayıcıda gerçek HTTP. Faz 7'de
+   Dalga A/B/C closeout'larında manuel smoke yapıldı ama F1 örnekleme dışında
+   kaldı; Faz 8'de kategori başına ≥1 araç spot kontrol şart.
+2. **Otomatik:** Playwright / Selenium integration test ekleme — registry'deki
+   her aktif slug için `/hesapla/{category}/{slug}` GET → 200 + view içeriği
+   (ör. `<form>` selector) doğrulaması. Generic catch-all "yakında"
+   placeholder testte ayrı bir negative-pattern olarak işaretlenebilir
+   (placeholder gören test başarısız olur).
+
+**Önerilen zaman:** Faz 8 dalga süreçlerine manuel smoke checklist eklenir
+(maliyet ~10 dk/dalga). Otomatik browser test altyapısı Faz 8+ kalite
+girişiminin parçası olarak değerlendirilebilir (~1 gün setup + slug-başına
+1 test üretimi otomatik). Kategori: süreç borcu, sürekli.

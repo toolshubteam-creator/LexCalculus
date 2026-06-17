@@ -4,22 +4,42 @@ Türk hukukuna özgü hesaplamalar için profesyonel SaaS platformu. Avukatlar v
 
 ## Durum
 
-### Faz 7 — Hesaplama Tamamlama başladı
+### Faz 7 — Hesaplama Tamamlama ✅ TAMAMLANDI
 
 [Charter](./docs/phase-7-charter.md) · [Roadmap](./docs/phase-7-roadmap.md) · [Envanter](./docs/phase-7-scope-inventory.md)
 
-- **Tahmin:** 13-16 gün (charter 3-4 hafta)
-- D-I kategorileri için 26 yeni hesaplama aracı (3 dalga, 12 alt adım: 7.2-7.13)
-- Faz 7 sonrası: **43 aktif hesaplama aracı** (9 kategori tam), lansman hazırlık
-- 🏁 **Dalga A ✅ tamamlandı (Adım 7.2-7.6, 9 araç):** D Gayrimenkul (Arsa Payı,
-  Kamulaştırma, Ecrimisil, Kat Karşılığı, Hâsılat Kira) + E Aile/Miras (Nafaka,
-  Mal Rejimi Tasfiyesi, Miras Payı, Tenkis). Aktif araç: 17 → 26.
-- 🏁 **Dalga B ✅ tamamlandı (Adım 7.7-7.10, 10 araç):** F Ceza (Erteleme,
-  Koşullu Salıverilme, Zamanaşımı, Adli Para, Tutukluluk Mahsup) + G Vergi/İdare
-  (Veraset, Tapu Harcı, Damga, KDV İade, Vergi Cezası). Aktif araç: 26 → 36.
-- **Faz 7 ilerleme: 19/26 araç (%73)** — Dalga C'de H Ticaret (3) + I Bilirkişi (4) kaldı.
-- Sonraki: Adım 7.11 — H Ticaret (Dalga C açılışı): H1 Tasfiye + H2 Kâr Payı +
-  H3 Sözleşme Cezası
+**Tag:** `phase-7-complete` (smoke onayı sonrası annotated tag) ·
+**Süre:** 5 Haziran → 17 Haziran 2026 (~13 gün, charter 3-4 hafta tahmini)
+
+🏁 **43/43 aktif hesaplama aracı, 9 kategori tam %100 kapsanmış.** Lex Calculus
+"kapsamlı hukuki hesaplama platformu" iddiası fiilen doğru.
+
+| Metrik | Faz başı | Faz sonu |
+|---|---|---|
+| Aktif hesaplama aracı | 17 | **43** (+26) |
+| Test | 838 | **1000** (+162, regresyon 0) |
+| Build | 0/0 | 0/0 (warnaserror) |
+| Charter karar | 4/4 ✓ | TaxBracket, CriminalCalendar, Inheritance, sentetik referans test |
+
+**3 dalga, 12 alt adım + 1 hotfix:**
+- 🏁 **Dalga A** (7.2-7.6, 9 araç) — D Gayrimenkul (Arsa Payı, Kamulaştırma,
+  Ecrimisil, Kat Karşılığı, Hâsılat Kira) + E Aile/Miras (Nafaka, Mal Rejimi,
+  Miras Payı, Tenkis).
+- 🏁 **Dalga B** (7.7-7.10, 10 araç) — F Ceza (Erteleme, Koşullu Salıverilme,
+  Zamanaşımı, Adli Para, Tutukluluk Mahsup) + G Vergi/İdare (Veraset, Tapu Harcı,
+  Damga, KDV İade, Vergi Cezası).
+- 🏁 **Dalga C** (7.11-7.12, 7 araç) — H Ticaret (Tasfiye, Kâr Payı, Sözleşme
+  Cezası) + I Bilirkişi (PMF Sorgu, DCF, Hakkaniyetli Tazminat, Çevresel Zarar).
+- 🔧 **Adım 7.13a hotfix** — F1 Ceza Erteleme route slug uyumsuzluğu
+  (`ceza/erteleme` → `ceza/ceza-erteleme`); generic catch-all "yakında"
+  placeholder maskelemişti, smoke test'te yakalandı, tech-debt #52.
+
+**Yeni altyapı:** `IInheritanceDistributionService` + `ICriminalCalendarService`
++ `TaxBracket` entity (3 charter kararı). **Yeni view klasörü:** 6
+(Gayrimenkul, AileMiras, Ceza, VergiIdare, Ticaret, Bilirkisi).
+
+Sonraki: **Faz 8 — Lansman Planı** (production deploy + hukuk profesyoneli
+incelemesi + ilk kullanıcı geri bildirimi).
 
 ---
 
