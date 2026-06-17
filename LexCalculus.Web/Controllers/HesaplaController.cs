@@ -1611,7 +1611,7 @@ public class HesaplaController : Controller
         return View(viewPath, input);
     }
 
-    [HttpGet("ceza/erteleme")]
+    [HttpGet("ceza/ceza-erteleme")]
     public async Task<IActionResult> CezaErteleme([FromQuery] int? restore, CancellationToken ct)
     {
         var meta = _registry.Find(CalculatorCategory.Ceza, "ceza-erteleme");
@@ -1634,7 +1634,7 @@ public class HesaplaController : Controller
         return View("~/Views/Hesapla/Ceza/CezaErteleme.cshtml", input);
     }
 
-    [HttpPost("ceza/erteleme")]
+    [HttpPost("ceza/ceza-erteleme")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CezaErteleme(CezaErtelemeInput input, [FromForm] bool shareWithTenant = false, CancellationToken cancellationToken = default)
     {
